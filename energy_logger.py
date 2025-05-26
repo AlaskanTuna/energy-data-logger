@@ -13,11 +13,9 @@ from datetime import datetime
 DS_FILENAME = "energy_data.csv"
 DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (LVA)"]
 
-# Create new CSV file if it doesn't exist
-if not os.path.exists(DS_FILENAME):
-    with open(DS_FILENAME, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(DS_HEADER)
+with open(DS_FILENAME, 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(DS_HEADER)
 
 # Functions
 def meter_reading():
@@ -54,7 +52,7 @@ def calculate_statistics():
         print(f"\n{column}:")
         for stat_name, stat_value in values.items():
             print(f"  {stat_name}: {stat_value:.2f}")
-    
+
     return df
 
 def visualize_data(df):
@@ -141,8 +139,8 @@ def visualize_data(df):
     plt.tight_layout()
     
     # Save both figures
-    fig.savefig('energy_data_visualization.png')
-    plt.savefig('energy_data_normalized.png')
+    fig.savefig("plots/energy_data_visualization.png")
+    plt.savefig("plots/energy_data_normalized.png")
 
     print("\nVisualizations saved as:")
     print("'energy_data_visualization.png'")
@@ -162,7 +160,7 @@ def simulate():
                 writer = csv.writer(file)
                 writer.writerow([timestamp, voltage, current, energy, reactive_power])
                 
-            print(f"[{timestamp}] Logged: V={voltage}V | I={current}A | E={energy}kW | RP={reactive_power}LVA")
+            print(f"[{timestamp}] Logged: V={voltage} V | I={current} A | E={energy} kW | RP={reactive_power} LVA")
 
             for _ in range(30):
                 if msvcrt.kbhit():
