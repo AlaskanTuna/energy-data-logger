@@ -39,6 +39,10 @@ Temporary Items
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+.gitignore
+plots/
+LICENSE
+*.csv
 
 # Visual Studio
 .vs/
