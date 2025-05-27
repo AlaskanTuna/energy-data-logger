@@ -1,41 +1,89 @@
-# THIS IS A MOCK SCRIPT FOR TESTING PURPOSES
-
 import csv
 import random
 import time
 import os
 import pandas as pd
-from datetime import datetime
-
-# Configure matplotlib for headless environment
+import minimalmodbus
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for headless systems
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 # Config
 DS_FILENAME = "energy_data.csv"
 DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (LVA)"]
 
-# Create plots directory if it doesn't exist
+#MODBUS_PORT = "/dev/ttyAMA0" # HYPOTHETICAL
+#MODBUS_SLAVE_ID = 1
+#BAUDRATE = 9600
+#PARITY = minimalmodbus.serial.PARITY_NONE
+
+#instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
+#instrument.serial.baudrate = BAUDRATE
+#instrument.serial.parity = PARITY
+#instrument.serial.bytesize = 8
+#instrument.serial.stopbits = 1
+#instrument.serial.timeout = 1
+
+# Initialize plots directory if it doesn't exist
 os.makedirs("plots", exist_ok=True)
 
-# Initialize CSV file with headers if it doesn't exist or is empty
-if not os.path.exists(DS_FILENAME) or os.path.getsize(DS_FILENAME) == 0:
-    with open(DS_FILENAME, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(DS_HEADER)
+# Initialize CSV file (overwrite every time the script runs)
+with open(DS_FILENAME, 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(DS_HEADER)
 
 # Functions
-def meter_reading():
+def meter_reading_mock():
     """
-    Simulate electrical signals from a power meter.
+    Simulate meter readings with mock values.
     """
-    # Generate mock values in realistic ranges
+    # Generate mock values fpr testing purposes
     voltage = round(random.uniform(215, 240), 2)
     current = round(random.uniform(1.5, 15.0), 2)
     energy = round(random.uniform(0.2, 2.5), 3)
     reactive_power = round(random.uniform(0.1, 1.2), 3)
+
     return voltage, current, energy, reactive_power
+
+def meter_reading_modbus():
+    """
+    Poll electrical data from the power meter.
+    Register value formats are FLOAT32 ABCD.
+    """
+    try:
+        # Total measurements
+        voltage_total = instrument.read_float(0x5000, functioncode=4, number_of_registers=2)
+        current_total = instrument.read_float(0x500A, functioncode=4, number_of_registers=2)
+        active_power_total = instrument.read_float(0x5012, functioncode=4, number_of_registers=2)
+        reactive_power_total = instrument.read_float(0x501A, functioncode=4, number_of_registers=2)
+
+        # Per-phase voltages
+        voltage_L1 = instrument.read_float(0x5002, functioncode=4, number_of_registers=2)
+        voltage_L2 = instrument.read_float(0x5004, functioncode=4, number_of_registers=2)
+        voltage_L3 = instrument.read_float(0x5006, functioncode=4, number_of_registers=2)
+
+        # Per-phase currents
+        current_L1 = instrument.read_float(0x500C, functioncode=4, number_of_registers=2)
+        current_L2 = instrument.read_float(0x500E, functioncode=4, number_of_registers=2)
+        current_L3 = instrument.read_float(0x5010, functioncode=4, number_of_registers=2)
+        
+        return {
+            "voltage_total": round(voltage_total, 2),
+            "current_total": round(current_total, 2),
+            "active_power_total": round(active_power_total, 3),
+            "reactive_power_total": round(reactive_power_total, 3),
+            "voltage_L1": round(voltage_L1, 2),
+            "voltage_L2": round(voltage_L2, 2),
+            "voltage_L3": round(voltage_L3, 2),
+            "current_L1": round(current_L1, 2),
+            "current_L2": round(current_L2, 2),
+            "current_L3": round(current_L3, 2),
+        }
+
+    except Exception as e:
+        print(f"[MODBUS ERROR] {e}")
+        return None
 
 def calculate_statistics():
     """
@@ -43,7 +91,7 @@ def calculate_statistics():
     """
     try:
         df = pd.read_csv(DS_FILENAME)
-        
+
         # Calculate statistics for each column
         stats = {}
         for column in df.columns[1:]:  # Skip timestamp column
@@ -54,7 +102,7 @@ def calculate_statistics():
                 'median': df[column].median(),
                 'std': df[column].std()
             }
-        
+
         # Print statistics
         print("\n===== Power Meter Statistics =====")
         for column, values in stats.items():
@@ -166,14 +214,14 @@ def visualize_data(df):
     except Exception as e:
         print(f"Error generating visualizations: {e}")
 
-def simulate():
+def log():
     """
     Simulate energy data logging.
     """
     try:
-        print("Energy Data Logger started. Press Ctrl+C to stop the simulation.")
+        print("Energy Data Logger started. Press Ctrl+C to stop logging.")
         while True:
-            voltage, current, energy, reactive_power = meter_reading()
+            voltage, current, energy, reactive_power = meter_reading_mock()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             # Log data to file
@@ -181,7 +229,7 @@ def simulate():
                 writer = csv.writer(file)
                 writer.writerow([timestamp, voltage, current, energy, reactive_power])
                 
-            print(f"[{timestamp}] Logged: V={voltage} V | I={current} A | E={energy} kW | RP={reactive_power} LVA")
+            print(f"[{timestamp}] Logged: V = {voltage}V | I = {current}A | E = {energy}kW | RP = {reactive_power}LVA")
             time.sleep(3)
             
     except KeyboardInterrupt:
@@ -192,5 +240,5 @@ def simulate():
         print(f"Error during simulation: {e}")
 
 if __name__ == "__main__":
-    simulate()
+    log()
     print("\nEnergy data logging completed.")

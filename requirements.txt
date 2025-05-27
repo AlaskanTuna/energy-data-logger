@@ -1,0 +1,11 @@
+# Data processing
+pandas==2.2.1
+
+# Visualization
+matplotlib==3.9.1
+
+# MODBUS
+minimalmodbus==2.1.1
+
+# DB
+influxdb-client==1.49.0
