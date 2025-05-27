@@ -17,33 +17,47 @@
 - Option 1: Use PuTTY (GUI)
 - Option 2: Command line: `ssh <username>@<ip-address>`
 
-## Managing Scripts on the Pi
+## Post-flash Configurations
 
-### Install Python
+### Install Necessary Resources
+
+1. Update the OS and Install Python on the Pi:
 
 ```bash
-sudo apt update
+sudo apt-get update
+sudo apt-get upgrade
 sudo apt install python3 python3-pip -y
 ```
 
-### Copying Scripts to the Pi
+2. Install Git on the Pi:
 
 ```bash
-scp energy_logger.py admin@192.168.85.193:~/
+sudo apt-get install git
 ```
 
-### Running Scripts
+3. Make Following Configuration Changes:
+    - Using your arrow keys, choose System Options -> Boot/Auto Login -> Console/AutoLogin.
+    - Next choose Interface Options -> Serial Port -> No -> Yes.
+    - Finally, choose Interface Options -> RPi Connect -> Yes. Follow any on-screen instructions.
+    - Choose Finish -> Yes to reboot.
+    - Once rebooted, reconnect to the Pi and update the system again.
 
-1. Connect to the Pi via SSH
+### Cloning Repository and Running Script
+
+1. With Git installed, clone the project and navigate to the repository:
+
+```bash
+git clone https://github.com/AlaskanTuna/Energy-Data-Logger.git
+cd Energy-Data-Logger
+```
+
 2. Run the script with: `python3 energy_logger.py`
+
 3. Stop the script with: `CTRL+C`
 
-## Testing: Retrieving Data from the Pi
-
-### Setup and Downloading Plots to Local Machine
+## Retrieving Data from the Pi
 
 1. Connect to the Pi via SSH
-2. Run the script to generate logged files
-3. Exit the Pi SSH session: `exit`
-4. Create directory to fetch files in, for example: `mkdir -p plots`
-5. Download the plots with `scp admin@192.168.85.193:~/plots/* ./plots/`
+2. Run the script to create script-generated files
+3. In the local machine, create directory to fetch files in if haven't already, for example: `mkdir -p plots`
+4. Download the files, for example: `scp admin@ipaddress:~/plots/* ./plots/`
