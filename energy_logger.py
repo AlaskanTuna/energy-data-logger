@@ -13,10 +13,10 @@ from datetime import datetime
 DS_FILENAME = "energy_data.csv"
 DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (LVA)"]
 
-#MODBUS_PORT = "/dev/ttyAMA0" # HYPOTHETICAL
-#MODBUS_SLAVE_ID = 1
-#BAUDRATE = 9600
-#PARITY = minimalmodbus.serial.PARITY_NONE
+MODBUS_PORT = "/dev/ttyUSB0"
+MODBUS_SLAVE_ID = 1
+BAUDRATE = 9600
+PARITY = minimalmodbus.serial.PARITY_NONE
 
 #instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
 #instrument.serial.baudrate = BAUDRATE
@@ -38,7 +38,6 @@ def meter_reading_mock():
     """
     Simulate meter readings with mock values.
     """
-    # Generate mock values fpr testing purposes
     voltage = round(random.uniform(215, 240), 2)
     current = round(random.uniform(1.5, 15.0), 2)
     energy = round(random.uniform(0.2, 2.5), 3)
@@ -46,7 +45,7 @@ def meter_reading_mock():
 
     return voltage, current, energy, reactive_power
 
-def meter_reading_modbus():
+#def meter_reading_modbus():
     """
     Poll electrical data from the power meter.
     Register value formats are FLOAT32 ABCD.
@@ -91,8 +90,6 @@ def calculate_statistics():
     """
     try:
         df = pd.read_csv(DS_FILENAME)
-
-        # Calculate statistics for each column
         stats = {}
         for column in df.columns[1:]:  # Skip timestamp column
             stats[column] = {

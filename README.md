@@ -1,5 +1,3 @@
-# Energy Data Logger Notes
-
 ## Connecting to the Raspberry Pi via SSH
 
 ### Network Setup
