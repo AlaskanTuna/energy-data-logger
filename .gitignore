@@ -34,14 +34,15 @@ Temporary Items
 ### IDEs and Editors ###
 # Visual Studio Code
 .vscode/*
+plots/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
-plots/*
 *.csv
 LICENSE
+.gitignore
 
 # Visual Studio
 .vs/
