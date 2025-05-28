@@ -2,12 +2,20 @@ import csv
 import random
 import time
 import os
-import pandas as pd
 import minimalmodbus
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+import pandas as pd
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from datetime import datetime
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Config
 DS_FILENAME = "energy_data.csv"
@@ -213,29 +221,114 @@ def visualize_data(df):
 
 def log():
     """
-    Simulate energy data logging.
+    Log energy data to both CSV and InfluxDB simultaneously.
     """
     try:
+        # Connection params for InfluxDB
+        INFLUXDB_URL = os.getenv("INFLUXDB_URL")
+        INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
+        INFLUXDB_ORG = "energy-logger"
+        INFLUXDB_BUCKET = "energy-logger"
+        
+        # Initialize InfluxDB client
+        try:
+            client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
+            write_api = client.write_api(write_options=SYNCHRONOUS)
+            influxdb_enabled = True
+            print("InfluxDB connection established successfully.")
+        except Exception as e:
+            print(f"InfluxDB connection error: {e}")
+            print("Continuing with CSV logging only.")
+            influxdb_enabled = False
+        
         print("Energy Data Logger started. Press Ctrl+C to stop logging.")
+        
         while True:
+            # Get meter readings
             voltage, current, energy, reactive_power = meter_reading_mock()
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now()
+            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             
-            # Log data to file
-            with open(DS_FILENAME, 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow([timestamp, voltage, current, energy, reactive_power])
-                
-            print(f"[{timestamp}] Logged: V = {voltage}V | I = {current}A | E = {energy}kW | RP = {reactive_power}LVA")
+            # 1. Log to CSV file
+            try:
+                with open(DS_FILENAME, 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([timestamp_str, voltage, current, energy, reactive_power])
+                csv_status = "✓"
+            except Exception as e:
+                print(f"CSV write error: {e}")
+                csv_status = "✗"
+            
+            # 2. Log to InfluxDB if enabled
+            if influxdb_enabled:
+                try:
+                    point = Point("power_measurements") \
+                        .tag("source", "energy_logger") \
+                        .tag("location", "main_panel") \
+                        .field("voltage", voltage) \
+                        .field("current", current) \
+                        .field("energy", energy) \
+                        .field("reactive_power", reactive_power) \
+                        .time(timestamp)
+                    
+                    write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+                    influx_status = "✓"
+                except Exception as e:
+                    print(f"InfluxDB write error: {e}")
+                    influx_status = "✗"
+            else:
+                influx_status = "-"
+            
+            # Print status with both logging systems
+            print(f"[{timestamp_str}] CSV:{csv_status} InfluxDB:{influx_status} | V={voltage}V | I={current}A | E={energy}kW | RP={reactive_power}LVA")
+            
             time.sleep(3)
             
     except KeyboardInterrupt:
         print("\nLogging stopped by user. Processing data...")
         df = calculate_statistics()
         visualize_data(df)
+        
+        # Upload CSV data to InfluxDB when logging stops
+        if influxdb_enabled:
+            try:
+                print("\nEnsuring all data is synchronized to InfluxDB...")
+                
+                # Read the CSV file we just created
+                csv_df = pd.read_csv(DS_FILENAME)
+                
+                if len(csv_df) > 0:
+                    # Convert timestamps to datetime
+                    csv_df['Timestamp'] = pd.to_datetime(csv_df['Timestamp'])
+                    
+                    # Create points for each row
+                    points = []
+                    for index, row in csv_df.iterrows():
+                        point = Point("power_measurements") \
+                            .tag("source", "csv_sync") \
+                            .tag("location", "main_panel") \
+                            .field("voltage", float(row['Voltage (V)'])) \
+                            .field("current", float(row['Current (A)'])) \
+                            .field("energy", float(row['Energy (kW)'])) \
+                            .field("reactive_power", float(row['Reactive Power (LVA)'])) \
+                            .time(row['Timestamp'])
+                        
+                        points.append(point)
+                    
+                    # Write all points to InfluxDB
+                    write_api.write(bucket=INFLUXDB_BUCKET, record=points)
+                    print(f"Synchronized {len(points)} data points to InfluxDB.")
+            except Exception as e:
+                print(f"Error synchronizing data to InfluxDB: {e}")
+                
+            # Close the client connection
+            client.close()
+            print("InfluxDB connection closed.")
     except Exception as e:
-        print(f"Error during simulation: {e}")
+        print(f"\nError during logging: {e}")
+        if 'client' in locals() and influxdb_enabled:
+            client.close()
 
 if __name__ == "__main__":
     log()
-    print("\nEnergy data logging completed.")
+    print("Energy data logging completed.")
