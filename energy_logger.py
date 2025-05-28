@@ -286,44 +286,15 @@ def log():
             
     except KeyboardInterrupt:
         print("\nLogging stopped by user. Processing data...")
+        
+        # Close the client connection
+        client.close()
+        print("InfluxDB connection closed.")
+
+        # Calculate statistics and visualize data
         df = calculate_statistics()
         visualize_data(df)
-        
-        # Upload CSV data to InfluxDB when logging stops
-        if influxdb_enabled:
-            try:
-                print("\nEnsuring all data is synchronized to InfluxDB...")
-                
-                # Read the CSV file we just created
-                csv_df = pd.read_csv(DS_FILENAME)
-                
-                if len(csv_df) > 0:
-                    # Convert timestamps to datetime
-                    csv_df['Timestamp'] = pd.to_datetime(csv_df['Timestamp'])
-                    
-                    # Create points for each row
-                    points = []
-                    for index, row in csv_df.iterrows():
-                        point = Point("power_measurements") \
-                            .tag("source", "csv_sync") \
-                            .tag("location", "main_panel") \
-                            .field("voltage", float(row['Voltage (V)'])) \
-                            .field("current", float(row['Current (A)'])) \
-                            .field("energy", float(row['Energy (kW)'])) \
-                            .field("reactive_power", float(row['Reactive Power (LVA)'])) \
-                            .time(row['Timestamp'])
-                        
-                        points.append(point)
-                    
-                    # Write all points to InfluxDB
-                    write_api.write(bucket=INFLUXDB_BUCKET, record=points)
-                    print(f"Synchronized {len(points)} data points to InfluxDB.")
-            except Exception as e:
-                print(f"Error synchronizing data to InfluxDB: {e}")
-                
-            # Close the client connection
-            client.close()
-            print("InfluxDB connection closed.")
+
     except Exception as e:
         print(f"\nError during logging: {e}")
         if 'client' in locals() and influxdb_enabled:
