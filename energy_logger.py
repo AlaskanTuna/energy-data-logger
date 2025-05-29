@@ -13,8 +13,8 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
-from datetime import datetime
-from influxdb_client import InfluxDBClient, Point
+from datetime import datetime, timezone
+from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Config
@@ -25,6 +25,11 @@ MODBUS_PORT = "/dev/ttyUSB0"
 MODBUS_SLAVE_ID = 1
 BAUDRATE = 9600
 PARITY = minimalmodbus.serial.PARITY_NONE
+
+INFLUXDB_URL = os.getenv("INFLUXDB_URL")
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
+INFLUXDB_ORG = "energy-logger"
+INFLUXDB_BUCKET = "energy-logger"
 
 #instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
 #instrument.serial.baudrate = BAUDRATE
@@ -224,12 +229,6 @@ def log():
     Log energy data to both CSV and InfluxDB simultaneously.
     """
     try:
-        # Connection params for InfluxDB
-        INFLUXDB_URL = os.getenv("INFLUXDB_URL")
-        INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
-        INFLUXDB_ORG = "energy-logger"
-        INFLUXDB_BUCKET = "energy-logger"
-        
         # Initialize InfluxDB client
         try:
             client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
@@ -260,30 +259,31 @@ def log():
                 csv_status = "✗"
             
             # 2. Log to InfluxDB if enabled
+            influx_status = "-"
             if influxdb_enabled:
                 try:
-                    point = Point("power_measurements") \
-                        .tag("source", "energy_logger") \
-                        .tag("location", "main_panel") \
-                        .field("voltage", voltage) \
-                        .field("current", current) \
-                        .field("energy", energy) \
-                        .field("reactive_power", reactive_power) \
-                        .time(timestamp)
-                    
+                    # Create point with all measurements
+                    point = (Point("power_measurements")
+                            .tag("source", "energy_logger")
+                            .tag("location", "main_panel")
+                            .field("voltage", voltage)
+                            .field("current", current)
+                            .field("energy", energy)
+                            .field("reactive_power", reactive_power)
+                            .time(datetime.now(tz=timezone.utc), WritePrecision.S))
+
+                    # Write to InfluxDB
                     write_api.write(bucket=INFLUXDB_BUCKET, record=point)
                     influx_status = "✓"
                 except Exception as e:
                     print(f"InfluxDB write error: {e}")
                     influx_status = "✗"
-            else:
-                influx_status = "-"
-            
+
             # Print status with both logging systems
             print(f"[{timestamp_str}] CSV:{csv_status} InfluxDB:{influx_status} | V={voltage}V | I={current}A | E={energy}kW | RP={reactive_power}LVA")
-            
+
             time.sleep(3)
-            
+
     except KeyboardInterrupt:
         print("\nLogging stopped by user. Processing data...")
         

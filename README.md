@@ -79,3 +79,15 @@ python energy_logger.py
 2. Navigate to the repository (`cd energy-data-logger`) and run the script to create script-generated files
 3. In the local machine, create directory to fetch files in if haven't already, for example: `mkdir -p plots`
 4. Download the files from the Pi, for example: `scp admin@ipaddress:~/plots/* ./plots/`
+
+## Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit)
+
+```bash
+# influxdata-archive_compat.key GPG fingerprint:
+#     9D53 9D90 D332 8DC7 D6C8 D3B9 D8FF 8E1F 7DF8 B07E
+wget -q https://repos.influxdata.com/influxdata-archive_compat.key
+echo '393e8779c89ac8d958f81f942f9ad7fb82a25e133faddaf92e15b16e6ac9ce4c influxdata-archive_compat.key' | sha256sum -c && cat influxdata-archive_compat.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null
+echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main' | sudo tee /etc/apt/sources.list.d/influxdata.list
+
+sudo apt-get update && sudo apt-get install influxdb2
+```
