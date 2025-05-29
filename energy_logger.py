@@ -19,7 +19,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Config
 DS_FILENAME = "energy_data.csv"
-DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (LVA)"]
+DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (kVA)"]
 
 MODBUS_PORT = "/dev/ttyUSB0"
 MODBUS_SLAVE_ID = 1
@@ -164,9 +164,9 @@ def visualize_data(df):
         axs[1, 0].grid(True, linestyle='--', alpha=0.7)
         
         # Plot reactive power
-        axs[1, 1].plot(df['Timestamp'], df['Reactive Power (LVA)'], 'm-', linewidth=1.5, marker='o', markersize=3)
+        axs[1, 1].plot(df['Timestamp'], df['Reactive Power (kVA)'], 'm-', linewidth=1.5, marker='o', markersize=3)
         axs[1, 1].set_title('Reactive Power Over Time')
-        axs[1, 1].set_ylabel('Reactive Power (LVA)')
+        axs[1, 1].set_ylabel('Reactive Power (kVA)')
         axs[1, 1].set_xlabel('Time')
         axs[1, 1].grid(True, linestyle='--', alpha=0.7)
         
@@ -183,7 +183,7 @@ def visualize_data(df):
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
             axs[1, 0].plot(df['Timestamp'], df['Energy (kW)'].rolling(window=window).mean(), 
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
-            axs[1, 1].plot(df['Timestamp'], df['Reactive Power (LVA)'].rolling(window=window).mean(), 
+            axs[1, 1].plot(df['Timestamp'], df['Reactive Power (kVA)'].rolling(window=window).mean(), 
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
             
             # Add legends
@@ -280,7 +280,7 @@ def log():
                     influx_status = "✗"
 
             # Print status with both logging systems
-            print(f"[{timestamp_str}] CSV:{csv_status} InfluxDB:{influx_status} | V={voltage}V | I={current}A | E={energy}kW | RP={reactive_power}LVA")
+            print(f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | V = {voltage}V | I = {current}A | E = {energy}kW | RP = {reactive_power}kVA")
 
             time.sleep(3)
 
