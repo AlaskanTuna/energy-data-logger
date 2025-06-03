@@ -4,7 +4,7 @@ import os
 import csv
 import time
 
-from statistics import DataAnalyzer
+from stats import DataAnalyzer
 from datetime import datetime, timezone
 from reader import MeterReader
 from influxdb_client import InfluxDBClient, Point, WritePrecision
