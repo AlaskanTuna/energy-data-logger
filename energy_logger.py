@@ -1,3 +1,6 @@
+# energy_logger.py
+
+# ===== Libraries ===== #
 import csv
 import random
 import time
@@ -17,12 +20,18 @@ from datetime import datetime, timezone
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-# Config
+# ===== CONFIG ===== #
 DS_FILENAME = "energy_data.csv"
 DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Energy (kW)", "Reactive Power (kVA)"]
 
+USE_MODBUS = False # Set to False to use mock data instead of Modbus
+LOG_INTERVAL = 3
+RETRY_INTERVAL = 5
+MAX_RETRIES = 5
+
 MODBUS_PORT = "/dev/ttyUSB0"
 MODBUS_SLAVE_ID = 1
+#MODBUS_INSTRUMENT = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
 BAUDRATE = 9600
 PARITY = minimalmodbus.serial.PARITY_NONE
 
@@ -31,54 +40,56 @@ INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_ORG = "energy-logger"
 INFLUXDB_BUCKET = "energy-logger"
 
-#instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
-#instrument.serial.baudrate = BAUDRATE
-#instrument.serial.parity = PARITY
-#instrument.serial.bytesize = 8
-#instrument.serial.stopbits = 1
-#instrument.serial.timeout = 1
+# ===== DIRECTORY SETUP ===== #
 
-# Initialize plots directory if it doesn't exist
+# Initialize plots directory
 os.makedirs("plots", exist_ok=True)
 
-# Initialize CSV file (overwrite every time the script runs)
+# Initialize CSV file (overwrite)
 with open(DS_FILENAME, 'w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(DS_HEADER)
 
-# Functions
+# ===== FUNCTIONS ===== #
 def meter_reading_mock():
     """
     Simulate meter readings with mock values.
     """
     voltage = round(random.uniform(215, 240), 2)
     current = round(random.uniform(1.5, 15.0), 2)
-    energy = round(random.uniform(0.2, 2.5), 3)
-    reactive_power = round(random.uniform(0.1, 1.2), 3)
+    active_energy_total = round(random.uniform(0.2, 2.5), 3)
+    reactive_power_total = round(random.uniform(0.1, 1.2), 3)
 
-    return voltage, current, energy, reactive_power
+    return voltage, current, active_energy_total, reactive_power_total
 
-#def meter_reading_modbus():
+def meter_reading_modbus():
     """
     Poll electrical data from the power meter.
     Register value formats are FLOAT32 ABCD.
     """
-    try:
+    '''try:
+        # Modbus instrument values
+        MODBUS_INSTRUMENT.serial.baudrate = BAUDRATE
+        MODBUS_INSTRUMENT.serial.parity = PARITY
+        MODBUS_INSTRUMENT.serial.bytesize = 8
+        MODBUS_INSTRUMENT.serial.stopbits = 1
+        MODBUS_INSTRUMENT.serial.timeout = 1
+        
         # Total measurements
-        voltage_total = instrument.read_float(0x5000, functioncode=4, number_of_registers=2)
-        current_total = instrument.read_float(0x500A, functioncode=4, number_of_registers=2)
-        active_power_total = instrument.read_float(0x5012, functioncode=4, number_of_registers=2)
-        reactive_power_total = instrument.read_float(0x501A, functioncode=4, number_of_registers=2)
+        voltage = MODBUS_INSTRUMENT.read_float(0x5000, functioncode=03, number_of_registers=2)
+        current = MODBUS_INSTRUMENT.read_float(0x500A, functioncode=03, number_of_registers=2)
+        active_energy_total = MODBUS_INSTRUMENT.read_float(0x6000, functioncode=03, number_of_registers=2)
+        reactive_power_total = MODBUS_INSTRUMENT.read_float(0x501A, functioncode=03, number_of_registers=2)
 
         # Per-phase voltages
-        voltage_L1 = instrument.read_float(0x5002, functioncode=4, number_of_registers=2)
-        voltage_L2 = instrument.read_float(0x5004, functioncode=4, number_of_registers=2)
-        voltage_L3 = instrument.read_float(0x5006, functioncode=4, number_of_registers=2)
+        voltage_L1 = MODBUS_INSTRUMENT.read_float(0x5002, functioncode=03, number_of_registers=2)
+        voltage_L2 = MODBUS_INSTRUMENT.read_float(0x5004, functioncode=03, number_of_registers=2)
+        voltage_L3 = MODBUS_INSTRUMENT.read_float(0x5006, functioncode=03, number_of_registers=2)
 
         # Per-phase currents
-        current_L1 = instrument.read_float(0x500C, functioncode=4, number_of_registers=2)
-        current_L2 = instrument.read_float(0x500E, functioncode=4, number_of_registers=2)
-        current_L3 = instrument.read_float(0x5010, functioncode=4, number_of_registers=2)
+        current_L1 = MODBUS_INSTRUMENT.read_float(0x500C, functioncode=03, number_of_registers=2)
+        current_L2 = MODBUS_INSTRUMENT.read_float(0x500E, functioncode=03, number_of_registers=2)
+        current_L3 = MODBUS_INSTRUMENT.read_float(0x5010, functioncode=03, number_of_registers=2)
         
         return {
             "voltage_total": round(voltage_total, 2),
@@ -92,10 +103,37 @@ def meter_reading_mock():
             "current_L2": round(current_L2, 2),
             "current_L3": round(current_L3, 2),
         }
-
     except Exception as e:
         print(f"[MODBUS ERROR] {e}")
-        return None
+        return None'''
+
+def get_meter_readings():
+    """
+    Get meter readings either from Modbus or mock data.
+    """
+    if not USE_MODBUS:
+        return meter_reading_mock()
+    
+    # Try to get modbus readings
+    retry_count = 0
+    while retry_count < MAX_RETRIES:
+        try:
+            readings = meter_reading_modbus()
+            if readings:
+                return readings["voltage_total"], readings["current_total"], readings["active_energy_total"], readings["reactive_power_total"]
+            else:
+                retry_count += 1
+                print("MODBUS reading error.")
+                print(f"Attempting to reestablish connection: {retry_count}/{MAX_RETRIES}.")
+                time.sleep(RETRY_INTERVAL)
+        except Exception as e:
+            retry_count += 1
+            print(f"MODBUS connection error: {e}.")
+            print(f"Attempting to reestablish connection: {retry_count}/{MAX_RETRIES}.")
+            time.sleep(RETRY_INTERVAL)
+
+    # Raise exception to trigger termination
+    raise Exception(f"\nERROR: Failed to connect to modbus after {MAX_RETRIES} attempts.")
 
 def calculate_statistics():
     """
@@ -130,7 +168,7 @@ def visualize_data(df):
     Visualize the logged data with enhanced time series charts.
     """
     if df is None or len(df) < 2:
-        print("Not enough data for visualization.")
+        print("\nNot enough data for visualization.")
         return
         
     try:
@@ -157,16 +195,16 @@ def visualize_data(df):
         axs[0, 1].grid(True, linestyle='--', alpha=0.7)
         
         # Plot energy
-        axs[1, 0].plot(df['Timestamp'], df['Energy (kW)'], 'g-', linewidth=1.5, marker='o', markersize=3)
-        axs[1, 0].set_title('Energy Over Time')
-        axs[1, 0].set_ylabel('Energy (kW)')
+        axs[1, 0].plot(df['Timestamp'], df['Total Active Energy (kWh)'], 'g-', linewidth=1.5, marker='o', markersize=3)
+        axs[1, 0].set_title('Total Active Energy Over Time')
+        axs[1, 0].set_ylabel('Energy (kWh)')
         axs[1, 0].set_xlabel('Time')
         axs[1, 0].grid(True, linestyle='--', alpha=0.7)
         
         # Plot reactive power
-        axs[1, 1].plot(df['Timestamp'], df['Reactive Power (kVA)'], 'm-', linewidth=1.5, marker='o', markersize=3)
-        axs[1, 1].set_title('Reactive Power Over Time')
-        axs[1, 1].set_ylabel('Reactive Power (kVA)')
+        axs[1, 1].plot(df['Timestamp'], df['Total Reactive Power (kvar)'], 'm-', linewidth=1.5, marker='o', markersize=3)
+        axs[1, 1].set_title('Total Reactive Power Over Time')
+        axs[1, 1].set_ylabel('Reactive Power (kvar)')
         axs[1, 1].set_xlabel('Time')
         axs[1, 1].grid(True, linestyle='--', alpha=0.7)
         
@@ -181,9 +219,9 @@ def visualize_data(df):
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
             axs[0, 1].plot(df['Timestamp'], df['Current (A)'].rolling(window=window).mean(), 
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
-            axs[1, 0].plot(df['Timestamp'], df['Energy (kW)'].rolling(window=window).mean(), 
+            axs[1, 0].plot(df['Timestamp'], df['Total Active Energy (kWh)'].rolling(window=window).mean(), 
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
-            axs[1, 1].plot(df['Timestamp'], df['Reactive Power (kVA)'].rolling(window=window).mean(), 
+            axs[1, 1].plot(df['Timestamp'], df['Total Reactive Power (kvar)'].rolling(window=window).mean(), 
                 'k--', alpha=0.7, linewidth=1, label='Trend (Rolling Avg)')
             
             # Add legends
@@ -214,7 +252,6 @@ def visualize_data(df):
         plt.tight_layout()
         
         # Save both figures with absolute paths
-        os.makedirs("plots", exist_ok=True)
         fig.savefig("plots/energy_data_visualization.png")
         plt.savefig("plots/energy_data_normalized.png")
 
@@ -222,7 +259,7 @@ def visualize_data(df):
         print("- plots/energy_data_visualization.png")
         print("- plots/energy_data_normalized.png")
     except Exception as e:
-        print(f"Error generating visualizations: {e}")
+        print(f"Error generating visualizations: {e}.")
 
 def log():
     """
@@ -236,15 +273,15 @@ def log():
             influxdb_enabled = True
             print("InfluxDB connection established successfully.")
         except Exception as e:
-            print(f"InfluxDB connection error: {e}")
+            print(f"InfluxDB connection error: {e}.")
             print("Continuing with CSV logging only.")
             influxdb_enabled = False
-        
-        print("Energy Data Logger started. Press Ctrl+C to stop logging.")
-        
+
+        print("\n===== Energy Data Logger: Started Execution =====\n")
+
         while True:
             # Get meter readings
-            voltage, current, energy, reactive_power = meter_reading_mock()
+            voltage, current, active_energy_total, reactive_power_total = get_meter_readings()
             timestamp = datetime.now()
             timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             
@@ -252,10 +289,10 @@ def log():
             try:
                 with open(DS_FILENAME, 'a', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow([timestamp_str, voltage, current, energy, reactive_power])
+                    writer.writerow([timestamp_str, voltage, current, active_energy_total, reactive_power_total])
                 csv_status = "✓"
             except Exception as e:
-                print(f"CSV write error: {e}")
+                print(f"CSV write error: {e}.")
                 csv_status = "✗"
             
             # 2. Log to InfluxDB if enabled
@@ -268,21 +305,21 @@ def log():
                             .tag("location", "main_panel")
                             .field("voltage", voltage)
                             .field("current", current)
-                            .field("energy", energy)
-                            .field("reactive_power", reactive_power)
+                            .field("energy", active_energy_total)
+                            .field("reactive_power", reactive_power_total)
                             .time(datetime.now(tz=timezone.utc), WritePrecision.S))
 
                     # Write to InfluxDB
                     write_api.write(bucket=INFLUXDB_BUCKET, record=point)
                     influx_status = "✓"
                 except Exception as e:
-                    print(f"InfluxDB write error: {e}")
+                    print(f"InfluxDB write error: {e}.")
                     influx_status = "✗"
 
             # Print status with both logging systems
-            print(f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | V = {voltage}V | I = {current}A | E = {energy}kW | RP = {reactive_power}kVA")
+            print(f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | V = {voltage}V | I = {current}A | E = {active_energy_total}kWh | RP = {reactive_power_total}kvar")
 
-            time.sleep(3)
+            time.sleep(LOG_INTERVAL)
 
     except KeyboardInterrupt:
         print("\nLogging stopped by user. Processing data...")
@@ -296,10 +333,20 @@ def log():
         visualize_data(df)
 
     except Exception as e:
-        print(f"\nError during logging: {e}")
+        print(f"\nError during logging: {e}.")
         if 'client' in locals() and influxdb_enabled:
             client.close()
 
+def start():
+    """
+    Run the energy data logger.
+    """
+    try:
+        log()
+        print("\n===== Energy Data Logger: Finished Execution =====")
+    except Exception as e:
+        print(f"\nError in execution: {e}.")
+
+# ===== EXECUTION ===== #
 if __name__ == "__main__":
-    log()
-    print("Energy data logging completed.")
+    start()
