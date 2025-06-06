@@ -7,7 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # FILE SETUP 
-DS_HEADER = ["Timestamp", "Voltage (V)", "Current (A)", "Total Active Energy (kWh)", "Total Reactive Power (kvar)"]
+DS_HEADER = [
+    "Timestamp", 
+    "Voltage L1 (V)", "Voltage L2 (V)", "Voltage L3 (V)",
+    "Current L1 (A)", "Current L2 (A)", "Current L3 (A)",
+    "Total Active Power (kW)", "Power Factor", 
+    "Total Active Energy (kWh)", "Import Active Energy (kWh)", "Export Active Energy (kWh)"
+]
 DS_FILENAME = "../data/energy_data.csv"
 PLOT1_FILENAME = "../data/energy_data_visualization.png"
 PLOT2_FILENAME = "../data/energy_data_normalized.png"
