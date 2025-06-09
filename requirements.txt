@@ -1,8 +1,8 @@
-# Data processing
+# Python
 pandas==2.2.1
-
-# Visualization
-matplotlib==3.9.1
+matplotlib==3.8.2
+flask==3.1.1
+gunicorn==23.0.0
 
 # MODBUS
 minimalmodbus==2.1.1

@@ -1,7 +1,6 @@
 # src/util.py
 
 import os
-import config
 
 from analyzer import DataAnalyzer
 

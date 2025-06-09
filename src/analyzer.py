@@ -178,17 +178,12 @@ class DataAnalyzer:
         if not columns:
             print(f"No data columns available for {title}")
             return
-            
-        # Extract base filename from PL_FILENAME (remove path and extension)
-        from config import PL_FILENAME, PL_FILEPATH
-        import os
-        
-        # Get just the filename without path and extension
+
         base_filename = os.path.basename(PL_FILENAME)
         base_filename = os.path.splitext(base_filename)[0]
-        
+
         plt.figure(figsize=(12, 8))
-        
+
         # Plot each column
         for column in columns:
             if column in df.columns:

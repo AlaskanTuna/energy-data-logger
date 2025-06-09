@@ -158,7 +158,7 @@ sudo apt-get update && sudo apt-get install grafana
 
 ---
 
-## Environment Variables for InfluxDB (Optional)
+## Environment Variables for InfluxDB/Grafana (Optional)
 
 If you wish to enable InfluxDB logging instead of CSV-only, create a `.env` file at the project root with:
 
@@ -168,3 +168,17 @@ INFLUXDB_TOKEN=<your-influxdb-token>
 ```
 
 The code will attempt to connect to InfluxDB; if it fails (e.g., missing or invalid credentials), it will continue logging to CSV only.
+
+## OTG Connection using Phone with the Pi
+
+### Setting Up Connection on the Pi (Raspian Lite 64-bit/Debian Bookworm)
+
+1. Set static IP address for the eth0 (ethernet) interface.
+2. Install dnsmasq and configure DHCP to the eth0 interface.
+3. As a device connects to the Pi's ethernet interface, it will be given an IP address via DHCP.
+
+### Hardware Requirements
+
+1. RJ45-to-USB Type-C adapter
+2. RJ45 LAN cable
+3. Device that supports ethernet connection

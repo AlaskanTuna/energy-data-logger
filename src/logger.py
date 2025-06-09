@@ -70,6 +70,9 @@ class DataLogger:
             print("[INFLUXDB CONFIG ERROR]: InfluxDB URL or token not provided.")
             print("InfluxDB connection established unsuccessfully. Continuing with CSV logging only.")
 
+        self._running = True
+        self.latest = None
+
     def log(self):
         """
         Simultaneously log meter readings to CSV and InfluxDB. 
@@ -77,9 +80,10 @@ class DataLogger:
         """
         print("\n===== Energy Data Logger: Started Execution =====\n")
         try:
-            while True:
+            while self._running:
                 readings = self.reader.get_meter_readings()
                 timestamp = datetime.now()
+                self.latest = {"ts": timestamp, **readings}
                 timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
                 # 1) Append to CSV
@@ -156,3 +160,9 @@ class DataLogger:
             clear_screen()
         except Exception as e:
             print(f"\n[LOG ERROR]: {e}")
+
+    def stop(self):
+        """
+        Tell the logging loop to exit on the next iteration.
+        """
+        self._running = False

@@ -5,6 +5,7 @@ import minimalmodbus
 
 from datetime import datetime
 from dotenv import load_dotenv
+from pathlib import Path
 
 # HELPER FUNCTIONS
 
@@ -26,6 +27,7 @@ load_dotenv()
 
 DS_FILEPATH = "../data/"
 PL_FILEPATH = "../plots/"
+STATIC_FILEPATH = Path(__file__).resolve().parent.parent / "static"
 DS_HEADER = [
     "Timestamp", 
     "Voltage L1 (V)", "Voltage L2 (V)", "Voltage L3 (V)",
