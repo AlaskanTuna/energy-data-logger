@@ -5,21 +5,22 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from matplotlib.dates import DateFormatter
-from config import DS_FILENAME, PLOT1_FILENAME, PLOT2_FILENAME
+from config import DS_FILENAME
 
 class DataAnalyzer:
     """
     Computes statistics and generates plots for the logged CSV data.
     """
 
-    def calculate_statistics(self):
+    def calculate_statistics(self, filepath):
         """
         Compute min/max/mean/median/std for each column, organized by parameter groups.
+
+        @filepath: Path to the CSV file containing logged data.
         """
         try:
-            df = pd.read_csv(DS_FILENAME)
-            
+            df = pd.read_csv(filepath)
+
             # Define parameter groups for better organization
             param_groups = {
                 "Voltage Parameters": [col for col in df.columns if "Voltage" in col],
@@ -85,6 +86,8 @@ class DataAnalyzer:
     def visualize_data(self, df):
         """
         Interactive visualization with CLI-based parameter selection.
+
+        @df: DataFrame containing the logged data.
         """
         if df is None or len(df) < 2:
             print("\nNot enough data for visualization.")
@@ -121,7 +124,7 @@ class DataAnalyzer:
                 if choice in categories:
                     if choice == '0':
                         print("Exiting visualization menu.")
-                        break
+                        return
                     if choice == '7':
                         # Custom selection
                         all_columns = [col for col in df.columns if col != 'Timestamp']
@@ -135,21 +138,19 @@ class DataAnalyzer:
                         
                         if selected_columns:
                             self._generate_plot(df, "Custom Selection", selected_columns)
-                            break
+                            return
                         else:
                             print("No valid parameters selected.")
-                            break
+                            return
                     elif choice == '8':
-                        # Generate all visualizations
-                        for key, category in categories.items():
-                            if key != '7' and key != '8':  # Skip custom and all options
-                                self._generate_plot(df, category['name'], category['columns'])
-                                break
+                        all_columns = [col for col in df.columns if col != 'Timestamp']
+                        self._generate_plot(df, "All Parameters", all_columns)
+                        return
                     else:
                         # Generate selected visualization
                         category = categories[choice]
                         self._generate_plot(df, category['name'], category['columns'])
-                        break
+                        return
                 else:
                     print("Invalid choice. Please select a valid option.")
         except Exception as e:

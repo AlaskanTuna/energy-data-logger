@@ -2,11 +2,23 @@
 
 import os
 import minimalmodbus
+
+from datetime import datetime
 from dotenv import load_dotenv
+
+# HELPER FUNCTIONS
+
+def get_csv_filename():
+    """
+    Generate a timestamped CSV filename for data logging.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"../data/{timestamp}.csv"
+
+# FILE SETUP 
 
 load_dotenv()
 
-# FILE SETUP 
 DS_HEADER = [
     "Timestamp", 
     "Voltage L1 (V)", "Voltage L2 (V)", "Voltage L3 (V)",
@@ -14,11 +26,10 @@ DS_HEADER = [
     "Total Active Power (kW)", "Power Factor", 
     "Total Active Energy (kWh)", "Import Active Energy (kWh)", "Export Active Energy (kWh)"
 ]
-DS_FILENAME = "../data/energy_data.csv"
-PLOT1_FILENAME = "../data/energy_data_visualization.png"
-PLOT2_FILENAME = "../data/energy_data_normalized.png"
+DS_FILENAME = get_csv_filename()
 
 # METER & LOGGING 
+
 USE_MODBUS = False # False to use mock data; True to use Modbus
 LOG_INTERVAL = 3
 RETRY_INTERVAL = 5
@@ -30,6 +41,7 @@ BAUDRATE = 9600
 PARITY = minimalmodbus.serial.PARITY_NONE
 
 # INFLUXDB SETTINGS
+
 INFLUXDB_URL = os.getenv("INFLUXDB_URL")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_ORG = "energy-logger"

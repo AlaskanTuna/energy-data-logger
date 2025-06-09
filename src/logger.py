@@ -4,6 +4,7 @@ import os
 import csv
 import time
 
+from util import clear_screen
 from analyzer import DataAnalyzer
 from datetime import datetime, timezone
 from reader import MeterReader
@@ -42,7 +43,7 @@ class DataLogger:
                     url=INFLUXDB_URL,
                     token=INFLUXDB_TOKEN,
                     org=INFLUXDB_ORG,
-                    timeout=3000  # 3 seconds timeout
+                    timeout=3000
                 )
 
                 # Test write capability with a small test point
@@ -122,16 +123,7 @@ class DataLogger:
                 else:
                     influx_status = "✗"
 
-                # 3) Print status with summary of key values
-                avg_voltage = round((readings["voltage_L1"] + readings["voltage_L2"] + readings["voltage_L3"]) / 3, 1)
-                avg_current = round((readings["current_L1"] + readings["current_L2"] + readings["current_L3"]) / 3, 1)
-                
-                print(
-                    f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | " +
-                    f"V={avg_voltage}V | I={avg_current}A | P={readings['total_active_power']}kW | " +
-                    f"PF={readings['power_factor']} | E={readings['total_active_energy']}kWh"
-                    )
-                
+                print(f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | Logged successfully.")
                 time.sleep(LOG_INTERVAL)
 
         # CTRL + C to stop logging.
@@ -140,10 +132,6 @@ class DataLogger:
             if self.influx_enabled:
                 self.client.close()
                 print("InfluxDB connection closed.")
-
-            # Run statistics and visualization
-            df = self.analyzer.calculate_statistics()
-            self.analyzer.visualize_data(df)
 
         except Exception as e:
             if self.influx_enabled:
@@ -156,6 +144,8 @@ class DataLogger:
         try:
             self.log()
             print("\n===== Energy Data Logger: Finished Execution =====")
+            input("\nPress Enter to continue...")
+            clear_screen()
         except Exception as e:
             print(f"\n[LOG ERROR]: {e}")
 
