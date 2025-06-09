@@ -30,5 +30,5 @@ def latest():
 # CONVENIENT CLI
 
 if __name__ == "__main__":
-    # Dev-only runner: cd src/ => python webapp.py
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    # cd src/ => python webapp.py
+    app.run(host="192.168.69.1", port=8000, debug=True)
