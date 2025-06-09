@@ -5,12 +5,12 @@ import csv
 import time
 
 from util import clear_screen
-from analyzer import DataAnalyzer
 from datetime import datetime, timezone
 from reader import MeterReader
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from config import (
+    DS_FILEPATH,
     DS_FILENAME,
     DS_HEADER,
     LOG_INTERVAL,
@@ -26,14 +26,22 @@ class DataLogger:
     Runs statistics and visualization on termination.
     """
     def __init__(self):
-        # Initialize (overwrite) the CSV file with header
+        # Initialize data directory
+        self.ds_dir = DS_FILEPATH
+        if not os.path.exists(self.ds_dir):
+            try:
+                os.makedirs(self.ds_dir)
+            except Exception as e:
+                print(f"[DIRECTORY CREATION ERROR]: {e}")
+
+        # Initialize the CSV file with header
+        self.ds_header = DS_HEADER
         with open(DS_FILENAME, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(DS_HEADER)
+            writer.writerow(self.ds_header)
 
         # Initialize MeterReader and DataAnalyzer
         self.reader = MeterReader()
-        self.analyzer = DataAnalyzer()
 
         # Initialize InfluxDB client
         self.influx_enabled = False
@@ -148,6 +156,3 @@ class DataLogger:
             clear_screen()
         except Exception as e:
             print(f"\n[LOG ERROR]: {e}")
-
-# TODO: Selection prompt in CLI - 1. Log New Data 2. View Data 3. Analyze Data 4. Exit
-# TODO: Save logged data CSV file as timestamped file

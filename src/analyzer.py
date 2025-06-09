@@ -1,16 +1,31 @@
 # src/statistics.py
 
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import DS_FILENAME
+from config import (
+    PL_FILEPATH,
+    PL_FILENAME
+)
 
 class DataAnalyzer:
     """
     Computes statistics and generates plots for the logged CSV data.
     """
+    def __init__(self):
+        """
+        Initialize the DataAnalyzer.
+        """
+        # Initialize plot directory
+        self.plot_dir = PL_FILEPATH
+        if not os.path.exists(self.plot_dir):
+            try:
+                os.makedirs(self.plot_dir)
+            except Exception as e:
+                print(f"[DIRECTORY CREATION ERROR]: {e}")
 
     def calculate_statistics(self, filepath):
         """
@@ -164,6 +179,14 @@ class DataAnalyzer:
             print(f"No data columns available for {title}")
             return
             
+        # Extract base filename from PL_FILENAME (remove path and extension)
+        from config import PL_FILENAME, PL_FILEPATH
+        import os
+        
+        # Get just the filename without path and extension
+        base_filename = os.path.basename(PL_FILENAME)
+        base_filename = os.path.splitext(base_filename)[0]
+        
         plt.figure(figsize=(12, 8))
         
         # Plot each column
@@ -179,9 +202,11 @@ class DataAnalyzer:
         plt.xticks(rotation=45)
         plt.tight_layout()
         
-        # Create safe filename from title
-        safe_title = title.replace(' ', '_').lower()
-        filename = f"../data/{safe_title}_plot.png"
+        # Create safe suffix from title
+        safe_suffix = title.replace(' ', '_').lower()
+        
+        # Create full filename with timestamp prefix
+        filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         print(f"Plot saved as: {filename}")
         
@@ -203,6 +228,7 @@ class DataAnalyzer:
             plt.xticks(rotation=45)
             plt.tight_layout()
             
-            filename = f"../data/{safe_title}_normalized.png"
-            plt.savefig(filename)
-            print(f"Normalized plot saved as: {filename}")
+            # Create normalized plot filename
+            norm_filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}_normalized.png")
+            plt.savefig(norm_filename)
+            print(f"Normalized plot saved as: {norm_filename}")

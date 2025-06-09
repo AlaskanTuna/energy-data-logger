@@ -8,17 +8,24 @@ from dotenv import load_dotenv
 
 # HELPER FUNCTIONS
 
-def get_csv_filename():
+def get_filename(file="type"):
     """
     Generate a timestamped CSV filename for data logging.
+
+    @file: Specify file type.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"../data/{timestamp}.csv"
+    if file == "ds":
+        return f"../data/{timestamp}.csv"
+    elif file == "pl":
+        return f"../plots/{timestamp}.png"
 
 # FILE SETUP 
 
 load_dotenv()
 
+DS_FILEPATH = "../data/"
+PL_FILEPATH = "../plots/"
 DS_HEADER = [
     "Timestamp", 
     "Voltage L1 (V)", "Voltage L2 (V)", "Voltage L3 (V)",
@@ -26,7 +33,8 @@ DS_HEADER = [
     "Total Active Power (kW)", "Power Factor", 
     "Total Active Energy (kWh)", "Import Active Energy (kWh)", "Export Active Energy (kWh)"
 ]
-DS_FILENAME = get_csv_filename()
+DS_FILENAME = get_filename("ds")
+PL_FILENAME = get_filename("pl")
 
 # METER & LOGGING 
 
