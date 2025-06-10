@@ -31,4 +31,4 @@ def latest():
 
 if __name__ == "__main__":
     # cd src/ => python webapp.py
-    app.run(host="192.168.69.1", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
