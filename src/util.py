@@ -2,9 +2,29 @@
 
 import os
 
-from analyzer import DataAnalyzer
+from datetime import datetime
 
 # HELPER FUNCTIONS
+
+def get_filename(file="type"):
+    """
+    Generate a timestamped CSV filename for data logging.
+
+    @file: Specify file type.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if file == "ds":
+        return f"../data/{timestamp}.csv"
+    elif file == "pl":
+        return f"../plots/{timestamp}.png"
+
+def get_current_filename(file="ds"):
+    """
+    Get a fresh timestamp-based filename for the current time.
+    
+    @file: Specify file type (ds=data, pl=plot).
+    """
+    return get_filename(file)
 
 def list_csv_files(directory="../data/"):
     """
@@ -42,6 +62,12 @@ def display_csv_file(filename, directory="../data/"):
         print(f"Error displaying file: {e}")
         return False
 
+def clear_screen():
+    """
+    Clear the terminal screen.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 def select_csv_file(purpose="action"):
     """
     Display a list of CSV files and let the user select one.
@@ -78,14 +104,6 @@ def select_csv_file(purpose="action"):
         clear_screen()
         return select_csv_file(purpose)
 
-# UTILITY FUNCTIONS
-
-def clear_screen():
-    """
-    Clear the terminal screen.
-    """
-    os.system('cls' if os.name == 'nt' else 'clear')
-
 def view_data():
     """
     Let user select a CSV file and display its content.
@@ -100,6 +118,8 @@ def analyze_data():
     """
     Let user select a CSV file for data analysis and visualization.
     """
+    from analyzer import DataAnalyzer
+
     selected_file = select_csv_file("analyze")
     if selected_file:
         filepath = os.path.join("../data/", selected_file)

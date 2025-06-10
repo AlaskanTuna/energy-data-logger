@@ -1,8 +1,11 @@
+<!-- static/index.html --> 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/styles.css">
     <title>Energy Data Logger</title>
     <style>
         body {
@@ -63,6 +66,8 @@
     </style>
 </head>
 <body>
+    <script src="static/app.js"></script>
+
     <header>
         <h1>Energy Data Logger</h1>
         <p>Remote monitoring and analysis of power consumption data</p>
@@ -71,7 +76,7 @@
     <div class="status-panel">
         <h3>System Status</h3>
         <p>Logger: <span id="logger-status">Inactive</span></p>
-        <p>Last update: <span id="last-update">Never</span></p>
+        <p>Last Updated: <span id="last-update">Never</span></p>
     </div>
 
     <h2>Main Menu</h2>

@@ -13,22 +13,22 @@ def main_menu():
     print("3. Analyze Data")
     print("4. Exit")
 
-    choice = int(input("\nEnter your choice: ").strip())
+    choice = input("\nEnter your choice: ").strip()
 
-    if choice == 1:
+    if choice == '1':
         clear_screen()
         logger = DataLogger()
         logger.start()
-    elif choice == 2:
+    elif choice == '2':
         clear_screen()
         view_data()
-    elif choice == 3:
+    elif choice == '3':
         clear_screen()
         analyze_data()
-    elif choice == 4:
+    elif choice == '4':
         exit(0)
     else:
-        print("Invalid choice. Please try again.")
+        clear_screen()
         return main_menu()
 
 if __name__ == "__main__":

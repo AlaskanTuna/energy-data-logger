@@ -4,7 +4,7 @@ import os
 import csv
 import time
 
-from util import clear_screen
+from util import clear_screen, get_current_filename
 from datetime import datetime, timezone
 from reader import MeterReader
 from influxdb_client import InfluxDBClient, Point, WritePrecision
@@ -35,8 +35,9 @@ class DataLogger:
                 print(f"[DIRECTORY CREATION ERROR]: {e}")
 
         # Initialize the CSV file with header
+        self.ds_filename = get_current_filename("ds")
         self.ds_header = DS_HEADER
-        with open(DS_FILENAME, 'w', newline='') as file:
+        with open(self.ds_filename, 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(self.ds_header)
 
@@ -76,9 +77,7 @@ class DataLogger:
     def log(self):
         """
         Simultaneously log meter readings to CSV and InfluxDB. 
-        Finalize by closing InfluxDB and running statistics + visualization upon KeyboardInterrupt.
         """
-        print("\n===== Energy Data Logger: Started Execution =====\n")
         try:
             while self._running:
                 readings = self.reader.get_meter_readings()
@@ -88,7 +87,7 @@ class DataLogger:
 
                 # 1) Append to CSV
                 try:
-                    with open(DS_FILENAME, 'a', newline='') as file:
+                    with open(self.ds_filename, 'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow([
                             timestamp_str, 
@@ -154,6 +153,7 @@ class DataLogger:
         Calls log() function.
         """
         try:
+            print("\n===== Energy Data Logger: Started Execution =====\n")
             self.log()
             print("\n===== Energy Data Logger: Finished Execution =====")
             input("\nPress Enter to continue...")

@@ -5,8 +5,8 @@ from logger import DataLogger
 
 class LoggerService:
     """
-    Thin wrapper that runs DataLogger in its own thread and
-    exposes start/stop/latest helpers for the web layer.
+    Thin wrapper that runs DataLogger in its own thread.
+    Exposes start/stop/latest helpers for the web layer.
     """
     def __init__(self):
         self._dl = None
@@ -18,7 +18,7 @@ class LoggerService:
     def _bg_loop(self):
         if not self._dl:
             self._dl = DataLogger()
-        self._dl.start()
+        self._dl.log()
 
     # PUBLIC API
 

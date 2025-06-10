@@ -3,23 +3,9 @@
 import os
 import minimalmodbus
 
-from datetime import datetime
+from util import get_filename
 from dotenv import load_dotenv
 from pathlib import Path
-
-# HELPER FUNCTIONS
-
-def get_filename(file="type"):
-    """
-    Generate a timestamped CSV filename for data logging.
-
-    @file: Specify file type.
-    """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if file == "ds":
-        return f"../data/{timestamp}.csv"
-    elif file == "pl":
-        return f"../plots/{timestamp}.png"
 
 # FILE SETUP 
 
