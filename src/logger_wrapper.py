@@ -1,11 +1,11 @@
-# src/logger_service.py
+# src/logger_wrapper.py
 
 import threading
 from logger import DataLogger
 
 class LoggerService:
     """
-    Wrapper that runs DataLogger in its own thread.
+    Wrapper around DataLogger.
     Exposes start/stop/latest helpers for the web layer.
     """
     def __init__(self):
@@ -50,4 +50,4 @@ class LoggerService:
         return self._dl.latest if self._dl else None
 
 # Global instance for the web layer
-service = LoggerService()
+logger_service = LoggerService()

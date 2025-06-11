@@ -174,6 +174,10 @@ class DataAnalyzer:
     def _generate_plot(self, df, title, columns):
         """
         Helper method to generate and save a plot with the specified columns.
+
+        @df: DataFrame containing the logged data.
+        @title: Title for the plot.
+        @columns: List of column names to plot.
         """
         if not columns:
             print(f"No data columns available for {title}")
