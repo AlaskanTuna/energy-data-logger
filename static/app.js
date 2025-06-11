@@ -18,11 +18,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize event listeners
     menuItems.forEach((item, index) => {
         item.addEventListener('click', function() {
-            if (index === 0) {  // 1. Log New Data
+            // 1. Log New Data
+            if (index === 0) {
                 handleLoggerToggle(this);
             }
-            // TODO: 2. View Data
+
+            // 2. View Data
+            if (index === 1) { 
+                showFileSelectionModal();
+            }
+
             // TODO: 3. Analyze Data
+
             // TODO: 4. Download Data
         });
     });
@@ -135,5 +142,81 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error fetching data:', error);
             });
+    }
+
+    /**
+     * @brief Shows the file selection modal to view/download data files.
+     */
+
+    function showFileSelectionModal() {
+        const modal = document.getElementById('file-modal');
+        const closeBtn = document.querySelector('.close-modal');
+        const fileList = document.getElementById('file-list');
+
+        fetch('/api/files')
+            .then(response => response.json())
+            .then(files => {
+                // Clear existing list
+                fileList.innerHTML = '';
+                if (files.length === 0) {
+                    fileList.innerHTML = '<p class="empty-message">No data files available.</p>';
+                    return;
+                }
+
+                // Add each file to the list
+                files.forEach(file => {
+                    let dateStr = "N/A";
+                    const match = file.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.csv$/);
+                    if (match) {
+                        const [_, year, month, day, hour, minute, second] = match;
+                        const date = new Date(year, month-1, day, hour, minute, second);
+                        dateStr = date.toLocaleString();
+                    }
+
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <div>
+                            <div>${file}</div>
+                            <div class="file-item-date">Created: ${dateStr}</div>
+                        </div>
+                        <span class="download-icon">📥</span>
+                    `;
+
+                    // Add click handler to download file
+                    fileItem.addEventListener('click', () => {
+                        window.location.href = `/api/files/${file}`;
+                        closeFileModal();
+                    });
+                    
+                    fileList.appendChild(fileItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching files:', error);
+                fileList.innerHTML = '<p class="empty-message">Error loading files. Please try again.</p>';
+            });
+
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Close when clicking X
+        closeBtn.addEventListener('click', closeFileModal);
+
+        // Close when clicking outside the modal
+        modal.addEventListener('click', event => {
+            if (event.target === modal) {
+                closeFileModal();
+            }
+        });
+    }
+
+    /**
+     * @brief Closes the file selection modal.
+     */
+
+    function closeFileModal() {
+        const modal = document.getElementById('file-modal');
+        modal.style.display = 'none';
     }
 });

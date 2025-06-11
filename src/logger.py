@@ -11,7 +11,6 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from config import (
     DS_FILEPATH,
-    DS_FILENAME,
     DS_HEADER,
     LOG_INTERVAL,
     INFLUXDB_URL,
@@ -80,7 +79,7 @@ class DataLogger:
         """
         try:
             while self._running:
-                readings = self.reader.get_meter_readings()
+                readings = self.reader.get_meter_readings() # THIS WILL POLL THE METER ONCE EVERY LOG_INTERVAL
                 timestamp = datetime.now()
                 self.latest = {"ts": timestamp, **readings}
                 timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")

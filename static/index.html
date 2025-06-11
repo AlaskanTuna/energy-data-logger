@@ -84,12 +84,28 @@
         <div class="menu-item">1. Log New Data</div>
         <div class="menu-item">2. View Data</div>
         <div class="menu-item">3. Analyze Data</div>
-        <div class="menu-item">4. Download Data</div>
+        <div class="menu-item">4. Settings</div>
     </div>
 
     <div id="latest-readings" style="margin-top: 30px;">
         <h3>Latest Readings</h3>
         <p>No data available. Start logging to see real-time measurements.</p>
+    </div>
+
+    <!-- File Selection Modal -->
+    <div id="file-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Available Data Files</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Select a file to view:</p>
+                <div id="file-list" class="file-list">
+                    <p class="empty-message">No data files available.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <footer>

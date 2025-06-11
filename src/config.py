@@ -26,7 +26,7 @@ PL_FILENAME = get_filename("pl")
 
 # METER & LOGGING 
 
-USE_MODBUS = False # False to use mock data; True to use Modbus
+USE_MODBUS = False
 LOG_INTERVAL = 3
 RETRY_INTERVAL = 5
 MAX_RETRIES = 5

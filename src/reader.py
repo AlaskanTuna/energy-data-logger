@@ -21,7 +21,7 @@ class MeterReader:
     def __init__(self):
         self.use_modbus = USE_MODBUS
         if self.use_modbus:
-            # Initialize a minimalmodbus.Instrument for real Modbus reads
+            # Initialize Modbus interface polling settings
             self.instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
             self.instrument.serial.baudrate = BAUDRATE
             self.instrument.serial.parity = PARITY

@@ -222,7 +222,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo apt install dnsmasq
    ```
 
-5. Create the DHCP config:
+5. Create the DHCP config using the `sudo nano /etc/dnsmasq.d/eth0-dhcp.conf` command:
 
    ```bash
    interface=eth0
@@ -293,7 +293,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo systemctl enable --now energy-web
 
    # Check service “active (running)”:
-   systemctl status energy-web --no-pager -l
+   sudo systemctl status energy-web --no-pager -l
    ```
 
 4. Try performing sanity check to confirm whether the service is up or not:

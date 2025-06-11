@@ -5,7 +5,7 @@ from logger import DataLogger
 
 class LoggerService:
     """
-    Thin wrapper that runs DataLogger in its own thread.
+    Wrapper that runs DataLogger in its own thread.
     Exposes start/stop/latest helpers for the web layer.
     """
     def __init__(self):
