@@ -2,9 +2,17 @@
 
 import os
 
+import pandas as pd
+
 from datetime import datetime
 
 # HELPER FUNCTIONS
+
+def clear_screen():
+    """
+    Clear the terminal screen.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def get_filename(file="type"):
     """
@@ -62,12 +70,6 @@ def display_csv_file(filename, directory="../data/"):
         print(f"Error displaying file: {e}")
         return False
 
-def clear_screen():
-    """
-    Clear the terminal screen.
-    """
-    os.system('cls' if os.name == 'nt' else 'clear')
-
 def select_csv_file(purpose="action"):
     """
     Display a list of CSV files and let the user select one.
@@ -95,7 +97,7 @@ def select_csv_file(purpose="action"):
         if selection == 0:
             clear_screen()
             return None
-        
+
         if 1 <= selection <= len(csv_files):
             return csv_files[selection - 1]
     except ValueError:
@@ -116,18 +118,34 @@ def view_data():
 
 def analyze_data():
     """
-    Let user select a CSV file for data analysis and visualization.
+    Let user select a CSV file for data analysis.
     """
-    from analyzer import DataAnalyzer
-
     selected_file = select_csv_file("analyze")
     if selected_file:
         filepath = os.path.join("../data/", selected_file)
 
-        # Create analyzer and run analysis
+        try:
+            from analyzer import DataAnalyzer
+            analyzer = DataAnalyzer()
+            analyzer.calculate_statistics(filepath)
+            input("\nPress Enter to continue...")
+            clear_screen()
+        except Exception as e:
+            input("\nPress Enter to continue...")
+            clear_screen()
+
+def visualize_data():
+    """
+    Generate visualizaitons for a selected CSV file.
+    """
+    selected_file = select_csv_file("visualize")
+    if selected_file:
+        filepath = os.path.join("../data/", selected_file)
+
+        df = pd.read_csv(filepath)
+
+        from analyzer import DataAnalyzer
         analyzer = DataAnalyzer()
-        df = analyzer.calculate_statistics(filepath)
-        analyzer.visualize_data(df)
+        analyzer.visualize_data(df, filepath)
 
         input("\nPress Enter to continue...")
-        clear_screen()

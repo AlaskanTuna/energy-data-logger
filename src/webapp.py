@@ -6,7 +6,7 @@ from util import list_csv_files
 from logger_wrapper import logger_service
 from analyzer_wrapper import analyzer_service
 from config import STATIC_FILEPATH
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # INITIALIZE FLASK
 
@@ -42,6 +42,34 @@ def analyze_file(filename):
     result = analyzer_service.analyze_file(filename)
     return jsonify(result if result else {"error": "Analysis failed"})
 
+@app.get("/api/visualization-types")
+def get_visualization_types():
+    viz_types = []
+    for key, config in analyzer_service.VISUALIZATION_TYPES.items():
+        viz_types.append({
+            "id": key,
+            "name": config['name'],
+        })
+    return jsonify(viz_types)
+
+@app.get("/api/columns/<filename>")
+def get_columns(filename):
+    result = analyzer_service.get_columns(filename)
+    return jsonify(result)
+
+@app.get("/api/visualize/<filename>/<plot_type>")
+def generate_visualization(filename, plot_type):
+    result = analyzer_service.visualize_file(filename, plot_type)
+    return jsonify(result)
+
+@app.get("/plots/<path:filename>")
+def serve_plot(filename):
+    return send_from_directory(
+        "../plots", 
+        filename,
+        as_attachment=True
+    )
+
 # POST ROUTES
 
 @app.post("/api/start")
@@ -53,6 +81,15 @@ def start_logging():
 def stop_logging():
     logger_service.stop()
     return {"status": "stopped"}
+
+@app.post("/api/visualize/custom/<filename>")
+def generate_custom_visualization(filename):
+    data = request.get_json()
+    if not data or 'columns' not in data:
+        return jsonify({"error": "No columns specified"}), 400
+
+    result = analyzer_service.visualize_file(filename, "custom", data['columns'])
+    return jsonify(result)
 
 # CONVENIENT CLI
 

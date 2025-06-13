@@ -1,33 +1,38 @@
-/* static/styles.css */
+/* styles.css - Energy Data Logger Web Interface */
 
-/* CSS VARIABLES */
-
+/* ============================================= */
+/* CSS VARIABLES                                 */
+/* ============================================= */
 :root {
-    /* Colors */
-    --primary: #0066cc;
-    --primary-hover: #0055aa;
-    --secondary: #6c757d;
-    --secondary-hover: #5a6268;
-    --success: green;
-    --light-bg: #f8f9fa;
-    --lighter-bg: #f5f5f5;
-    --primary-light-bg: #e9f5ff;
-    --border-color: #ddd;
-    --text: #333;
-    --text-muted: #666;
-
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 6px 10px rgba(0, 0, 0, 0.15);
-
-    /* Transitions */
-    --transition-speed: 0.2s;
-    --transition-standard: all var(--transition-speed) ease;
+  /* Colors */
+  --primary: #0066cc;
+  --primary-hover: #0055aa;
+  --secondary: #6c757d;
+  --secondary-hover: #5a6268;
+  --success: green;
+  --light-bg: #f8f9fa;
+  --lighter-bg: #f5f5f5;
+  --primary-light-bg: #e9f5ff;
+  --border-color: #ddd;
+  --text: #333;
+  --text-muted: #666;
+  --error: #dc3545;
+  --error-bg: #f8d7da;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 6px 10px rgba(0, 0, 0, 0.15);
+  --modal-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  
+  /* Transitions */
+  --transition-speed: 0.2s;
+  --transition-standard: all var(--transition-speed) ease;
 }
 
-/* MENU AND NAVIGATION */
-
+/* ============================================= */
+/* MENU AND NAVIGATION                           */
+/* ============================================= */
 .menu-item {
   cursor: pointer;
   position: relative;
@@ -42,6 +47,7 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Ripple effect - simplified */
 .menu-item::after {
   content: '';
   position: absolute;
@@ -62,8 +68,9 @@
   transition: transform 0.5s, opacity 1.0s;
 }
 
-/* STATUS PANEL AND READINGS */
-
+/* ============================================= */
+/* STATUS PANEL AND READINGS                     */
+/* ============================================= */
 #logger-status {
   font-weight: bold;
 }
@@ -79,6 +86,7 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Table styles */
 .readings-table {
   width: 100%;
   border-collapse: collapse;
@@ -103,8 +111,9 @@
   background-color: var(--lighter-bg);
 }
 
-/* MODAL COMPONENTS */
-
+/* ============================================= */
+/* MODAL COMPONENTS                              */
+/* ============================================= */
 .modal {
   position: fixed;
   top: 0;
@@ -125,12 +134,12 @@
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--modal-shadow);
 }
 
 .modal-header {
   padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -152,15 +161,16 @@
   color: var(--text);
 }
 
-/* FILE LIST */
-
+/* ============================================= */
+/* FILE LIST                                     */
+/* ============================================= */
 .file-list {
   margin-top: 15px;
 }
 
 .file-item {
   padding: 12px 15px;
-  border: 1px solid #eee;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   margin-bottom: 8px;
   cursor: pointer;
@@ -180,13 +190,9 @@
   font-size: 0.9em;
 }
 
-.empty-message {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-/* ANALYSIS COMPONENTS */
-
+/* ============================================= */
+/* ANALYSIS COMPONENTS                           */
+/* ============================================= */
 .statistics-container {
   background-color: var(--light-bg);
   border-radius: 8px;
@@ -194,7 +200,7 @@
   margin-bottom: 20px;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
 }
 
 .statistics-output {
@@ -209,8 +215,9 @@
   margin: 10px 0;
 }
 
-/* BUTTONS AND INTERACTIVE ELEMENTS */
-
+/* ============================================= */
+/* BUTTONS AND INTERACTIVE ELEMENTS              */
+/* ============================================= */
 .action-button {
   background-color: var(--primary);
   color: white;
@@ -220,7 +227,7 @@
   font-weight: 600;
   cursor: pointer;
   margin-right: 10px;
-  transition: background-color var(--transition-speed);
+  transition: var(--transition-standard);
   display: inline-flex;
   align-items: center;
 }
@@ -237,54 +244,107 @@
   background-color: var(--secondary-hover);
 }
 
-.action-button.spaced {
-  margin-top: 15px;
-}
-
+.action-button.spaced,
 #download-stats {
   margin-top: 15px;
 }
 
-/* ICONS AND INDICATORS */
-
+/* ============================================= */
+/* ICONS AND INDICATORS                          */
+/* ============================================= */
 .icon {
   margin-right: 8px;
 }
 
-.icon-right {
-  margin-left: 8px;
-  margin-right: 0;
-}
-
-.download-icon, .analysis-icon {
+.download-icon, 
+.analysis-icon,
+.viz-icon {
   color: var(--primary);
-}
-
-.analysis-icon {
   font-size: 18px;
+  margin-right: 10px;
 }
 
-/* STATUS MESSAGES */
-
-.loading {
-  padding: 20px;
+/* ============================================= */
+/* STATUS MESSAGES                               */
+/* ============================================= */
+.loading,
+.empty-message {
+  padding: 15px;
   text-align: center;
   color: var(--text-muted);
   font-style: italic;
 }
 
 .error-message {
-  color: #dc3545;
+  color: var(--error);
   padding: 10px;
-  background-color: #f8d7da;
+  background-color: var(--error-bg);
   border-radius: 4px;
   margin: 15px 0;
 }
 
-.success-message {
-  color: #155724;
-  padding: 10px;
-  background-color: #d4edda;
-  border-radius: 4px;
+/* ============================================= */
+/* VISUALIZATION COMPONENTS                      */
+/* ============================================= */
+.viz-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
   margin: 15px 0;
+}
+
+.viz-option {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: var(--transition-standard);
+}
+
+.viz-option:hover {
+  background-color: var(--primary-light-bg);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Column selection for custom viz */
+.column-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.column-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background-color: var(--light-bg);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-standard);
+}
+
+.column-option:hover {
+  background-color: var(--primary-light-bg);
+}
+
+.column-option input {
+  margin-right: 8px;
+}
+
+/* Button and download containers */
+.action-buttons,
+.download-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.download-options {
+  flex-direction: column;
 }

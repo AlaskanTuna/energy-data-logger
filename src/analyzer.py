@@ -6,10 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import (
-    PL_FILEPATH,
-    PL_FILENAME
-)
+from config import PL_FILEPATH
 
 class DataAnalyzer:
     """
@@ -98,11 +95,12 @@ class DataAnalyzer:
             print(f"[STATISTICS ERROR]: {e}")
             return None
 
-    def visualize_data(self, df):
+    def visualize_data(self, df, source=None):
         """
         Interactive visualization with CLI-based parameter selection.
 
         @df: DataFrame containing the logged data.
+        @source: Optional source filename for generating a base filename.
         """
         if df is None or len(df) < 2:
             print("\nNot enough data for visualization.")
@@ -152,40 +150,39 @@ class DataAnalyzer:
                         selected_columns = [all_columns[idx] for idx in selected_indices if 0 <= idx < len(all_columns)]
                         
                         if selected_columns:
-                            self._generate_plot(df, "Custom Selection", selected_columns)
+                            self._generate_plot(df, "Custom Selection", selected_columns, source)
                             return
                         else:
                             print("No valid parameters selected.")
                             return
                     elif choice == '8':
                         all_columns = [col for col in df.columns if col != 'Timestamp']
-                        self._generate_plot(df, "All Parameters", all_columns)
+                        self._generate_plot(df, "All Parameters", all_columns, source)
                         return
                     else:
-                        # Generate selected visualization
                         category = categories[choice]
-                        self._generate_plot(df, category['name'], category['columns'])
+                        self._generate_plot(df, category['name'], category['columns'], source)
                         return
                 else:
                     print("Invalid choice. Please select a valid option.")
         except Exception as e:
             print(f"[PLOTTING ERROR]: {e}")
 
-    def _generate_plot(self, df, title, columns):
+    def _generate_plot(self, df, title, columns, source=None):
         """
         Helper method to generate and save a plot with the specified columns.
 
         @df: DataFrame containing the logged data.
         @title: Title for the plot.
         @columns: List of column names to plot.
+        @source: Optional source filename for generating a base filename.
         """
         if not columns:
             print(f"No data columns available for {title}")
             return
 
-        base_filename = os.path.basename(PL_FILENAME)
-        base_filename = os.path.splitext(base_filename)[0]
-
+        if source and os.path.isfile(source):
+            base_filename = os.path.splitext(os.path.basename(source))[0]
         plt.figure(figsize=(12, 8))
 
         # Plot each column
@@ -200,25 +197,25 @@ class DataAnalyzer:
         plt.legend()
         plt.xticks(rotation=45)
         plt.tight_layout()
-        
+
         # Create safe suffix from title
         safe_suffix = title.replace(' ', '_').lower()
-        
-        # Create full filename with timestamp prefix
+
+        # Create full filename
         filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         print(f"Plot saved as: {filename}")
-        
+
         # Create normalized version for comparison
         if len(columns) > 1:
             plt.figure(figsize=(12, 8))
             for column in columns:
                 if column in df.columns:
                     series = df[column]
-                    if series.max() > series.min():  # Avoid division by zero
+                    if series.max() > series.min():
                         normalized = (series - series.min()) / (series.max() - series.min())
                         plt.plot(df['Timestamp'], normalized, marker='.', markersize=4, label=column)
-            
+
             plt.title(f"{title} - Normalized Comparison")
             plt.xlabel('Time')
             plt.ylabel('Normalized Value (0-1)')
@@ -226,7 +223,7 @@ class DataAnalyzer:
             plt.legend()
             plt.xticks(rotation=45)
             plt.tight_layout()
-            
+
             # Create normalized plot filename
             norm_filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}_normalized.png")
             plt.savefig(norm_filename)
