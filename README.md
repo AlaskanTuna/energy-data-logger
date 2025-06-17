@@ -299,10 +299,47 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 4. Try performing sanity check to confirm whether the service is up or not:
 
    ```bash
-   curl -I http://192.168.69.1   # Should return HTTP/1.1 200 OK
+   curl -I http://192.168.69.1 # Should return HTTP/1.1 200 OK
    ```
 
 5. Reboot the Pi and access webapp on browser by Pi's static IP address instantly.
+
+---
+
+## Test Modbus RTU Polling
+
+
+### Serial Port Configuration
+
+1. Have the RS485 cable wires connected accordingly to the energy meter and the Pi's CAN HAT.
+
+2. Access the configuration utility:
+
+   ```bash
+   sudo raspi-config
+   ```
+
+3. Navigate to: Interface Options > I6 Serial Port
+- Select "No" when asked to enable login shell over serial.
+- Select "Yes" when asked to enable serial port hardware.
+
+4. Select "Finish" and reboot when prompted.
+
+### Using SSH to Verify Modbus Connection
+
+1. Use the following command to check for available serial ports. There should be at least one port (e.g. `/dev/serial -> ttyS0`) being displayed.
+   
+   ```bash
+   ls -l /dev/serial*
+   ```
+
+2. Install dependencies (modpoll to be specific) in `/energy-data-logger/requirements.txt`.
+
+3. Run the following command to see if there are responses from the Modbus RTU.
+
+   ```bash
+   mbpoll -m rtu -a 1 -b 9600 -P none -t 4:float -r 20482 -c 2 -l 1000 /dev/serial0
+   ```
 
 ---
 

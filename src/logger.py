@@ -4,153 +4,140 @@ import os
 import csv
 import time
 
-from util import clear_screen, get_current_filename
 from datetime import datetime, timezone
 from reader import MeterReader
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from config import (
-    DS_FILEPATH,
+    REGISTERS,
+    USE_MODBUS,
     DS_HEADER,
+    DS_FILEPATH,
     LOG_INTERVAL,
     INFLUXDB_URL,
     INFLUXDB_TOKEN,
     INFLUXDB_ORG,
-    INFLUXDB_BUCKET
+    INFLUXDB_BUCKET,
+    INFLUXDB_TIMEOUT
 )
 
 class DataLogger:
     """
-    Handles CSV setup, InfluxDB initialization and continuous data logging. 
-    Runs statistics and visualization on termination.
+    Handles CSV setup, InfluxDB initialization and continuous data logging.
     """
     def __init__(self):
-        # Initialize data directory
+        from util import get_current_filename
+
         self.ds_dir = DS_FILEPATH
         if not os.path.exists(self.ds_dir):
-            try:
-                os.makedirs(self.ds_dir)
-            except Exception as e:
-                print(f"[DIRECTORY CREATION ERROR]: {e}")
+            os.makedirs(self.ds_dir, exist_ok=True)
 
-        # Initialize the CSV file with header
         self.ds_filename = get_current_filename("ds")
         self.ds_header = DS_HEADER
+
         with open(self.ds_filename, 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(self.ds_header)
+        print(f"[INFO]: Data logging initialized. CSV file: {self.ds_filename}")
 
-        # Initialize MeterReader and DataAnalyzer
-        self.reader = MeterReader()
+        self.reader = None
 
-        # Initialize InfluxDB client
-        self.influx_enabled = False
-        if INFLUXDB_URL and INFLUXDB_TOKEN:
-            try:
-                self.client = InfluxDBClient(
-                    url=INFLUXDB_URL,
-                    token=INFLUXDB_TOKEN,
-                    org=INFLUXDB_ORG,
-                    timeout=3000
-                )
+        try:
+            self.reader = MeterReader(use_modbus_flag=USE_MODBUS)
+        except ConnectionError as e:
+            print(f"[WARNING]: {e}")
+            print("[INFO]: Continuing with mock data generator.")
+            self.reader = MeterReader(use_modbus_flag=False)
 
-                # Test write capability with a small test point
-                write_api = self.client.write_api(write_options=SYNCHRONOUS)
-                test_point = Point("connection_test").field("value", 1)
-                write_api.write(bucket=INFLUXDB_BUCKET, record=test_point)
-
-                self.write_api = write_api
-                self.influx_enabled = True
-                print("InfluxDB connection established successfully.")
-            except Exception as e:
-                self.client = None
-                print(f"[INFLUXDB CONNECTION ERROR]: {e}")
-                print("InfluxDB connection established unsuccessfully. Continuing with CSV logging only.")
-        else:
-            print("[INFLUXDB CONFIG ERROR]: InfluxDB URL or token not provided.")
-            print("InfluxDB connection established unsuccessfully. Continuing with CSV logging only.")
-
+        self._initialize_influxdb()
         self._running = True
         self.latest = None
 
+    def _initialize_influxdb(self):
+        """
+        Initializes and tests the InfluxDB client connection.
+        """
+        self.influx_enabled = False
+        if not (INFLUXDB_URL and INFLUXDB_TOKEN):
+            print("[INFO]: InfluxDB config not provided. Continuing with CSV logging only.")
+            return
+
+        try:
+            self.client = InfluxDBClient(
+                url=INFLUXDB_URL,
+                token=INFLUXDB_TOKEN,
+                org=INFLUXDB_ORG,
+                timeout=INFLUXDB_TIMEOUT
+            )
+            if self.client.ping():
+                self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+                self.influx_enabled = True
+                print("[INFO]: InfluxDB connection established successfully.")
+            else:
+                print("[ERROR]: InfluxDB ping failed. Please check token and organization settings.")
+        except Exception as e:
+            print(f"[INFLUXDB CONNECTION ERROR]: {e}")
+            print("[WARNING]: Could not connect to InfluxDB. Continuing with CSV logging only.")
+            self.client = None
+
     def log(self):
         """
-        Simultaneously log meter readings to CSV and InfluxDB. 
+        Simultaneously log meter readings to CSV and InfluxDB.
         """
         try:
             while self._running:
-                readings = self.reader.get_meter_readings() # THIS WILL POLL THE METER ONCE EVERY LOG_INTERVAL
+                readings = self.reader.get_meter_readings()
+                if not readings:
+                    print("\n[WARNING]: Could not retrieve readings. Stopping logger.")
+                    self.stop()
+                    continue
+
                 timestamp = datetime.now()
                 self.latest = {"ts": timestamp, **readings}
                 timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
-                # 1) Append to CSV
+                # DYNAMIC CSV WRITING
+
+                csv_status = "✗"
                 try:
+                    row_data = [timestamp_str] + [readings.get(key) for key in REGISTERS.keys()]
                     with open(self.ds_filename, 'a', newline='') as file:
                         writer = csv.writer(file)
-                        writer.writerow([
-                            timestamp_str, 
-                            readings["voltage_L1"], readings["voltage_L2"], readings["voltage_L3"],
-                            readings["current_L1"], readings["current_L2"], readings["current_L3"],
-                            readings["total_active_power"], readings["power_factor"],
-                            readings["total_active_energy"], readings["import_active_energy"], readings["export_active_energy"]
-                        ])
+                        writer.writerow(row_data)
                     csv_status = "✓"
                 except Exception as e:
-                    print(f"[CSV WRITE ERROR]: {e}.")
-                    csv_status = "✗"
+                    print(f"[CSV WRITE ERROR]: {e}")
 
-                # 2) Write to InfluxDB (if enabled)
+                # DYNAMIC INFLUXDB WRITING
+
                 influx_status = "-"
                 if self.influx_enabled:
                     try:
-                        point = (
-                            Point("power_measurements")
-                            .tag("source", "energy_logger")
-                            .tag("location", "main_panel")
-                            # Voltage measurements
-                            .field("voltage_L1", readings["voltage_L1"])
-                            .field("voltage_L2", readings["voltage_L2"])
-                            .field("voltage_L3", readings["voltage_L3"])
-                            # Current measurements
-                            .field("current_L1", readings["current_L1"])
-                            .field("current_L2", readings["current_L2"])
-                            .field("current_L3", readings["current_L3"])
-                            # Power measurements
-                            .field("total_active_power", readings["total_active_power"])
-                            .field("power_factor", readings["power_factor"])
-                            # Energy measurements
-                            .field("total_active_energy", readings["total_active_energy"])
-                            .field("import_active_energy", readings["import_active_energy"])
-                            .field("export_active_energy", readings["export_active_energy"])
-                            .time(datetime.now(tz=timezone.utc), WritePrecision.S)
-                        )
+                        point = Point("power_measurements").tag("source", "wago_meter")
+
+                        # Loop through all readings and add them as fields
+                        for key, value in readings.items():
+                            if value is not None:
+                                point.field(key, value)
+                        point.time(datetime.now(tz=timezone.utc), WritePrecision.S)
+                        
                         self.write_api.write(bucket=INFLUXDB_BUCKET, record=point)
                         influx_status = "✓"
                     except Exception as e:
-                        print(f"[INFLUXDB WRITE ERROR]: {e}.")
+                        print(f"[INFLUXDB WRITE ERROR]: {e}")
                         influx_status = "✗"
                 else:
-                    influx_status = "✗"
+                    influx_status = "✗" if (INFLUXDB_URL and INFLUXDB_TOKEN) else "-"
 
-                print(f"[{timestamp_str}] CSV: {csv_status} InfluxDB: {influx_status} | Logged successfully.")
+                print(f"[{timestamp_str}] Logged successfully | CSV: {csv_status} | InfluxDB: {influx_status}")
                 time.sleep(LOG_INTERVAL)
-
-        # CTRL + C to stop logging.
         except KeyboardInterrupt:
-            print("\nLogging stopped by user. Processing data...")
-            if self.influx_enabled:
-                self.client.close()
-                print("InfluxDB connection closed.")
-
-        except Exception as e:
-            if self.influx_enabled:
-                self.client.close()
+            print("\n[INFO]: Logging stopped by user.")
+        finally:
+            self.stop()
 
     def start(self):
-        """
-        Calls log() function.
-        """
+        from util import clear_screen
         try:
             print("\n===== Energy Data Logger: Started Execution =====\n")
             self.log()
@@ -161,7 +148,7 @@ class DataLogger:
             print(f"\n[LOG ERROR]: {e}")
 
     def stop(self):
-        """
-        Tell the logging loop to exit on the next iteration.
-        """
         self._running = False
+        if self.influx_enabled and self.client:
+            self.client.close()
+            print("[INFO]: InfluxDB connection closed.")

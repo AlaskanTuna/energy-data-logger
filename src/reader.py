@@ -11,106 +11,84 @@ from config import (
     MODBUS_PORT,
     MODBUS_SLAVE_ID,
     BAUDRATE,
-    PARITY
+    PARITY,
+    BYTESIZE,
+    STOPBITS,
+    TIMEOUT,
+    REGISTERS
 )
 
 class MeterReader:
     """
     Encapsulates the logic for reading from a power meter.
     """
-    def __init__(self):
-        self.use_modbus = USE_MODBUS
+    def __init__(self, use_modbus_flag=USE_MODBUS):
+        self.use_modbus = use_modbus_flag
+        self.instrument = None
         if self.use_modbus:
-            # Initialize Modbus interface polling settings
-            self.instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
-            self.instrument.serial.baudrate = BAUDRATE
-            self.instrument.serial.parity = PARITY
-            self.instrument.serial.bytesize = 8
-            self.instrument.serial.stopbits = 1
-            self.instrument.serial.timeout = 1
+            try:
+                self.instrument = minimalmodbus.Instrument(
+                    port=MODBUS_PORT,
+                    slaveaddress=MODBUS_SLAVE_ID
+                )
+                self.instrument.serial.baudrate = BAUDRATE
+                self.instrument.serial.parity = PARITY
+                self.instrument.serial.bytesize = BYTESIZE
+                self.instrument.serial.stopbits = STOPBITS
+                self.instrument.serial.timeout = TIMEOUT
+                self.instrument.mode = minimalmodbus.MODE_RTU
+                print("[INFO]: Modbus instrument initialized for real readings.")
+            except Exception as e:
+                raise ConnectionError(f"[MODBUS ERROR]: Failed to initialize Modbus on port {MODBUS_PORT}: {e}")
+        else:
+            print("[INFO]: Mock data initialized for mock readings.")
 
     def meter_reading_mock(self):
         """
-        Simulate meter readings with mock values.
+        Simulate electrical data readings for testing purposes.
         """
-        # Create realistic mock values
+        readings = {}
         voltage_base = random.uniform(215, 240)
         current_base = random.uniform(1.5, 15.0)
-        
-        # Per-phase values with realistic variation
-        voltage_L1 = round(voltage_base * random.uniform(0.98, 1.02), 2)
-        voltage_L2 = round(voltage_base * random.uniform(0.98, 1.02), 2)
-        voltage_L3 = round(voltage_base * random.uniform(0.98, 1.02), 2)
-        
-        current_L1 = round(current_base * random.uniform(0.95, 1.05), 2)
-        current_L2 = round(current_base * random.uniform(0.95, 1.05), 2)
-        current_L3 = round(current_base * random.uniform(0.95, 1.05), 2)
-        
-        total_active_power = round(((voltage_L1 + voltage_L2 + voltage_L3) / 3) * 
-                                ((current_L1 + current_L2 + current_L3) / 3) * 
-                                random.uniform(0.85, 0.95) / 1000, 3)
-        
-        power_factor = round(random.uniform(0.8, 0.98), 2)
-        
-        total_active_energy = round(random.uniform(0.2, 2.5), 3)
-        import_active_energy = round(total_active_energy * random.uniform(0.95, 1.0), 3)
-        export_active_energy = round(total_active_energy * random.uniform(0, 0.05), 3)
-        
-        return {
-            "voltage_L1": voltage_L1,
-            "voltage_L2": voltage_L2,
-            "voltage_L3": voltage_L3,
-            "current_L1": current_L1,
-            "current_L2": current_L2,
-            "current_L3": current_L3,
-            "total_active_power": total_active_power,
-            "power_factor": power_factor,
-            "total_active_energy": total_active_energy,
-            "import_active_energy": import_active_energy,
-            "export_active_energy": export_active_energy
-        }
+        power_base = voltage_base * current_base / 1000
+        energy_base = random.uniform(500, 10000)
+
+        for name in REGISTERS.keys():
+            if 'voltage' in name:
+                readings[name] = round(voltage_base * random.uniform(0.98, 1.02), 2)
+            elif 'current' in name:
+                readings[name] = round(current_base * random.uniform(0.95, 1.05), 2)
+            elif 'power' in name and 'total' not in name:
+                readings[name] = round(power_base * random.uniform(0.9, 1.1), 3)
+            elif name == 'total_power':
+                readings[name] = round(power_base * 3 * random.uniform(0.95, 1.05), 3)
+            elif 'energy' in name:
+                if '_t' in name:
+                    readings[name] = round(energy_base * 0.4 * random.uniform(0.9, 1.1), 3)
+                elif '_l' in name:
+                     readings[name] = round(energy_base / 3 * random.uniform(0.9, 1.1), 3)
+                else:
+                    readings[name] = round(energy_base * random.uniform(0.98, 1.02), 3)
+            else:
+                readings[name] = round(random.uniform(0, 1), 3)
+        return readings
 
     def meter_reading_modbus(self):
         """
-        Poll electrical data from the power meter via Modbus.
-        The register values are returned as FLOAT32 (ABCD).
+        Polls electrical data from the power meter registers through Modbus.
         """
+        readings = {}
         try:
-            # Read per-phase voltages (recommended parameters)
-            voltage_L1 = self.instrument.read_float(0x5002, functioncode=3, number_of_registers=2)
-            voltage_L2 = self.instrument.read_float(0x5004, functioncode=3, number_of_registers=2)
-            voltage_L3 = self.instrument.read_float(0x5006, functioncode=3, number_of_registers=2)
-            
-            # Read per-phase currents
-            current_L1 = self.instrument.read_float(0x500C, functioncode=3, number_of_registers=2)
-            current_L2 = self.instrument.read_float(0x500E, functioncode=3, number_of_registers=2)
-            current_L3 = self.instrument.read_float(0x5010, functioncode=3, number_of_registers=2)
-            
-            # Read power measurements
-            total_active_power = self.instrument.read_float(0x5012, functioncode=3, number_of_registers=2)
-            power_factor = self.instrument.read_float(0x502A, functioncode=3, number_of_registers=2)
-            
-            # Read energy measurements
-            total_active_energy = self.instrument.read_float(0x6000, functioncode=3, number_of_registers=2)
-            import_active_energy = self.instrument.read_float(0x600C, functioncode=3, number_of_registers=2)
-            export_active_energy = self.instrument.read_float(0x6018, functioncode=3, number_of_registers=2)
-            
-            # Return all values in a dictionary
-            return {
-                "voltage_L1": round(voltage_L1, 2),
-                "voltage_L2": round(voltage_L2, 2),
-                "voltage_L3": round(voltage_L3, 2),
-                "current_L1": round(current_L1, 2),
-                "current_L2": round(current_L2, 2),
-                "current_L3": round(current_L3, 2),
-                "total_active_power": round(total_active_power, 3),
-                "power_factor": round(power_factor, 2),
-                "total_active_energy": round(total_active_energy, 3),
-                "import_active_energy": round(import_active_energy, 3),
-                "export_active_energy": round(export_active_energy, 3)
-            }
+            for name, params in REGISTERS.items():
+                value = self.instrument.read_float(
+                    registeraddress=params["address"],
+                    functioncode=params["functioncode"],
+                    number_of_registers=params["number_of_registers"]
+                )
+                readings[name] = round(value, 3)
+            return readings
         except Exception as e:
-            print(f"[MODBUS ERROR]: {e}.")
+            print(f"[MODBUS READ ERROR]: {e}")
             return None
 
     def get_meter_readings(self):
@@ -128,7 +106,8 @@ class MeterReader:
                 return readings
             else:
                 retry_count += 1
-                print(f"[MODBUS ERROR] Attempting to reestablish connection: {retry_count}/{MAX_RETRIES}.")
+                print(f"[MODBUS ERROR]: Attempting to reestablish connection. {retry_count}/{MAX_RETRIES}.")
                 time.sleep(RETRY_INTERVAL)
 
-        raise Exception(f"Failed to get MODBUS readings after {MAX_RETRIES} attempts.")
+        print(f"[MODBUS ERROR]: Failed to get readings after {MAX_RETRIES} attempts.")
+        return None

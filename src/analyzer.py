@@ -1,4 +1,4 @@
-# src/statistics.py
+# src/analyzer.py
 
 import os
 import pandas as pd
@@ -6,89 +6,43 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import PL_FILEPATH
+from config import PL_FILEPATH, REGISTERS
 
 class DataAnalyzer:
     """
     Computes statistics and generates plots for the logged CSV data.
     """
     def __init__(self):
-        """
-        Initialize the DataAnalyzer.
-        """
-        # Initialize plot directory
         self.plot_dir = PL_FILEPATH
-        if not os.path.exists(self.plot_dir):
-            try:
-                os.makedirs(self.plot_dir)
-            except Exception as e:
-                print(f"[DIRECTORY CREATION ERROR]: {e}")
+        os.makedirs(self.plot_dir, exist_ok=True)
 
     def calculate_statistics(self, filepath):
         """
-        Compute min/max/mean/median/std for each column, organized by parameter groups.
-
-        @filepath: Path to the CSV file containing logged data.
+        Compute statistics for each column, organized by parameter groups.
         """
         try:
             df = pd.read_csv(filepath)
 
-            # Define parameter groups for better organization
             param_groups = {
                 "Voltage Parameters": [col for col in df.columns if "Voltage" in col],
                 "Current Parameters": [col for col in df.columns if "Current" in col],
-                "Power Parameters": [col for col in df.columns if "Power" in col or "Factor" in col],
-                "Energy Parameters": [col for col in df.columns if "Energy" in col]
+                "Power Parameters":   [col for col in df.columns if "Power" in col],
+                "Energy Parameters":  [col for col in df.columns if "Energy" in col],
             }
 
             print("\n===== Power Meter Statistics =====")
-
-            # Process each parameter group
             for group_name, columns in param_groups.items():
+                if not columns: continue
+
                 print(f"\n{group_name}:")
-
-                # Get system-wide averages where applicable
-                if "Voltage" in group_name or "Current" in group_name:
-                    group_cols = [c for c in columns if any(f"L{i}" in c for i in range(1, 4))]
-                    if group_cols:
-                        system_avg = df[group_cols].mean(axis=1).mean()
-                        system_min = df[group_cols].mean(axis=1).min()
-                        system_max = df[group_cols].mean(axis=1).max()
-                        print(f"  System Average: {system_avg:.2f}")
-                        print(f"  System Min: {system_min:.2f}")
-                        print(f"  System Max: {system_max:.2f}")
-
-                        # Calculate phase imbalance (max deviation from average)
-                        if len(group_cols) > 1:
-                            imbalance_pct = ((df[group_cols].max(axis=1) - df[group_cols].min(axis=1)) / 
-                                            df[group_cols].mean(axis=1) * 100).mean()
-                            print(f"  Average Phase Imbalance: {imbalance_pct:.2f}%")
-
-                # Calculate stats for each column in this group
                 for column in columns:
-                    print(f"\n  {column}:")
-                    stats = {
-                        'min': df[column].min(),
-                        'max': df[column].max(),
-                        'mean': df[column].mean(),
-                        'median': df[column].median(),
-                        'std': df[column].std()
-                    }
-
-                    for stat_name, stat_value in stats.items():
-                        print(f"    {stat_name}: {stat_value:.2f}")
-
-            # Calculate energy consumption rate (kWh per hour)
-            if len(df) > 1 and 'Timestamp' in df.columns and any('Energy' in col for col in df.columns):
-                try:
-                    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-                    total_hours = (df['Timestamp'].max() - df['Timestamp'].min()).total_seconds() / 3600
-                    
-                    if 'Total Active Energy (kWh)' in df.columns and total_hours > 0:
-                        energy_rate = (df['Total Active Energy (kWh)'].max() - df['Total Active Energy (kWh)'].min()) / total_hours
-                        print(f"\nEnergy Consumption Rate: {energy_rate:.3f} kWh/hour")
-                except:
-                    pass
+                    if column in df.columns:
+                        print(f"\n  {column}:")
+                        stats = df[column].describe()
+                        print(f"    min:    {stats.get('min', 0):.2f}")
+                        print(f"    max:    {stats.get('max', 0):.2f}")
+                        print(f"    mean:   {stats.get('mean', 0):.2f}")
+                        print(f"    std:    {stats.get('std', 0):.2f}")
 
             return df
         except Exception as e:
@@ -97,98 +51,82 @@ class DataAnalyzer:
 
     def visualize_data(self, df, source=None):
         """
-        Interactive visualization with CLI-based parameter selection.
-
+        Interactive CLI visualization.
+        
         @df: DataFrame containing the logged data.
-        @source: Optional source filename for generating a base filename.
+        @source: Optional source filename for generating plots.
         """
         if df is None or len(df) < 2:
-            print("\nNot enough data for visualization.")
+            print("\n[WARNING]: Not enough data for visualization.")
             return
 
-        try:
-            # Convert timestamp to datetime
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-            
-            # Define visualization categories
-            categories = {
-                '1': {'name': 'Voltage Comparison', 'columns': [col for col in df.columns if 'Voltage' in col]},
-                '2': {'name': 'Current Comparison', 'columns': [col for col in df.columns if 'Current' in col]},
-                '3': {'name': 'Power Analysis', 'columns': ['Total Active Power (kW)', 'Power Factor']},
-                '4': {'name': 'Energy Consumption', 'columns': [col for col in df.columns if 'Energy' in col]},
-                '5': {'name': 'Phase Balance', 'columns': [
-                    'Voltage L1 (V)', 'Voltage L2 (V)', 'Voltage L3 (V)',
-                    'Current L1 (A)', 'Current L2 (A)', 'Current L3 (A)'
-                    ]},
-                '6': {'name': 'Power Quality', 'columns': ['Power Factor', 'Total Reactive Power (kvar)']},
-                '7': {'name': 'Custom Selection', 'columns': []},
-                '8': {'name': 'All Parameters', 'columns': []},
-                '0': {'name': 'Exit', 'columns': []}
-            }
+        if 'Timestamp' not in df.columns:
+            print("[PLOT ERROR]: Timestamp column not found. Cannot create time-series plots.")
+            return
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        
+        available_cols = [col for col in df.columns if col != 'Timestamp']
 
-            # Menu loop
-            while True:
-                # Display menu
-                print("\nSelect visualization to generate:")
-                for key, value in categories.items():
+        categories = {
+            '1': {'name': 'Voltage Comparison', 'columns': [c for c in available_cols if 'Voltage' in c]},
+            '2': {'name': 'Current Comparison', 'columns': [c for c in available_cols if 'Current' in c]},
+            '3': {'name': 'Power Analysis', 'columns': [c for c in available_cols if 'Power' in c]},
+            '4': {'name': 'Energy Consumption', 'columns': [c for c in available_cols if 'Energy' in c]},
+            '5': {'name': 'Custom Selection', 'columns': []},
+            '6': {'name': 'All Parameters', 'columns': available_cols},
+            '0': {'name': 'Exit', 'columns': []}
+        }
+
+        while True:
+            print("\nSelect visualization to generate:")
+            for key, value in categories.items():
+                # Only show options that have data to plot
+                if value.get('columns') or key in ['5', '0']:
                     print(f"{key}. {value['name']}")
-                choice = input("\nEnter your choice: ").strip()
+            choice = input("\nEnter your choice: ").strip()
 
-                if choice in categories:
-                    if choice == '0':
-                        print("Exiting visualization menu.")
-                        return
-                    if choice == '7':
-                        # Custom selection
-                        all_columns = [col for col in df.columns if col != 'Timestamp']
-                        print("\nAvailable parameters:")
-                        for i, col in enumerate(all_columns, 1):
-                            print(f"{i}. {col}")
-                        
-                        selection = input("\nEnter parameter numbers separated by commas: ")
-                        selected_indices = [int(idx.strip()) - 1 for idx in selection.split(',') if idx.strip().isdigit()]
-                        selected_columns = [all_columns[idx] for idx in selected_indices if 0 <= idx < len(all_columns)]
-                        
-                        if selected_columns:
-                            self._generate_plot(df, "Custom Selection", selected_columns, source)
-                            return
-                        else:
-                            print("No valid parameters selected.")
-                            return
-                    elif choice == '8':
-                        all_columns = [col for col in df.columns if col != 'Timestamp']
-                        self._generate_plot(df, "All Parameters", all_columns, source)
-                        return
-                    else:
-                        category = categories[choice]
-                        self._generate_plot(df, category['name'], category['columns'], source)
-                        return
+            if choice == '0':
+                print("Exiting visualization menu.")
+                return
+            elif choice == '5': # Custom
+                all_columns = [col for col in df.columns if col != 'Timestamp']
+                print("\nAvailable parameters:")
+                for i, col in enumerate(all_columns, 1):
+                    print(f"{i}. {col}")
+
+                selection = input("\nEnter parameter numbers separated by commas: ")
+                selected_indices = [int(idx.strip()) - 1 for idx in selection.split(',') if idx.strip().isdigit()]
+                selected_columns = [all_columns[idx] for idx in selected_indices if 0 <= idx < len(all_columns)]
+
+                if selected_columns:
+                    self._generate_plot(df, "Custom Selection", selected_columns, source)
+                    return
                 else:
-                    print("Invalid choice. Please select a valid option.")
-        except Exception as e:
-            print(f"[PLOTTING ERROR]: {e}")
+                    print("[WARNING]: No valid parameters selected.")
+                return
+            elif choice in categories and categories[choice]['columns']:
+                self._generate_plot(df, categories[choice]['name'], categories[choice]['columns'], source)
+                return
+            else:
+                print("[WARNING]: Invalid choice or no data available for that option.")
 
-    def _generate_plot(self, df, title, columns, source=None):
+    def _generate_plot(self, df, title, columns_to_plot, source=None):
         """
-        Helper method to generate and save a plot with the specified columns.
+        Helper method to generate and save a plot.
+        """
+        columns = [col for col in columns_to_plot if col in df.columns]
 
-        @df: DataFrame containing the logged data.
-        @title: Title for the plot.
-        @columns: List of column names to plot.
-        @source: Optional source filename for generating a base filename.
-        """
         if not columns:
-            print(f"No data columns available for {title}")
+            print(f"[WARNING]: None of the requested columns for '{title}' plot exist in the data. Skipping plot.")
             return
 
+        base_filename = "visualization"
         if source and os.path.isfile(source):
             base_filename = os.path.splitext(os.path.basename(source))[0]
+        
         plt.figure(figsize=(12, 8))
-
-        # Plot each column
         for column in columns:
-            if column in df.columns:
-                plt.plot(df['Timestamp'], df[column], marker='o', markersize=3, linewidth=1.5, label=column)
+            plt.plot(df['Timestamp'], df[column], marker='o', markersize=3, linewidth=1.5, label=column)
         
         plt.title(f"{title} - Time Series")
         plt.xlabel('Time')
@@ -200,10 +138,9 @@ class DataAnalyzer:
 
         # Create safe suffix from title
         safe_suffix = title.replace(' ', '_').lower()
-
-        # Create full filename
         filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
+        plt.close()
         print(f"Plot saved as: {filename}")
 
         # Create normalized version for comparison
@@ -227,4 +164,5 @@ class DataAnalyzer:
             # Create normalized plot filename
             norm_filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}_normalized.png")
             plt.savefig(norm_filename)
+            plt.close()
             print(f"Normalized plot saved as: {norm_filename}")
