@@ -53,7 +53,11 @@
    sudo apt-get install git
    ```
 
-3. Make the following configuration changes:
+3. Make the following configuration changes in `raspi-config`:
+
+   ```bash
+   sudo raspi-config
+   ```
 
    * Using your arrow keys, choose **System Options → Boot/Auto Login → Console/AutoLogin**.
    * Next choose **Interface Options → Serial Port → No → Yes**.
@@ -128,38 +132,43 @@
 
 ## Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
 
-```bash
-wget -q https://repos.influxdata.com/influxdata-archive_compat.key
-echo '393e8779c89ac8d958f81f942f9ad7fb82a25e133faddaf92e15b16e6ac9ce4c influxdata-archive_compat.key' \
-  | sha256sum -c && \
-  cat influxdata-archive_compat.key | gpg --dearmor \
-  | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null
+   ```bash
+   curl --silent --location -O \
+   https://repos.influxdata.com/influxdata-archive.key
+   echo "943666881a1b8d9b849b74caebf02d3465d6beb716510d86a39f6c8e8dac7515  influxdata-archive.key" \
+   | sha256sum --check - && cat influxdata-archive.key \
+   | gpg --dearmor \
+   | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive.gpg > /dev/null \
+   && echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main' \
+   | sudo tee /etc/apt/sources.list.d/influxdata.list
 
-echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] \
-  https://repos.influxdata.com/debian stable main' \
-  | sudo tee /etc/apt/sources.list.d/influxdata.list
+   sudo apt-get update && sudo apt-get install influxdb2
 
-sudo apt-get update && sudo apt-get install influxdb2
-```
+   # Followed by:
+   sudo service influxdb start
+   sudo service influxdb status --no-pager -l
+   ```
 
 ---
 
 ## Installing Grafana OSS (Ubuntu & Debian) on the Pi
 
-```bash
-sudo apt-get install -y apt-transport-https software-properties-common wget
-sudo mkdir -p /etc/apt/keyrings/
-wget -q -O - https://apt.grafana.com/gpg.key \
-  | gpg --dearmor \
-  | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+   ```bash
+   sudo apt-get install -y apt-transport-https software-properties-common wget
+   sudo mkdir -p /etc/apt/keyrings/
+   wget -q -O - https://apt.grafana.com/gpg.key \
+   | gpg --dearmor \
+   | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+   echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
+   | sudo tee -a /etc/apt/sources.list.d/grafana.list
+   sudo apt-get update && sudo apt-get install grafana
 
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
-  | sudo tee -a /etc/apt/sources.list.d/grafana.list
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com beta main" \
-  | sudo tee -a /etc/apt/sources.list.d/grafana.list
-
-sudo apt-get update && sudo apt-get install grafana
-```
+   # Followed by:
+   sudo systemctl daemon-reload
+   sudo systemctl enable grafana-server
+   sudo systemctl start grafana-server
+   sudo systemctl status grafana-server --no-pager -l
+   ```
 
 ---
 
@@ -198,15 +207,19 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
      ifname eth0 \
      con-name eth0 \
      ipv4.method manual \
-     ipv4.addresses <static-ip-address>/24 \
+     ipv4.addresses <ENTER STATIC IP ADDRESS>/24 \
      ipv4.gateway "" \
      ipv4.dns ""
    ```
 
-2. Make sure it autoconnects:
+2. Make sure eth0 autoconnects upon boot:
+
 
    ```bash
    sudo nmcli connection modify eth0 connection.autoconnect yes
+
+   # Add `autoconnect=true` under the [connection] section too:
+   sudo nano /etc/NetworkManager/system-connections/eth0.nmconnection
    ```
 
 3. Bring up the connection profile:
@@ -218,8 +231,8 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 4. Install DHCP/DNS service on the Pi:
 
    ```bash
-   sudo apt update
-   sudo apt install dnsmasq
+   sudo apt-get update
+   sudo apt-get install dnsmasq
    ```
 
 5. Create the DHCP config using the `sudo nano /etc/dnsmasq.d/eth0-dhcp.conf` command:
@@ -237,6 +250,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    ```bash
    sudo systemctl restart dnsmasq
    sudo systemctl enable dnsmasq
+   sudo systemctl status dnsmasq --no-pager -l
    ```
 
 7. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it. Then, SSH into the Pi using Termux and the Pi's static IP address.
@@ -312,30 +326,17 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 ### Serial Port Configuration
 
 1. Have the RS485 cable wires connected accordingly to the energy meter and the Pi's CAN HAT.
+- Note: Make sure to have serial port hardware enabled in `raspi-config` already.
 
-2. Access the configuration utility:
-
-   ```bash
-   sudo raspi-config
-   ```
-
-3. Navigate to: Interface Options > I6 Serial Port
-- Select "No" when asked to enable login shell over serial.
-- Select "Yes" when asked to enable serial port hardware.
-
-4. Select "Finish" and reboot when prompted.
-
-### Using SSH to Verify Modbus Connection
-
-1. Use the following command to check for available serial ports. There should be at least one port (e.g. `/dev/serial -> ttyS0`) being displayed.
+2. Use the following command to check for available serial ports. There should be at least one port (e.g. `/dev/serial -> ttyS0`) being displayed.
    
    ```bash
    ls -l /dev/serial*
    ```
 
-2. Install dependencies (modpoll to be specific) in `/energy-data-logger/requirements.txt`.
+3. Install dependencies (modpoll to be specific) in `/energy-data-logger/requirements.txt`.
 
-3. Run the following command to see if there are responses from the Modbus RTU.
+4. Run the following command to see if there are responses from the Modbus RTU.
 
    ```bash
    mbpoll -m rtu -a 1 -b 9600 -P none -t 4:float -r 20482 -c 2 -l 1000 /dev/serial0

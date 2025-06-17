@@ -85,7 +85,7 @@ class MeterReader:
                     functioncode=params["functioncode"],
                     number_of_registers=params["number_of_registers"]
                 )
-                readings[name] = round(value, 3)
+                readings[name] = round(value, 3) # Set precision to 3 decimal places
             return readings
         except Exception as e:
             print(f"[MODBUS READ ERROR]: {e}")
