@@ -225,6 +225,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 3. Bring up the connection profile:
 
    ```bash
+   sudo ip link set eth0 up
    sudo nmcli connection up eth0
    ```
 
@@ -340,6 +341,92 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
    ```bash
    mbpoll -m rtu -a 1 -b 9600 -P none -t 4:float -r 20482 -c 2 -l 1000 /dev/serial0
+   ```
+
+---
+
+## Setting Up Watchdog
+
+1. Install the Watchdog package:
+
+   ```bash
+   sudo apt-get update
+   sudo apt install watchdog
+   ```
+
+2. Enable hardware Watchdog by editing the boot config file:
+
+   ```bash
+   sudo nano /boot/firmware/config.txt
+   
+   # Followed by adding this line under the `[all]` section:
+   dtparam=watchdog=on
+   ```
+
+3. Create pre-reboot logging script and a directory to store log files:
+
+   ```bash
+   # Create directory for logs
+   sudo mkdir -p /var/log/watchdog
+
+   # Create the script
+   sudo nano /usr/local/bin/watchdog-pre-reboot-log.sh
+   ```
+
+4. Add the following content inside `/usr/local/bin/watchdog-pre-reboot-log.sh`:
+
+   ```bash
+   #!/bin/bash
+   # Script to capture system logs before watchdog reboot
+
+   TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+   LOG_DIR="/var/log/watchdog"
+
+   # Create log files with timestamp
+   JOURNAL_LOG="${LOG_DIR}/pre-reboot-journal_${TIMESTAMP}.log"
+   KERNEL_LOG="${LOG_DIR}/pre-reboot-kernel_${TIMESTAMP}.log"
+
+   # Log last 200 journal entries
+   journalctl -n 200 > "${JOURNAL_LOG}"
+
+   # Log last 50 kernel messages
+   dmesg | tail -n 50 > "${KERNEL_LOG}"
+
+   # Add permissions
+   chmod 644 "${JOURNAL_LOG}" "${KERNEL_LOG}"
+   ```
+
+5. Make the script executable:
+
+   ```bash
+   sudo chmod +x /usr/local/bin/watchdog-pre-reboot-log.sh
+   ```
+
+6. Configure Watchdog service:
+
+   ```bash
+   # Edit watchdog configuration
+   sudo nano /etc/watchdog.conf
+
+   # Uncomment or add these lines
+   watchdog-device = /dev/watchdog
+   watchdog-timeout = 15
+   interval = 3
+   log-dir = /var/log/watchdog
+   repair-binary = /usr/local/bin/watchdog-pre-reboot-log.sh
+   repair-timeout = 60
+   temperature-sensor = /sys/devices/virtual/thermal/thermal_zone0/temp
+   max-temperature = 80000
+   #test-binary = /bin/false
+   ```
+
+7. Enable and start Watchdog service, then reboot:
+
+   ```bash
+   sudo systemctl enable watchdog
+   sudo systemctl start watchdog
+   sudo systemctl status watchdog --no-pager -l
+   sudo reboot
    ```
 
 ---
