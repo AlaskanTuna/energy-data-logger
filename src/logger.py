@@ -25,19 +25,22 @@ class DataLogger:
     """
     Handles CSV setup, InfluxDB initialization and continuous data logging.
     """
-    def __init__(self):
-        from util import get_current_filename
-
+    def __init__(self, filename):
         self.ds_dir = DS_FILEPATH
         if not os.path.exists(self.ds_dir):
             os.makedirs(self.ds_dir, exist_ok=True)
 
-        self.ds_filename = get_current_filename("ds")
+        self.ds_filename = filename
         self.ds_header = DS_HEADER
 
-        with open(self.ds_filename, 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(self.ds_header)
+        # IF the file is new THEN write the header
+        # Prevents writing multiple headers on session resume
+        is_new_file = not os.path.exists(self.ds_filename) or os.path.getsize(self.ds_filename) == 0
+        with open(self.ds_filename, 'a', newline='') as file:
+            if is_new_file:
+                writer = csv.writer(file)
+                writer.writerow(self.ds_header)
+        
         print(f"[INFO]: Data logging initialized. CSV file: {self.ds_filename}")
 
         self.reader = None

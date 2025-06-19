@@ -210,33 +210,26 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
      ipv4.addresses <ENTER STATIC IP ADDRESS>/24 \
      ipv4.gateway "" \
      ipv4.dns ""
-   ```
 
-2. Make sure eth0 autoconnects upon boot:
-
-
-   ```bash
+   # Make sure eth0 autoconnects upon boot
    sudo nmcli connection modify eth0 connection.autoconnect yes
-
-   # Add `autoconnect=true` under the [connection] section too:
-   sudo nano /etc/NetworkManager/system-connections/eth0.nmconnection
    ```
 
-3. Bring up the connection profile:
+2. Bring up the connection profile:
 
    ```bash
    sudo ip link set eth0 up
    sudo nmcli connection up eth0
    ```
 
-4. Install DHCP/DNS service on the Pi:
+3. Install DHCP/DNS service on the Pi:
 
    ```bash
    sudo apt-get update
    sudo apt-get install dnsmasq
    ```
 
-5. Create the DHCP config using the `sudo nano /etc/dnsmasq.d/eth0-dhcp.conf` command:
+4. Create the DHCP config using the `sudo nano /etc/dnsmasq.d/eth0-dhcp.conf` command:
 
    ```bash
    interface=eth0
@@ -246,7 +239,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    dhcp-range=192.168.69.2,192.168.69.254,255.255.255.0,12h
    ```
 
-6. Restart the service:
+5. Restart the service:
 
    ```bash
    sudo systemctl restart dnsmasq
@@ -254,7 +247,50 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo systemctl status dnsmasq --no-pager -l
    ```
 
-7. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it. Then, SSH into the Pi using Termux and the Pi's static IP address.
+6. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it automatically.
+
+### Setting Up Systemd for eth0 Interface
+
+*For some reason, the eth0 static IP will not be up unless there is a carrier or manually configured. Therefore, we create a temporary solution for this.*
+
+1. Create the systemd unit file:
+
+   ```bash
+   sudo nano /etc/systemd/system/configure-eth0.service
+   ```
+
+2. Fill the content of the systemd unit file:
+
+   ```bash
+   [Unit]
+   Description=Configure eth0 interface
+   After=NetworkManager.service
+   Wants=NetworkManager.service
+   Before=energy-web.service dnsmasq.service
+   DefaultDependencies=no
+
+   [Service]
+   Type=oneshot
+   ExecStart=/bin/bash -c '/usr/bin/nmcli connection up eth0 || true'
+   ExecStart=/bin/bash -c 'ip addr show eth0 || true'
+   RemainAfterExit=yes
+   Restart=no
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+3. Enable and start the service:
+
+   ```bash
+   sudo chmod 644 /etc/systemd/system/configure-eth0.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable configure-eth0.service
+   sudo systemctl restart configure-eth0.service
+
+   # Check service "active (running)":
+   sudo systemctl status configure-eth0.service --no-pager -l
+   ```
 
 ### Setting Up Systemd for Energy Data Logger Webapp
 
@@ -327,7 +363,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 ### Serial Port Configuration
 
 1. Have the RS485 cable wires connected accordingly to the energy meter and the Pi's CAN HAT.
-- Note: Make sure to have serial port hardware enabled in `raspi-config` already.
+*Note: Make sure to have serial port hardware enabled in `raspi-config` already.*
 
 2. Use the following command to check for available serial ports. There should be at least one port (e.g. `/dev/serial -> ttyS0`) being displayed.
    

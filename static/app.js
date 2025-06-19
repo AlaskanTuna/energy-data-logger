@@ -12,24 +12,53 @@ document.addEventListener('DOMContentLoaded', function() {
     const lastUpdate = document.getElementById('last-update');
     const latestReadingsDiv = document.getElementById('latest-readings');
     const menuItems = document.querySelectorAll('.menu-item');
+    const logButton = menuItems[0];
 
-    // Tracking variable for logger state
     let isLogging = false;
     let pollingInterval = null;
 
+    function checkInitialStatus() {
+        fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                updateLoggerUI(data.status === 'running');
+                if (data.status === 'running') {
+                    startDataPolling();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching initial status:', error);
+                loggerStatus.textContent = 'Unknown';
+                loggerStatus.style.color = 'orange';
+            });
+    }
+
+    function updateLoggerUI(loggingStatus) {
+        isLogging = loggingStatus;
+        if (isLogging) {
+            loggerStatus.textContent = 'Active';
+            loggerStatus.style.color = 'green';
+            logButton.textContent = '1. Stop Logging';
+            logButton.classList.add('active');
+        } else {
+            loggerStatus.textContent = 'Inactive';
+            loggerStatus.style.color = '';
+            logButton.textContent = '1. Log New Data';
+            logButton.classList.remove('active');
+        }
+    }
+
     // Add global event delegation for modal handling
     document.addEventListener('click', function(event) {
-        // Close button clicked
         if (event.target.classList.contains('close-modal')) {
             closeFileModal();
         }
 
-        // Click outside modal content
+        // IF click outside modal THEN close modal
         if (event.target.id === 'file-modal') {
             closeFileModal();
         }
 
-        // File item clicked
         if (event.target.closest('.file-item')) {
             const fileItem = event.target.closest('.file-item');
             const filename = fileItem.dataset.filename;
@@ -46,12 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize event listeners
     menuItems.forEach((item, index) => {
         item.addEventListener('click', function() {
             // 1. Log New Data
             if (index === 0) {
-                handleLoggerToggle(this);
+                handleLoggerToggle();
             }
 
             // 2. View Data
@@ -325,51 +353,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * @brief Handles the logger toggle button click.
-     * @button The button element that was clicked.
      */
-
-    function handleLoggerToggle(button) {
-        if (!isLogging) {
-            // Start logging
-            fetch('/api/start', {
-                method: 'POST'
-            })
+    function handleLoggerToggle() {
+        const action = isLogging ? '/api/stop' : '/api/start';
+        fetch(action, { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                isLogging = true;
-                loggerStatus.textContent = 'Active';
-                loggerStatus.style.color = 'green';
-                lastUpdate.textContent = new Date().toLocaleTimeString();
-                button.textContent = '1. Stop Logging';
-                button.classList.add('active');
+                const isNowLogging = data.status === 'started' || data.status === 'already_running';
+                updateLoggerUI(isNowLogging);
+                
+                if (isNowLogging) {
+                    startDataPolling();
+                } else {
+                    stopDataPolling();
+                    latestReadingsDiv.innerHTML = '<h3>Latest Readings</h3><p>No data available. Start logging to see real-time measurements.</p>';
+                }
 
-                // Start polling for data
-                startDataPolling();
+                if (data.status === 'error') {
+                    alert('An error occurred: ' + (data.message || 'Unknown error'));
+                }
             })
             .catch(error => {
-                console.error('Error starting logger:', error);
+                console.error('Error toggling logger:', error);
+                alert('Failed to communicate with the server.');
             });
-        } else {
-            // Stop logging
-            fetch('/api/stop', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                isLogging = false;
-                loggerStatus.textContent = 'Inactive';
-                loggerStatus.style.color = '';
-                button.textContent = '1. Log New Data';
-                button.classList.remove('active');
-
-                // Stop polling for data
-                stopDataPolling();
-            })
-            .catch(error => {
-                console.error('Error stopping logger:', error);
-            });
-        }
     }
+
 
     /**
      * @brief Handles clicks on visualization options.
@@ -434,6 +443,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     for (const [key, value] of Object.entries(data)) {
                         let displayValue = typeof value === 'number' ? 
                             value.toFixed(3) : value;
+                        
+                        // Use the timestamp from the data if available
+                        if (key === 'ts') {
+                            displayValue = new Date(value).toLocaleString();
+                        }
 
                         html += `<tr>
                             <td>${key}</td>
@@ -552,4 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
         modalMode = '';
         document.removeEventListener('click', handleVizOptionClick);
     }
+
+    checkInitialStatus();
 });

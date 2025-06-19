@@ -24,6 +24,8 @@ class AnalyzerService:
         self._analyzer = DataAnalyzer()
         self._cache = {}
 
+    # PUBLIC API
+
     def analyze_file(self, filename):
         """
         Analyze a file and return the statistics.

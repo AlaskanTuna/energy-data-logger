@@ -22,6 +22,10 @@ def latest():
     data = logger_service.latest()
     return jsonify(data if data else {})
 
+@app.get("/api/status")
+def get_logger_status():
+    return jsonify(logger_service.get_status())
+
 @app.get("/api/files")
 def list_files():
     files = list_csv_files()
@@ -74,13 +78,13 @@ def serve_plot(filename):
 
 @app.post("/api/start")
 def start_logging():
-    logger_service.start()
-    return {"status": "started"}
+    result = logger_service.start()
+    return jsonify(result)
 
 @app.post("/api/stop")
 def stop_logging():
-    logger_service.stop()
-    return {"status": "stopped"}
+    result = logger_service.stop()
+    return jsonify(result)
 
 @app.post("/api/visualize/custom/<filename>")
 def generate_custom_visualization(filename):
