@@ -524,12 +524,13 @@ document.addEventListener('DOMContentLoaded', function() {
         button.disabled = true;
 
         const newSettings = {
-            log_interval: parseInt(form.log_interval.value, 10),
-            modbus_slave_id: parseInt(form.modbus_slave_id.value, 10),
-            baudrate: parseInt(form.baudrate.value, 10),
-            parity: form.parity.value,
-            bytesize: parseInt(form.bytesize.value, 10),
-            stopbits: parseInt(form.stopbits.value, 10),
+            LOG_INTERVAL: parseInt(form.log_interval.value, 10),
+            MODBUS_SLAVE_ID: parseInt(form.modbus_slave_id.value, 10),
+            BAUDRATE: parseInt(form.baudrate.value, 10),
+            PARITY: form.parity.value,
+            BYTESIZE: parseInt(form.bytesize.value, 10),
+            STOPBITS: parseInt(form.stopbits.value, 10),
+            TIMEOUT: parseInt(form.timeout.value, 10)
         };
 
         fetch('/api/settings', {
@@ -540,8 +541,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Settings saved successfully!');
+                alert('New settings applied successfully. Please start a new session to use the settings.');
                 closeSettingsModal();
+                checkInitialStatus();
+                latestReadingsDiv.innerHTML = '<h3>Latest Readings</h3><p>No data available. Start logging to see real-time measurements.</p>';
             } else {
                 alert('Error: ' + data.error);
             }

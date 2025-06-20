@@ -98,14 +98,12 @@ def save_settings():
     if not new_settings:
         return jsonify({"error": "Invalid data"}), 400
 
-    # IMPORTANT: Restart the logger if it's running so new settings load
-    was_running = logger_service.is_running()
-    if was_running:
+    # Stop logger before new settings
+    if logger_service.is_running():
         logger_service.stop()
 
+    # Update and save new settings.
     if settings.update(new_settings):
-        if was_running:
-            logger_service.start()
         return jsonify({"status": "success", "settings": settings.get_all()})
     else:
         return jsonify({"error": "Failed to save settings"}), 500

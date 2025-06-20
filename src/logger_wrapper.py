@@ -8,12 +8,15 @@ from datetime import datetime
 from logger import DataLogger
 from util import get_current_filename
 
+# CONSTANTS
+
 STATE_FILE = "../data/logger.state"
 
 class LoggerService:
     """
-    Wrapper aroound DataLogger to manage state and threading.
-    Exposes robust helpers for the web layer.
+    A self-monitoring wrapper around DataLogger.
+    It uses a main logging thread and a separate monitor thread to ensure
+    the system state is always synchronized with reality.
     """
     def __init__(self):
         self._lock = threading.Lock()
@@ -106,7 +109,7 @@ class LoggerService:
         """
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
-        print("[MONITOR] Heartbeat monitor started.")
+        print("[INFO]: Heartbeat monitor started.")
 
     def _monitor_loop(self):
         """
@@ -114,12 +117,11 @@ class LoggerService:
         """
         while not self._stop_monitor.is_set():
             time.sleep(5)
-
             state_exists = os.path.exists(STATE_FILE)
-
             if state_exists and self._logging_thread and not self._logging_thread.is_alive():
                 with self._lock:
                     if self._logging_thread and not self._logging_thread.is_alive():
+                        # TODO: Log last 200 lines of Flask debug lines
                         print("[INFO]: Detected crashed logging thread. Terminating logger session and state.")
                         self._clear_state()
                         self._logging_thread = None
@@ -128,13 +130,26 @@ class LoggerService:
     # PUBLIC API
 
     def get_status(self):
+        """ 
+        Returns the current status of the logger.
+        """
         state = self._read_state()
         return state if state else {"status": "inactive"}
 
     def latest(self):
+        """ 
+        Returns the latest logged data.
+        """
         if self._dl:
             return self._dl.latest
         return None
+
+    def is_running(self):
+        """
+        Checks if the logger should be running based on the state file.
+        """
+        state = self._read_state()
+        return state is not None and state.get("status") == "running"
 
 # GLOBAL INSTANCE
 

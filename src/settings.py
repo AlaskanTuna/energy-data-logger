@@ -79,10 +79,13 @@ class Settings:
         """
         for key, value in new_settings.items():
             if key in self.data:
-                if isinstance(value, type(self.data[key])):
-                    self.data[key] = value
-                else:
-                    print(f"[WARNING]: Type mismatch for setting '{key}'. Ignoring setting.")
+                expected_type = type(DEFAULT_SETTINGS[key])
+                try:
+                    self.data[key] = expected_type(value)
+                except (ValueError, TypeError):
+                    print(f"[WARNING]: Could not set '{key}' to '{value}'. Invalid type. Ignoring.")
+        
+        # Now, save the updated data
         return self.save_settings()
 
 # GLOBAL INSTANCE
