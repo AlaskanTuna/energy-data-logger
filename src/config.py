@@ -10,7 +10,6 @@ load_dotenv()
 # MODBUS SETTINGS
 
 # For other configurable parameters, refer to settings.py
-USE_MODBUS = True
 MODBUS_PORT = "/dev/serial0"
 REGISTERS = {
     "voltage_l1":      {"address": 0x5002, "number_of_registers": 2, "functioncode": 3, "description": "Voltage L1 (V)"},
@@ -42,7 +41,8 @@ STATIC_FILEPATH = Path(__file__).resolve().parent.parent / "static"
 
 # READING & LOGGING SETTINGS
 
-DEVELOPER_MODE = False
+USE_MODBUS = False
+DEVELOPER_MODE = True
 RETRY_INTERVAL = 5
 MAX_RETRIES = 10
 

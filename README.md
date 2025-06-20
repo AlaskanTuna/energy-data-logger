@@ -260,6 +260,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    ```
 
 2. Fill the content of the systemd unit file:
+*Note: This configuration will restart the eth0 service every X seconds/minutes to ensure the interface always have static IP regardless of crashes.*
 
    ```bash
    [Unit]
@@ -267,14 +268,12 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    After=NetworkManager.service
    Wants=NetworkManager.service
    Before=energy-web.service dnsmasq.service
-   DefaultDependencies=no
 
    [Service]
-   Type=oneshot
-   ExecStart=/bin/bash -c '/usr/bin/nmcli connection up eth0 || true'
-   ExecStart=/bin/bash -c 'ip addr show eth0 || true'
-   RemainAfterExit=yes
-   Restart=no
+   Type=simple
+   ExecStart=/bin/bash -c 'while true; do /usr/bin/nmcli connection up eth0 || true; ip addr show eth0 || true; echo "Rechecking eth0 in 10 minutes."; sleep 600; done'
+   Restart=on-failure
+   RestartSec=5
 
    [Install]
    WantedBy=multi-user.target

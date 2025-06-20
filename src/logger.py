@@ -45,10 +45,14 @@ class DataLogger:
 
         self.reader = None
 
+        # Test if Modbus is actually available
         try:
             self.reader = MeterReader(use_modbus_flag=USE_MODBUS)
+            test_readings = self.reader.get_meter_readings()
+
+            if not test_readings:
+                raise ConnectionError
         except ConnectionError:
-            print("[INFO]: Please connect the serial cable to start polling Modbus.")
             self.reader = MeterReader(use_modbus_flag=False)
 
         self._initialize_influxdb()

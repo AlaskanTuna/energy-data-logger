@@ -45,7 +45,7 @@ class Settings:
                 print(f"[ERROR]: Failed to read settings file. Using default settings.")
                 self.data = DEFAULT_SETTINGS.copy()
         else:
-            print(f"[WARNING]: No settings file found. Using default settigns.")
+            print(f"[WARNING]: No settings file found. Using default settings.")
             self.data = DEFAULT_SETTINGS.copy()
             self.save_settings()
 

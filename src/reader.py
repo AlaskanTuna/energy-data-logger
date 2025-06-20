@@ -105,7 +105,7 @@ class MeterReader:
         """
         if not self.use_modbus and self.use_mock:
             return self.meter_reading_mock()
-        elif self.use_modbus and not self.use_mock:
+        elif self.use_modbus:
             retry_count = 0
             while retry_count < MAX_RETRIES:
                 readings = self.meter_reading_modbus()
@@ -119,5 +119,5 @@ class MeterReader:
             print(f"[MODBUS ERROR]: Failed to get readings after {MAX_RETRIES} attempts.")
             return None
         else:
-            print("[ERROR]: Modbus is not connected and is not in developer mode.")
+            print("[ERROR]: No Modbus port detected and is not in developer mode.")
             return None
