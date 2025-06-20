@@ -33,8 +33,7 @@ class DataLogger:
         self.ds_filename = filename
         self.ds_header = DS_HEADER
 
-        # IF the file is new THEN write the header
-        # Prevents writing multiple headers on session resume
+        # If the file is new or empty, write the header row; otherwise, leave it unchanged
         is_new_file = not os.path.exists(self.ds_filename) or os.path.getsize(self.ds_filename) == 0
         with open(self.ds_filename, 'a', newline='') as file:
             if is_new_file:

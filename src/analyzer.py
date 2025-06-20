@@ -80,7 +80,6 @@ class DataAnalyzer:
         while True:
             print("\nSelect visualization to generate:")
             for key, value in categories.items():
-                # Only show options that have data to plot
                 if value.get('columns') or key in ['5', '0']:
                     print(f"{key}. {value['name']}")
             choice = input("\nEnter your choice: ").strip()
@@ -88,7 +87,7 @@ class DataAnalyzer:
             if choice == '0':
                 print("Exiting visualization menu.")
                 return
-            elif choice == '5': # Custom
+            elif choice == '5':
                 all_columns = [col for col in df.columns if col != 'Timestamp']
                 print("\nAvailable parameters:")
                 for i, col in enumerate(all_columns, 1):
@@ -123,7 +122,8 @@ class DataAnalyzer:
         base_filename = "visualization"
         if source and os.path.isfile(source):
             base_filename = os.path.splitext(os.path.basename(source))[0]
-        
+
+        # Create standard version of the plot
         plt.figure(figsize=(12, 8))
         for column in columns:
             plt.plot(df['Timestamp'], df[column], marker='o', markersize=3, linewidth=1.5, label=column)
@@ -136,14 +136,14 @@ class DataAnalyzer:
         plt.xticks(rotation=45)
         plt.tight_layout()
 
-        # Create safe suffix from title
+        # Create standard plot filename
         safe_suffix = title.replace(' ', '_').lower()
         filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         plt.close()
         print(f"Plot saved as: {filename}")
 
-        # Create normalized version for comparison
+        # Create normalized version of the plot for comparison
         if len(columns) > 1:
             plt.figure(figsize=(12, 8))
             for column in columns:
