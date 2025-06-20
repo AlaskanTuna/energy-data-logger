@@ -3,6 +3,7 @@
 import os
 
 from util import list_csv_files
+from settings import settings
 from logger_wrapper import logger_service
 from analyzer_wrapper import analyzer_service
 from config import STATIC_FILEPATH
@@ -13,6 +14,7 @@ from flask import Flask, jsonify, send_from_directory, request
 app = Flask(__name__, static_folder=str(STATIC_FILEPATH))
 
 # GET ROUTES
+
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -25,6 +27,10 @@ def latest():
 @app.get("/api/status")
 def get_logger_status():
     return jsonify(logger_service.get_status())
+
+@app.get("/api/settings")
+def get_settings():
+    return jsonify(settings.get_all())
 
 @app.get("/api/files")
 def list_files():
@@ -85,6 +91,24 @@ def start_logging():
 def stop_logging():
     result = logger_service.stop()
     return jsonify(result)
+
+@app.post("/api/settings")
+def save_settings():
+    new_settings = request.get_json()
+    if not new_settings:
+        return jsonify({"error": "Invalid data"}), 400
+
+    # IMPORTANT: Restart the logger if it's running so new settings load
+    was_running = logger_service.is_running()
+    if was_running:
+        logger_service.stop()
+
+    if settings.update(new_settings):
+        if was_running:
+            logger_service.start()
+        return jsonify({"status": "success", "settings": settings.get_all()})
+    else:
+        return jsonify({"error": "Failed to save settings"}), 500
 
 @app.post("/api/visualize/custom/<filename>")
 def generate_custom_visualization(filename):

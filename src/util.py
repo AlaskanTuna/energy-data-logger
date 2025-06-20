@@ -1,9 +1,10 @@
 # src/util.py
 
 import os
-
+import time
 import pandas as pd
 
+from settings import settings
 from datetime import datetime
 from logger import DataLogger
 
@@ -23,7 +24,7 @@ def main_menu():
 
     if choice == '1':
         clear_screen()
-        logger = DataLogger()
+        logger = DataLogger(filename=get_current_filename("ds"))
         logger.start()
     elif choice == '2':
         clear_screen()
@@ -36,8 +37,7 @@ def main_menu():
         visualize_data()
     elif choice == '5':
         clear_screen()
-        # TODO: Implement baudrate, parity, CT ratio etc. settings
-        pass
+        settings_menu()
     elif choice == '6':
         exit(0)
     else:
@@ -137,8 +137,7 @@ def select_csv_file(purpose="action"):
         if 1 <= selection <= len(csv_files):
             return csv_files[selection - 1]
     except ValueError:
-        print("Invalid selection. Please enter a number.")
-        input("\nPress Enter to continue...")
+        input("Invalid selection. Please enter a number. \n\nPress Enter to continue...")
         clear_screen()
         return select_csv_file(purpose)
 
@@ -185,3 +184,72 @@ def visualize_data():
         analyzer.visualize_data(df, filepath)
 
         input("\nPress Enter to continue...")
+
+def settings_menu():
+    """
+    Display and handle settings configuration for the CLI.
+    """
+    while True:
+        clear_screen()
+        current_settings = settings.get_all()
+        parity_map = {'N': 'None', 'E': 'Even', 'O': 'Odd'}
+
+        print("===== Settings Menu =====")
+        print("0. Return to Main Menu")
+        print(f"1. Logging Interval: {current_settings.get('LOG_INTERVAL')} seconds")
+        print(f"2. Modbus Slave ID: {current_settings.get('MODBUS_SLAVE_ID')}")
+        print(f"3. Baud Rate: {current_settings.get('BAUDRATE')}")
+        print(f"4. Parity: {parity_map.get(current_settings.get('PARITY'))}")
+        print(f"5. Byte Size: {current_settings.get('BYTESIZE')}")
+        print(f"6. Stop Bits: {current_settings.get('STOPBITS')}")
+        print(f"7. Timeout: {current_settings.get('TIMEOUT')} seconds")
+        choice = input("\nEnter your choice to change current settings: ").strip()
+
+        if choice == '0':
+            clear_screen()
+            return None
+        elif choice == '1':
+            new_val = input("Enter new Logging Interval: ").strip()
+            if new_val.isdigit():
+                settings.update({"LOG_INTERVAL": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        elif choice == '2':
+            new_val = input("Enter new Modbus Slave ID: ").strip()
+            if new_val.isdigit() and 1 <= int(new_val) <= 247:
+                settings.update({"MODBUS_SLAVE_ID": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        elif choice == '3':
+            new_val = input("Enter new Baud Rate: ").strip()
+            if new_val.isdigit():
+                settings.update({"BAUDRATE": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        elif choice == '4':
+            parity_choice = input("Select Parity (1=None, 2=Even, 3=Odd): ").strip()
+            parity_map_save = {'1': 'N', '2': 'E', '3': 'O'}
+            if parity_choice in parity_map_save:
+                settings.update({"PARITY": parity_map_save[parity_choice]})
+            else:
+                input("Invalid selection. \n\nPress Enter to continue...")
+        elif choice == '5':
+            new_val = input("Enter new Byte Size").strip()
+            if new_val.isdigit() and 5 <= int(new_val) <= 8:
+                settings.update({"BYTESIZE": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        elif choice == '6':
+            new_val = input("Enter new Stop Bits: ").strip()
+            if new_val.isdigit() and int(new_val) in [1, 2]:
+                settings.update({"STOPBITS": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        elif choice == '7':
+            new_val = input("Enter new Timeout: ").strip()
+            if new_val.isdigit() and int(new_val) > 0:
+                settings.update({"TIMEOUT": int(new_val)})
+            else:
+                input("Invalid input. \n\nPress Enter to continue...")
+        else:
+            return settings_menu()

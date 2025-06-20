@@ -48,17 +48,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add global event delegation for modal handling
     document.addEventListener('click', function(event) {
+        // Handle closing any modal
         if (event.target.classList.contains('close-modal')) {
-            closeFileModal();
+            const modalToClose = event.target.closest('.modal');
+            if (modalToClose) {
+                modalToClose.style.display = 'none';
+            }
         }
 
-        // IF click outside modal THEN close modal
-        if (event.target.id === 'file-modal') {
-            closeFileModal();
+        // Handle clicking outside a modal to close it
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
         }
 
+        // Handle file item clicks specifically
         if (event.target.closest('.file-item')) {
             const fileItem = event.target.closest('.file-item');
             const filename = fileItem.dataset.filename;
@@ -97,9 +101,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 showFileModal('visualize');
             }
 
-            // 5. TODO: Settings
+            // 5. Settings
             if (index === 4) {
-                alert("Settings feature is not implemented yet.");
+                showSettingsModal();
             }
         });
     });
@@ -173,6 +177,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show modal
         modal.style.display = 'flex';
     }
+
+    /**
+     * @brief Closes the file selection modal.
+     */
+
+    function closeFileModal() {
+        const modal = document.getElementById('file-modal');
+        modal.style.display = 'none';
+        const modalBody = document.querySelector('.modal-body');
+
+        // Reset modal structure
+        modalBody.innerHTML = `
+            <p>Select a file to ${modalMode}:</p>
+            <div id="file-list"></div>
+        `;
+
+        modalMode = '';
+        document.removeEventListener('click', handleVizOptionClick);
+    }
+
+    checkInitialStatus();
 
     /**
      * @brief Shows analysis options after selecting a file.
@@ -352,6 +377,92 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * @brief Shows the settings modal for configuring logger settings.
+     */
+
+    function showSettingsModal() {
+        const modal = document.getElementById('settings-modal');
+        const body = document.getElementById('settings-body');
+        modal.style.display = 'flex';
+        body.innerHTML = '<p class="loading">Loading settings...</p>';
+
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                body.innerHTML = `
+                    <form id="settings-form">
+                        <div class="form-group">
+                            <label for="log_interval">Logging Interval (Seconds)</label>
+                            <input type="number" id="log_interval" name="log_interval" value="${data.log_interval}" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modbus_slave_id">Modbus Slave ID</label>
+                            <input type="number" id="modbus_slave_id" name="modbus_slave_id" value="${data.modbus_slave_id}" min="1" max="247" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="baudrate">Baud Rate</label>
+                            <select id="baudrate" name="baudrate">
+                                <option value="1200" ${data.baudrate === 1200 ? 'selected' : ''}>1200</option>
+                                <option value="2400" ${data.baudrate === 2400 ? 'selected' : ''}>2400</option>
+                                <option value="4800" ${data.baudrate === 4800 ? 'selected' : ''}>4800</option>
+                                <option value="9600" ${data.baudrate === 9600 ? 'selected' : ''}>9600 (Standard)</option>
+                                <option value="19200" ${data.baudrate === 19200 ? 'selected' : ''}>19200</option>
+                                <option value="38400" ${data.baudrate === 38400 ? 'selected' : ''}>38400</option>
+                                <option value="57600" ${data.baudrate === 57600 ? 'selected' : ''}>57600</option>
+                                <option value="115200" ${data.baudrate === 115200 ? 'selected' : ''}>115200</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="parity">Parity</label>
+                            <select id="parity" name="parity">
+                                <option value='N' ${data.parity === 'N' ? 'selected' : ''}>None (Standard)</option>
+                                <option value='E' ${data.parity === 'E' ? 'selected' : ''}>Even</option>
+                                <option value='O' ${data.parity === 'O' ? 'selected' : ''}>Odd</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bytesize">Byte Size</label>
+                            <select id="bytesize" name="bytesize">
+                                <option value="5" ${data.bytesize === 5 ? 'selected' : ''}>5</option>
+                                <option value="6" ${data.bytesize === 6 ? 'selected' : ''}>6</option>
+                                <option value="7" ${data.bytesize === 7 ? 'selected' : ''}>7</option>
+                                <option value="8" ${data.bytesize === 8 ? 'selected' : ''}>8 (Standard)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="stopbits">Stop Bits</label>
+                            <select id="stopbits" name="stopbits">
+                                <option value="1" ${data.stopbits === 1 ? 'selected' : ''}>1 (Standard)</option>
+                                <option value="2" ${data.stopbits === 2 ? 'selected' : ''}>2</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="timeout">Timeout (Seconds)</label>
+                            <input type="number" id="timeout" name="timeout" value="${data.timeout}" min="1" required>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="action-button">Save Settings</button>
+                        </div>
+                    </form>
+                `;
+
+                document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
+            })
+            .catch(error => {
+                body.innerHTML = '<p class="error-message">Could not load settings.</p>';
+            });
+    }
+
+    /**
+     * @brief Closes the settings modal.
+     */
+
+    function closeSettingsModal() {
+        const modal = document.getElementById('settings-modal');
+        modal.style.display = 'none';
+    }
+
+    /**
      * @brief Handles the logger toggle button click.
      */
     function handleLoggerToggle() {
@@ -379,7 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-
     /**
      * @brief Handles clicks on visualization options.
      * @event The click event that triggered this function. 
@@ -399,6 +509,48 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             generateVisualization(filename, vizType);
         }
+    }
+
+    /**
+     * @brief Handles saving settings from the settings modal.
+     * @event The click event that triggered this function. 
+     */
+
+    function handleSaveSettings(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        button.textContent = 'Saving...';
+        button.disabled = true;
+
+        const newSettings = {
+            log_interval: parseInt(form.log_interval.value, 10),
+            modbus_slave_id: parseInt(form.modbus_slave_id.value, 10),
+            baudrate: parseInt(form.baudrate.value, 10),
+            parity: form.parity.value,
+            bytesize: parseInt(form.bytesize.value, 10),
+            stopbits: parseInt(form.stopbits.value, 10),
+        };
+
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newSettings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Settings saved successfully!');
+                closeSettingsModal();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => alert('Failed to save settings.'))
+        .finally(() => {
+            button.textContent = 'Save Settings';
+            button.disabled = false;
+        });
     }
 
     /**
@@ -547,25 +699,4 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '<p class="error-message">Error generating visualization. Please try again.</p>';
             });
     }
-
-    /**
-     * @brief Closes the file selection modal.
-     */
-
-    function closeFileModal() {
-        const modal = document.getElementById('file-modal');
-        modal.style.display = 'none';
-        const modalBody = document.querySelector('.modal-body');
-
-        // Reset modal structure
-        modalBody.innerHTML = `
-            <p>Select a file to ${modalMode}:</p>
-            <div id="file-list"></div>
-        `;
-
-        modalMode = '';
-        document.removeEventListener('click', handleVizOptionClick);
-    }
-
-    checkInitialStatus();
 });

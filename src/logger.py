@@ -4,8 +4,9 @@ import os
 import csv
 import time
 
-from datetime import datetime, timezone
+from settings import settings
 from reader import MeterReader
+from datetime import datetime, timezone
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from config import (
@@ -13,7 +14,6 @@ from config import (
     USE_MODBUS,
     DS_HEADER,
     DS_FILEPATH,
-    LOG_INTERVAL,
     INFLUXDB_URL,
     INFLUXDB_TOKEN,
     INFLUXDB_ORG,
@@ -47,9 +47,8 @@ class DataLogger:
 
         try:
             self.reader = MeterReader(use_modbus_flag=USE_MODBUS)
-        except ConnectionError as e:
-            print(f"[WARNING]: {e}")
-            print("[INFO]: Continuing with mock data generator.")
+        except ConnectionError:
+            print("[INFO]: Please connect the serial cable to start polling Modbus.")
             self.reader = MeterReader(use_modbus_flag=False)
 
         self._initialize_influxdb()
@@ -91,7 +90,7 @@ class DataLogger:
             while self._running:
                 readings = self.reader.get_meter_readings()
                 if not readings:
-                    print("\n[WARNING]: Could not retrieve readings. Stopping logger.")
+                    print("\n[WARNING]: Could not retrieve readings. Terminating logger session.")
                     self.stop()
                     continue
 
@@ -133,7 +132,7 @@ class DataLogger:
                     influx_status = "✗" if (INFLUXDB_URL and INFLUXDB_TOKEN) else "-"
 
                 print(f"[{timestamp_str}] Logged successfully | CSV: {csv_status} | InfluxDB: {influx_status}")
-                time.sleep(LOG_INTERVAL)
+                time.sleep(settings.get("LOG_INTERVAL"))
         except KeyboardInterrupt:
             print("\n[INFO]: Logging stopped by user.")
         finally:

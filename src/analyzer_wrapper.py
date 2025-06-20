@@ -7,19 +7,21 @@ import traceback
 from io import StringIO
 from analyzer import DataAnalyzer
 
+# CONSTANTS
+
+VISUALIZATION_TYPES = {
+    '1': {'name': 'Voltage Comparison', 'filter': 'Voltage'},
+    '2': {'name': 'Current Comparison', 'filter': 'Current'},
+    '3': {'name': 'Power Analysis', 'filter': 'Power'},
+    '4': {'name': 'Energy Consumption', 'filter': 'Energy'},
+    '5': {'name': 'All Parameters', 'columns': []}
+}
+
 class AnalyzerService:
     """
     Wrapper around DataAnalyzer. 
     Exposes robust helpers for the web layer.
     """
-    VISUALIZATION_TYPES = {
-        '1': {'name': 'Voltage Comparison', 'filter': 'Voltage'},
-        '2': {'name': 'Current Comparison', 'filter': 'Current'},
-        '3': {'name': 'Power Analysis', 'filter': 'Power'},
-        '4': {'name': 'Energy Consumption', 'filter': 'Energy'},
-        '5': {'name': 'All Parameters', 'columns': []}
-    }
-
     def __init__(self):
         self._analyzer = DataAnalyzer()
         self._cache = {}

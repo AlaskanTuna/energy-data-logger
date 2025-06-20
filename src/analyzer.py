@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import PL_FILEPATH, REGISTERS
+from config import PL_FILEPATH
 
 class DataAnalyzer:
     """

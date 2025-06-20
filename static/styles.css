@@ -1,10 +1,11 @@
-/* styles.css - Energy Data Logger Web Interface */
+/* styles.css */
 
-/* ============================================= */
-/* CSS VARIABLES                                 */
-/* ============================================= */
+/* CSS VARIABLES */
+
 :root {
+
   /* Colors */
+
   --primary: #0066cc;
   --primary-hover: #0055aa;
   --secondary: #6c757d;
@@ -20,19 +21,20 @@
   --error-bg: #f8d7da;
   
   /* Shadows */
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 6px 10px rgba(0, 0, 0, 0.15);
   --modal-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   
   /* Transitions */
+
   --transition-speed: 0.2s;
   --transition-standard: all var(--transition-speed) ease;
 }
 
-/* ============================================= */
-/* MENU AND NAVIGATION                           */
-/* ============================================= */
+/* MENU AND NAVIGATION */
+
 .menu-item {
   cursor: pointer;
   position: relative;
@@ -47,7 +49,8 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Ripple effect - simplified */
+/* Ripple effect */
+
 .menu-item::after {
   content: '';
   position: absolute;
@@ -68,9 +71,8 @@
   transition: transform 0.5s, opacity 1.0s;
 }
 
-/* ============================================= */
-/* STATUS PANEL AND READINGS                     */
-/* ============================================= */
+/* STATUS PANEL AND READINGS */
+
 #logger-status {
   font-weight: bold;
 }
@@ -87,6 +89,7 @@
 }
 
 /* Table styles */
+
 .readings-table {
   width: 100%;
   border-collapse: collapse;
@@ -111,9 +114,8 @@
   background-color: var(--lighter-bg);
 }
 
-/* ============================================= */
-/* MODAL COMPONENTS                              */
-/* ============================================= */
+/* MODAL COMPONENTS */
+
 .modal {
   position: fixed;
   top: 0;
@@ -161,9 +163,8 @@
   color: var(--text);
 }
 
-/* ============================================= */
-/* FILE LIST                                     */
-/* ============================================= */
+/* FILE LIST */
+
 .file-list {
   margin-top: 15px;
 }
@@ -190,9 +191,8 @@
   font-size: 0.9em;
 }
 
-/* ============================================= */
-/* ANALYSIS COMPONENTS                           */
-/* ============================================= */
+/* ANALYSIS COMPONENTS */
+
 .statistics-container {
   background-color: var(--light-bg);
   border-radius: 8px;
@@ -215,9 +215,8 @@
   margin: 10px 0;
 }
 
-/* ============================================= */
-/* BUTTONS AND INTERACTIVE ELEMENTS              */
-/* ============================================= */
+/* BUTTONS AND INTERACTIVE ELEMENTS */
+
 .action-button {
   background-color: var(--primary);
   color: white;
@@ -249,9 +248,8 @@
   margin-top: 15px;
 }
 
-/* ============================================= */
-/* ICONS AND INDICATORS                          */
-/* ============================================= */
+/* ICONS AND INDICATORS */
+
 .icon {
   margin-right: 8px;
 }
@@ -264,9 +262,8 @@
   margin-right: 10px;
 }
 
-/* ============================================= */
-/* STATUS MESSAGES                               */
-/* ============================================= */
+/* STATUS MESSAGES */
+
 .loading,
 .empty-message {
   padding: 15px;
@@ -283,9 +280,8 @@
   margin: 15px 0;
 }
 
-/* ============================================= */
-/* VISUALIZATION COMPONENTS                      */
-/* ============================================= */
+/* VISUALIZATION COMPONENTS */
+
 .viz-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -312,6 +308,7 @@
 }
 
 /* Column selection for custom viz */
+
 .column-selection {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -338,6 +335,7 @@
 }
 
 /* Button and download containers */
+
 .action-buttons,
 .download-options {
   display: flex;
@@ -347,4 +345,31 @@
 
 .download-options {
   flex-direction: column;
+}
+
+/* SETTINGS ELEMENT */
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.form-group input[type="number"],
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 5px;
 }

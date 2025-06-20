@@ -4,44 +4,51 @@ import random
 import time
 import minimalmodbus
 
+from settings import settings
 from config import (
+    REGISTERS,
     USE_MODBUS,
-    RETRY_INTERVAL,
-    MAX_RETRIES,
     MODBUS_PORT,
-    MODBUS_SLAVE_ID,
-    BAUDRATE,
-    PARITY,
-    BYTESIZE,
-    STOPBITS,
-    TIMEOUT,
-    REGISTERS
+    DEVELOPER_MODE,
+    RETRY_INTERVAL,
+    MAX_RETRIES
 )
+
+# CONSTANTS
+
+PARITY_MAP = {
+    'N': minimalmodbus.serial.PARITY_NONE,
+    'E': minimalmodbus.serial.PARITY_EVEN,
+    'O': minimalmodbus.serial.PARITY_ODD,
+}
 
 class MeterReader:
     """
     Encapsulates the logic for reading from a power meter.
+    
+    @use_modbus_flag: If True, uses Modbus to read data; otherwise, uses mock data.
     """
     def __init__(self, use_modbus_flag=USE_MODBUS):
-        self.use_modbus = use_modbus_flag
         self.instrument = None
+        self.use_mock = DEVELOPER_MODE
+        self.use_modbus = use_modbus_flag
+
         if self.use_modbus:
             try:
                 self.instrument = minimalmodbus.Instrument(
                     port=MODBUS_PORT,
-                    slaveaddress=MODBUS_SLAVE_ID
+                    slaveaddress=settings.get("MODBUS_SLAVE_ID")
                 )
-                self.instrument.serial.baudrate = BAUDRATE
-                self.instrument.serial.parity = PARITY
-                self.instrument.serial.bytesize = BYTESIZE
-                self.instrument.serial.stopbits = STOPBITS
-                self.instrument.serial.timeout = TIMEOUT
+                parity_str = settings.get("PARITY")
+                self.instrument.serial.parity = PARITY_MAP.get(parity_str, minimalmodbus.serial.PARITY_NONE)
+                self.instrument.serial.baudrate = settings.get("BAUDRATE")
+                self.instrument.serial.bytesize = settings.get("BYTESIZE")
+                self.instrument.serial.stopbits = settings.get("STOPBITS")
+                self.instrument.serial.timeout = settings.get("TIMEOUT")
                 self.instrument.mode = minimalmodbus.MODE_RTU
                 print("[INFO]: Modbus instrument initialized for real readings.")
             except Exception as e:
-                raise ConnectionError(f"[MODBUS ERROR]: Failed to initialize Modbus on port {MODBUS_PORT}: {e}")
-        else:
-            print("[INFO]: Mock data initialized for mock readings.")
+                raise ConnectionError(f"[MODBUS ERROR]: Failed to initialize Modbus on port {MODBUS_PORT}. {e}")
 
     def meter_reading_mock(self):
         """
@@ -88,7 +95,7 @@ class MeterReader:
                 readings[name] = round(value, 3) # Set precision to 3 decimal places
             return readings
         except Exception as e:
-            print(f"[MODBUS READ ERROR]: {e}")
+            print(f"[MODBUS ERROR]: {e}")
             return None
 
     def get_meter_readings(self):
@@ -96,18 +103,21 @@ class MeterReader:
         Get meter readings either using mock values or Modbus polling.
         Returns a dictionary of readings.
         """
-        if not self.use_modbus:
+        if not self.use_modbus and self.use_mock:
             return self.meter_reading_mock()
+        elif self.use_modbus and not self.use_mock:
+            retry_count = 0
+            while retry_count < MAX_RETRIES:
+                readings = self.meter_reading_modbus()
+                if readings:
+                    return readings
+                else:
+                    retry_count += 1
+                    print(f"[WARNING]: Modbus signal lost. Retrying: {retry_count}/{MAX_RETRIES}.")
+                    time.sleep(RETRY_INTERVAL)
 
-        retry_count = 0
-        while retry_count < MAX_RETRIES:
-            readings = self.meter_reading_modbus()
-            if readings:
-                return readings
-            else:
-                retry_count += 1
-                print(f"[MODBUS ERROR]: Attempting to reestablish connection. {retry_count}/{MAX_RETRIES}.")
-                time.sleep(RETRY_INTERVAL)
-
-        print(f"[MODBUS ERROR]: Failed to get readings after {MAX_RETRIES} attempts.")
-        return None
+            print(f"[MODBUS ERROR]: Failed to get readings after {MAX_RETRIES} attempts.")
+            return None
+        else:
+            print("[ERROR]: Modbus is not connected and is not in developer mode.")
+            return None

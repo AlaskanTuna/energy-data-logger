@@ -407,11 +407,8 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
    # Create the script
    sudo nano /usr/local/bin/watchdog-pre-reboot-log.sh
-   ```
 
-4. Add the following content inside `/usr/local/bin/watchdog-pre-reboot-log.sh`:
-
-   ```bash
+   # Add the following content
    #!/bin/bash
    # Script to capture system logs before watchdog reboot
 
@@ -432,13 +429,13 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    chmod 644 "${JOURNAL_LOG}" "${KERNEL_LOG}"
    ```
 
-5. Make the script executable:
+4. Make the script executable:
 
    ```bash
    sudo chmod +x /usr/local/bin/watchdog-pre-reboot-log.sh
    ```
 
-6. Configure Watchdog service:
+5. Configure Watchdog service:
 
    ```bash
    # Edit watchdog configuration
@@ -456,7 +453,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    #test-binary = /bin/false
    ```
 
-7. Enable and start Watchdog service, then reboot:
+6. Enable and start Watchdog service, then reboot:
 
    ```bash
    sudo systemctl enable watchdog
@@ -466,5 +463,3 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    ```
 
 ---
-
-## Troubleshooting Commands

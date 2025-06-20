@@ -3,6 +3,7 @@
 import threading
 import os
 import json
+import time
 from datetime import datetime
 from logger import DataLogger
 from util import get_current_filename
@@ -11,123 +12,130 @@ STATE_FILE = "../data/logger.state"
 
 class LoggerService:
     """
-    Wrapper around DataLogger.
-    Manages persistent logging via a state file to support long unattended logging sessions.
+    Wrapper aroound DataLogger to manage state and threading.
+    Exposes robust helpers for the web layer.
     """
     def __init__(self):
+        self._lock = threading.Lock()
+        self._logging_thread = None
+        self._monitor_thread = None
         self._dl = None
-        self._thread = None
-        self._state = self._read_state()
+        self._stop_monitor = threading.Event()
+        self.start_monitor()
 
-        # Auto-start logging if the state file indicates it should be running
-        if self.is_running():
-            print("[INFO]: Logger state is 'running'. Auto-starting logging thread from initialization.")
-            self.start(from_init=True)
+        # Check for pre-existing state to resume logging
+        state = self._read_state()
+        if state and state.get("status") == "running":
+            print("[INFO]: Resuming 'running' state. Continuing logging thread from initialization.")
+            self.start(from_init=True, initial_state=state)
+
+    # STATE MANAGEMENT
 
     def _read_state(self):
-        """
-        Safely reads and decodes the state file if it exists.
-        """
         if os.path.exists(STATE_FILE):
             try:
                 with open(STATE_FILE, 'r') as f:
                     return json.load(f)
-            except (IOError, json.JSONDecodeError) as e:
-                print(f"[ERROR]: Could not read or decode state file: {e}. Clearing.")
-                self._clear_state()
-                return None
+            except (IOError, json.JSONDecodeError): return None
         return None
 
-    def _write_state(self, data):
-        """
-        Writes the current state to the state file.
-        """
+    def _write_state(self, csv_filepath):
+        state = {
+            "status": "running",
+            "startTime": datetime.now().isoformat(),
+            "csvFile": csv_filepath
+        }
         try:
             with open(STATE_FILE, 'w') as f:
-                json.dump(data, f, indent=4)
+                json.dump(state, f, indent=4)
         except IOError:
-            print(f"[ERROR]: Could not write to state file: {STATE_FILE}")
+            print(f"[ERROR]: Could not write to state file.")
 
     def _clear_state(self):
-        """
-        Removes the state file.
-        """
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
+            print("[INFO]: State file cleared.")
 
-    def _bg_loop(self, filename):
+    # MAIN THREAD LOGIC
+
+    def start(self, from_init=False, initial_state=None):
+        with self._lock:
+            if self._logging_thread and self._logging_thread.is_alive():
+                return {"status": "already_running", "state": self._read_state()}
+
+            if from_init:
+                csv_filepath = initial_state.get("csvFile")
+            else:
+                csv_filepath = get_current_filename("ds")
+            
+            if not csv_filepath:
+                return {"status": "error", "message": "Could not determine CSV file path."}
+
+            print(f"[INFO] Starting logging process for {csv_filepath}")
+
+            self._dl = DataLogger(filename=csv_filepath)
+            self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
+            self._write_state(csv_filepath)
+            self._logging_thread.start()
+            return {"status": "started", "state": self._read_state()}
+
+    def stop(self):
+        with self._lock:
+            self._clear_state()
+
+            if not self._logging_thread or not self._logging_thread.is_alive():
+                return {"status": "already_stopped"}
+
+            print("[INFO]: Stopping logging process.")
+
+            if self._dl:
+                self._dl.stop()
+
+            self._logging_thread.join(timeout=5)
+            self._logging_thread = None
+            self._dl = None
+
+            print("[INFO]: Logging process stopped cleanly.")
+            return {"status": "stopped"}
+
+    # MONITOR THREAD LOGIC
+
+    def start_monitor(self):
         """
-        The background worker thread target.
+        Starts a thread that monitors the logger.
         """
-        if not self._dl:
-            self._dl = DataLogger(filename=filename)
-        self._dl.log()
+        self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self._monitor_thread.start()
+        print("[MONITOR] Heartbeat monitor started.")
+
+    def _monitor_loop(self):
+        """
+        Main loop of the monitor thread.
+        """
+        while not self._stop_monitor.is_set():
+            time.sleep(5)
+
+            state_exists = os.path.exists(STATE_FILE)
+
+            if state_exists and self._logging_thread and not self._logging_thread.is_alive():
+                with self._lock:
+                    if self._logging_thread and not self._logging_thread.is_alive():
+                        print("[INFO]: Detected crashed logging thread. Terminating logger session and state.")
+                        self._clear_state()
+                        self._logging_thread = None
+                        self._dl = None
 
     # PUBLIC API
 
-    def start(self, from_init=False):
-        """
-        Starts a logging session. If not from_init, it's a new session.
-        """
-        if self._thread and self._thread.is_alive():
-            return {"status": "already_running", "state": self._state}
-
-        # New session initialization
-        if not from_init:
-            csv_filepath = get_current_filename("ds")
-            self._state = {
-                "status": "running",
-                "startTime": datetime.now().isoformat(),
-                "csvFile": csv_filepath
-            }
-            self._write_state(self._state)
-            print(f"[INFO]: New logging session started. State file created.")
-
-        # Use filename from the state object.
-        target_filename = self._state.get("csvFile")
-        if not target_filename:
-            print("[ERROR] Cannot start logger: no CSV filename in state.")
-            self._clear_state()
-            return {"status": "error", "message": "State file was corrupt or missing."}
-
-        self._thread = threading.Thread(target=self._bg_loop, args=(target_filename,), daemon=True)
-        self._thread.start()
-        return {"status": "started", "state": self._state}
-
-    def stop(self):
-        """
-        Stops the current logging session and cleans up.
-        """
-        if self._dl:
-            self._dl.stop()  # Sets the internal _running flag to False
-        
-        if self._thread:
-            self._thread.join(timeout=5)  # Wait for the thread to finish cleanly
-        
-        self._clear_state()
-        self._state = None
-        self._thread = None
-        self._dl = None
-        print("[INFO] Logging session stopped. State file cleared.")
-        return {"status": "stopped"}
+    def get_status(self):
+        state = self._read_state()
+        return state if state else {"status": "inactive"}
 
     def latest(self):
-        """
-        Returns the most recent reading.
-        """
-        return self._dl.latest if self._dl else None
-    
-    def get_status(self):
-        """
-        Returns the current state of the logger for the UI.
-        """
-        return self._state if self.is_running() else {"status": "inactive"}
+        if self._dl:
+            return self._dl.latest
+        return None
 
-    def is_running(self):
-        """
-        Checks if the logger should be running based on the state.
-        """
-        return self._state is not None and self._state.get("status") == "running"
+# GLOBAL INSTANCE
 
-# Global instance for the web layer.
 logger_service = LoggerService()

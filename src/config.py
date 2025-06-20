@@ -1,7 +1,6 @@
 # src/config.py
 
 import os
-import minimalmodbus
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -10,13 +9,9 @@ load_dotenv()
 
 # MODBUS SETTINGS
 
+# For other configurable parameters, refer to settings.py
+USE_MODBUS = True
 MODBUS_PORT = "/dev/serial0"
-MODBUS_SLAVE_ID = 1
-BAUDRATE = 9600
-PARITY = minimalmodbus.serial.PARITY_NONE
-BYTESIZE = 8
-STOPBITS = 1
-TIMEOUT = 2
 REGISTERS = {
     "voltage_l1":      {"address": 0x5002, "number_of_registers": 2, "functioncode": 3, "description": "Voltage L1 (V)"},
     "voltage_l2":      {"address": 0x5004, "number_of_registers": 2, "functioncode": 3, "description": "Voltage L2 (V)"},
@@ -47,10 +42,9 @@ STATIC_FILEPATH = Path(__file__).resolve().parent.parent / "static"
 
 # READING & LOGGING SETTINGS
 
-USE_MODBUS = True # False for mock data
-LOG_INTERVAL = 3
-RETRY_INTERVAL = 3
-MAX_RETRIES = 3
+DEVELOPER_MODE = False
+RETRY_INTERVAL = 5
+MAX_RETRIES = 10
 
 # INFLUXDB SETTINGS
 
