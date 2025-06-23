@@ -94,14 +94,11 @@
    pip install -r requirements.txt
    ```
 
-4. Run the script from the project root:
+4. Before running either scripts, locate to the `src/` directory first.
 
    ```bash
    cd src/
-   python main.py
    ```
-
-5. To stop logging, press **Ctrl +C**.
 
 ---
 
@@ -251,7 +248,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
 ### Setting Up Systemd for eth0 Interface
 
-*For some reason, the eth0 static IP will not be up unless there is a carrier or manually configured. Therefore, we create a temporary solution for this.*
+*For some reason, the eth0 static IP won't be up unless there is a carrier or is manually configured. Therefore, we create a temporary solution for this.*
 
 1. Create the systemd unit file:
 
@@ -291,7 +288,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo systemctl status configure-eth0.service --no-pager -l
    ```
 
-### Setting Up Systemd for Energy Data Logger Webapp
+### Setting Up Systemd (Gunicorn) for Energy Data Logger Webapp
 
 1. Create the systemd unit file:
 
@@ -326,7 +323,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
    # COMMAND
    ExecStart=/home/admin/energy-data-logger/venv/bin/gunicorn \
-            -b 192.168.69.1:80 webapp:app
+            -b 192.168.69.1:80 web.webapp:app
 
    # RELIABILITY
    Restart=on-failure

@@ -1,4 +1,4 @@
-# src/logger_wrapper.py
+# src/services/logger_wrapper.py
 
 import threading
 import os
@@ -6,11 +6,10 @@ import json
 import time
 import logging
 
+from components import util, logger
+from config import config
+from services.app_logger import log_manager
 from datetime import datetime
-from config import STATE_FILE
-from util import get_current_filename
-from logger import DataLogger
-from app_logger import log_manager
 
 # CONSTANTS
 
@@ -40,9 +39,9 @@ class LoggerService:
     # STATE MANAGEMENT
 
     def _read_state(self):
-        if os.path.exists(STATE_FILE):
+        if os.path.exists(config.STATE_FILE):
             try:
-                with open(STATE_FILE, 'r') as f:
+                with open(config.STATE_FILE, 'r') as f:
                     return json.load(f)
             except (IOError, json.JSONDecodeError): return None
         return None
@@ -54,14 +53,14 @@ class LoggerService:
             "csvFile": csv_filepath
         }
         try:
-            with open(STATE_FILE, 'w') as f:
+            with open(config.STATE_FILE, 'w') as f:
                 json.dump(state, f, indent=4)
         except IOError:
             log.error(f"Could not write to state file.")
 
     def _clear_state(self):
-        if os.path.exists(STATE_FILE):
-            os.remove(STATE_FILE)
+        if os.path.exists(config.STATE_FILE):
+            os.remove(config.STATE_FILE)
             log.info("State file cleared.")
 
     # MAIN THREAD LOGIC
@@ -74,18 +73,17 @@ class LoggerService:
             if from_init:
                 csv_filepath = initial_state.get("csvFile")
             else:
-                csv_filepath = get_current_filename("ds")
+                csv_filepath = util.get_current_filename("ds")
             
             if not csv_filepath:
                 log.error("Could not determine CSV file path for new session.")
                 return {"status": "error", "message": "Could not determine CSV file path."}
 
-            if not self._logging_thread or not self._logging_thread.is_alive():
-                session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
-                log_manager.start_session_logging(session_name)
+            session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
+            log_manager.start_session_logging(session_name)
 
             log.info(f"Starting data logging process for {csv_filepath}")
-            self._dl = DataLogger(filename=csv_filepath)
+            self._dl = logger.DataLogger(filename=csv_filepath)
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
             self._write_state(csv_filepath)
             self._logging_thread.start()
@@ -128,7 +126,7 @@ class LoggerService:
         """
         while not self._stop_monitor.is_set():
             time.sleep(5)
-            state_exists = os.path.exists(STATE_FILE)
+            state_exists = os.path.exists(config.STATE_FILE)
             if state_exists and self._logging_thread and not self._logging_thread.is_alive():
                 with self._lock:
                     if self._logging_thread and not self._logging_thread.is_alive():

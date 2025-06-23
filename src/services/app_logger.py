@@ -1,10 +1,10 @@
-# src/app_logger.py
+# src/services/app_logger.py
 
 import logging
 import os
 import gzip
 
-from config import LOG_DIR
+from config import config
 
 # CONSTANTS
 
@@ -41,8 +41,8 @@ class LogManager:
         """ 
         Sets up the base logger for the application.
         """
-        if not os.path.exists(LOG_DIR):
-            os.makedirs(LOG_DIR)
+        if not os.path.exists(config.LOG_DIR):
+            os.makedirs(config.LOG_DIR)
 
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO) # Log verbosity level
@@ -74,7 +74,7 @@ class LogManager:
             log.warning("A session log handler is already active.")
             self.stop_session_logging()
 
-        log_filepath = os.path.join(LOG_DIR, f"{session_filename}.log")
+        log_filepath = os.path.join(config.LOG_DIR, f"{session_filename}.log")
         log.info(f"Starting log session for: {log_filepath}")
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -99,11 +99,11 @@ class LogManager:
         """
         Stops logging to the session file ands compresses it.
         """
-        log_filepath = self._log_handler.baseFilename
-
         if not self._log_handler:
             log.info("No active session log handler to stop.")
             return
+
+        log_filepath = self._log_handler.baseFilename
 
         # Remove the handler from the root logger
         logging.getLogger().removeHandler(self._log_handler)
@@ -124,7 +124,7 @@ class LogManager:
                 os.remove(log_filepath)
                 log.info(f"Successfully compressed log file to {log_filepath}.gz")
             except Exception as e:
-                log.error(f"Failed to compress log file {log_filepath}: {e}")
+                log.error(f"Failed to compress log file {log_filepath}: {e}", exc_info=True)
 
 # GLOBAL INSTANCE
 

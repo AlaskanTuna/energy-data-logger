@@ -1,4 +1,4 @@
-# src/analyzer_wrapper.py
+# src/services/analyzer_wrapper.py
 
 import os
 import sys
@@ -6,8 +6,8 @@ import logging
 import pandas as pd
 import traceback
 
+from components.analyzer import DataAnalyzer
 from io import StringIO
-from analyzer import DataAnalyzer
 
 # CONSTANTS
 
@@ -71,9 +71,10 @@ class AnalyzerService:
             self._cache[cache_key] = result
             return result
         except Exception as e:
+            log.error(f"Analysis Error: {e}", exc_info=True)
             if sys.stdout != old_stdout:
                 sys.stdout = old_stdout
-            return {"error": str(e)}
+            return {"error": "An internal error occurred during visualization."}
 
     def visualize_file(self, filename, plot_type, custom_columns=None):
         """
@@ -125,9 +126,8 @@ class AnalyzerService:
                 "normalized_plot": f"/plots/{normalized_filename}"
             }
         except Exception as e:
-            log.error(f"Visualization Error: {str(e)}")
-            print(traceback.format_exc())
-            return {"error": str(e)}
+            log.error(f"Visualization Error: {e}", exc_info=True)
+            return {"error": "An internal error occurred during visualization."}
 
     def get_columns(self, filename):
         """
@@ -150,7 +150,7 @@ class AnalyzerService:
             }
             
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": "An internal error occurred during visualization."}
 
 # Global instance for the web layer
 analyzer_service = AnalyzerService()

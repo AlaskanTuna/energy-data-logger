@@ -1,4 +1,4 @@
-# src/analyzer.py
+# src/components/analyzer.py
 
 import os
 import pandas as pd
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import PL_DIR
+from config import config
 
 # CONSTANTS
 
@@ -18,7 +18,7 @@ class DataAnalyzer:
     Computes statistics and generates plots for the logged CSV data.
     """
     def __init__(self):
-        self.plot_dir = PL_DIR
+        self.plot_dir = config.PL_DIR
         os.makedirs(self.plot_dir, exist_ok=True)
 
     def calculate_statistics(self, filepath):
@@ -51,7 +51,7 @@ class DataAnalyzer:
 
             return df
         except Exception as e:
-            log.error(f"Statistics Error: {e}")
+            log.error(f"Statistics Error: {e}", exc_info=True)
             return None
 
     def visualize_data(self, df, source=None):
@@ -143,7 +143,7 @@ class DataAnalyzer:
 
         # Create standard plot filename
         safe_suffix = title.replace(' ', '_').lower()
-        filename = os.path.join(PL_DIR, f"{base_filename}_{safe_suffix}.png")
+        filename = os.path.join(config.PL_DIR, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         plt.close()
         log.info(f"Plot saved as: {filename}")
@@ -167,7 +167,7 @@ class DataAnalyzer:
             plt.tight_layout()
 
             # Create normalized plot filename
-            norm_filename = os.path.join(PL_DIR, f"{base_filename}_{safe_suffix}_normalized.png")
+            norm_filename = os.path.join(config.PL_DIR, f"{base_filename}_{safe_suffix}_normalized.png")
             plt.savefig(norm_filename)
             plt.close()
             log.info(f"Normalized plot saved as: {norm_filename}")

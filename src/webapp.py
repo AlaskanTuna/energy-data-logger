@@ -6,16 +6,16 @@
 
 import os
 
-from flask import Flask, jsonify, send_from_directory, request
-from config import STATIC_DIR
-from util import list_csv_files
-from settings import settings
-from logger_wrapper import logger_service
-from analyzer_wrapper import analyzer_service
+from flask import Flask, request, jsonify, send_from_directory
+from components.util import list_csv_files
+from services.logger_wrapper import logger_service
+from services.analyzer_wrapper import analyzer_service
+from services.settings import settings
+from config import config
 
 # CONSTANTS
 
-app = Flask(__name__, static_folder=str(STATIC_DIR))
+app = Flask(__name__, static_folder=str(config.STATIC_DIR))
 
 # GET ROUTES
 

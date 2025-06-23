@@ -1,4 +1,4 @@
-# src/config.py
+# src/config/config.py
 
 import os
 
@@ -34,12 +34,13 @@ REGISTERS = {
 
 # FILE SETTINGS
 
+ROOT = Path(__file__).resolve().parent.parent.parent
 DS_HEADER = ["Timestamp"] + [params["description"] for params in REGISTERS.values()]
-DS_DIR = "../data/"
-PL_DIR = "../plots/"
-LOG_DIR = "../logs/"
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-STATE_FILE = "../data/logger.state"
+DS_DIR = ROOT / "data/"
+PL_DIR = ROOT / "plots/"
+LOG_DIR = ROOT / "logs/"
+STATIC_DIR = ROOT / "static/"
+STATE_FILE = DS_DIR / "logger.state"
 
 # READING & LOGGING SETTINGS
 

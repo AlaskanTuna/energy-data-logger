@@ -1,18 +1,24 @@
-# src/util.py
+# src/components/util.py
 
 import os
+import logging
 import pandas as pd
 
-from settings import settings
-from config import DEVELOPER_MODE
+from config import config
+from components.logger import DataLogger
+from components.analyzer import DataAnalyzer
+from services.settings import settings
 from datetime import datetime
-from logger import DataLogger
+
+# CONSTANTS
+
+log = logging.getLogger(__name__)
 
 def main_menu():
     """
     Display and handle main menu options for CLI mode.
     """
-    if DEVELOPER_MODE:
+    if config.DEVELOPER_MODE:
         print("===== Main Menu =====")
         print("1. Log New Data")
         print("2. View Data")
@@ -87,7 +93,7 @@ def list_csv_files(directory="../data/"):
         csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
         return sorted(csv_files)
     except Exception as e:
-        print(f"Error listing files: {e}")
+        log.error(f"File Listing Error: {e}", exc_info=True)
         return []
 
 def display_csv_file(filename, directory="../data/"):
@@ -110,7 +116,7 @@ def display_csv_file(filename, directory="../data/"):
             print(content)
             return True
     except Exception as e:
-        print(f"Error displaying file: {e}")
+        log.error(f"Display File Error: {e}", exc_info=True)
         return False
 
 def select_csv_file(purpose="action"):
@@ -165,9 +171,7 @@ def analyze_data():
         filepath = os.path.join("../data/", selected_file)
 
         try:
-            from analyzer import DataAnalyzer
-            analyzer = DataAnalyzer()
-            analyzer.calculate_statistics(filepath)
+            DataAnalyzer.calculate_statistics(filepath)
             input("\nPress Enter to continue...")
             clear_screen()
         except Exception as e:
@@ -184,9 +188,7 @@ def visualize_data():
 
         df = pd.read_csv(filepath)
 
-        from analyzer import DataAnalyzer
-        analyzer = DataAnalyzer()
-        analyzer.visualize_data(df, filepath)
+        DataAnalyzer.visualize_data(df, filepath)
 
         input("\nPress Enter to continue...")
 

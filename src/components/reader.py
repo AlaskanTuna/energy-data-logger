@@ -1,19 +1,12 @@
-# src/reader.py
+# src/components/reader.py
 
 import random
 import time
 import minimalmodbus
 import logging
 
-from settings import settings
-from config import (
-    REGISTERS,
-    USE_MODBUS,
-    MODBUS_PORT,
-    DEVELOPER_MODE,
-    RETRY_INTERVAL,
-    MAX_RETRIES
-)
+from config import config
+from services.settings import settings
 
 # CONSTANTS
 
@@ -30,15 +23,15 @@ class MeterReader:
     
     @use_modbus_flag: If True, uses Modbus to read data; otherwise, uses mock data.
     """
-    def __init__(self, use_modbus_flag=USE_MODBUS):
+    def __init__(self, use_modbus_flag=config.USE_MODBUS):
         self.instrument = None
-        self.use_mock = DEVELOPER_MODE
+        self.use_mock = config.DEVELOPER_MODE
         self.use_modbus = use_modbus_flag
 
         if self.use_modbus:
             try:
                 self.instrument = minimalmodbus.Instrument(
-                    port=MODBUS_PORT,
+                    port=config.MODBUS_PORT,
                     slaveaddress=settings.get("MODBUS_SLAVE_ID")
                 )
                 parity_str = settings.get("PARITY")
@@ -50,7 +43,7 @@ class MeterReader:
                 self.instrument.mode = minimalmodbus.MODE_RTU
                 log.info("Modbus instrument initialized for real readings.")
             except Exception as e:
-                raise ConnectionError(f"Failed to initialize Modbus on port {MODBUS_PORT}. {e}")
+                raise ConnectionError(f"Failed to initialize Modbus on port {config.MODBUS_PORT}. {e}", exc_info=True)
 
     def meter_reading_mock(self):
         """
@@ -62,7 +55,7 @@ class MeterReader:
         power_base = voltage_base * current_base / 1000
         energy_base = random.uniform(500, 10000)
 
-        for name in REGISTERS.keys():
+        for name in config.REGISTERS.keys():
             if 'voltage' in name:
                 readings[name] = round(voltage_base * random.uniform(0.98, 1.02), 2)
             elif 'current' in name:
@@ -88,7 +81,7 @@ class MeterReader:
         """
         readings = {}
         try:
-            for name, params in REGISTERS.items():
+            for name, params in config.REGISTERS.items():
                 value = self.instrument.read_float(
                     registeraddress=params["address"],
                     functioncode=params["functioncode"],
@@ -97,7 +90,7 @@ class MeterReader:
                 readings[name] = round(value, 3) # Set precision to 3 decimal places
             return readings
         except Exception as e:
-            log.error(f"Modbus Error: {e}")
+            log.error(f"Modbus Error: {e}", exc_info=True)
             return None
 
     def get_meter_readings(self):
@@ -109,16 +102,16 @@ class MeterReader:
             return self.meter_reading_mock()
         elif self.use_modbus:
             retry_count = 0
-            while retry_count < MAX_RETRIES:
+            while retry_count < config.MAX_RETRIES:
                 readings = self.meter_reading_modbus()
                 if readings:
                     return readings
                 else:
                     retry_count += 1
-                    log.warning(f"Modbus signal lost. Retrying: {retry_count}/{MAX_RETRIES}.")
-                    time.sleep(RETRY_INTERVAL)
+                    log.warning(f"Modbus signal lost. Retrying: {retry_count}/{config.MAX_RETRIES}.")
+                    time.sleep(config.RETRY_INTERVAL)
 
-            log.error(f"Modbus Error: Failed to get readings after {MAX_RETRIES} attempts.")
+            log.error(f"Modbus Error: Failed to get readings after {config.MAX_RETRIES} attempts.")
             return None
         else:
             log.error("No Modbus port detected and is not in developer mode.")

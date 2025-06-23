@@ -1,16 +1,16 @@
-# src/settings.py
+# src/services/settings.py
 
 import json
 import os
 import logging
 
-from config import DS_DIR
+from config import config
 
 # CONSTANTS
 
 SETTINGS_FILE = "../data/settings.json"
 DEFAULT_SETTINGS = {
-    "LOG_INTERVAL": 5,
+    "LOG_INTERVAL": 900,
     "MODBUS_SLAVE_ID": 1,
     "BAUDRATE": 9600,
     "PARITY": 'N',
@@ -60,8 +60,8 @@ class Settings:
         Saves the current settings to the JSON file.
         """
         try:
-            if not os.path.exists(DS_DIR):
-                os.makedirs(DS_DIR, exist_ok=True)
+            if not os.path.exists(config.DS_DIR):
+                os.makedirs(config.DS_DIR, exist_ok=True)
 
             with open(SETTINGS_FILE, 'w') as f:
                 json.dump(self.data, f, indent=4)
