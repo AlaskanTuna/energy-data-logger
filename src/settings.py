@@ -2,6 +2,9 @@
 
 import json
 import os
+import logging
+
+from config import DS_DIR
 
 # CONSTANTS
 
@@ -15,6 +18,9 @@ DEFAULT_SETTINGS = {
     "STOPBITS": 1,
     "TIMEOUT": 2
 }
+log = logging.getLogger(__name__)
+
+# SERVICES
 
 class Settings:
     """
@@ -42,10 +48,10 @@ class Settings:
                     self.data = DEFAULT_SETTINGS.copy()
                     self.data.update(loaded)
             except (IOError, json.JSONDecodeError):
-                print(f"[ERROR]: Failed to read settings file. Using default settings.")
+                log.error(f"Failed to read settings file. Using default settings.")
                 self.data = DEFAULT_SETTINGS.copy()
         else:
-            print(f"[WARNING]: No settings file found. Using default settings.")
+            log.warning(f"No settings file found. Using default settings.")
             self.data = DEFAULT_SETTINGS.copy()
             self.save_settings()
 
@@ -54,11 +60,14 @@ class Settings:
         Saves the current settings to the JSON file.
         """
         try:
+            if not os.path.exists(DS_DIR):
+                os.makedirs(DS_DIR, exist_ok=True)
+
             with open(SETTINGS_FILE, 'w') as f:
                 json.dump(self.data, f, indent=4)
             return True
         except IOError:
-            print(f"[ERROR]: Failed to write settings file.")
+            log.error(f"Failed to write settings file.")
             return False
 
     def get(self, key):
@@ -83,9 +92,7 @@ class Settings:
                 try:
                     self.data[key] = expected_type(value)
                 except (ValueError, TypeError):
-                    print(f"[WARNING]: Could not set '{key}' to '{value}'. Invalid type. Ignoring.")
-        
-        # Now, save the updated data
+                    log.warning(f"Invalid type. Could not set '{key}' to '{value}'.")
         return self.save_settings()
 
 # GLOBAL INSTANCE

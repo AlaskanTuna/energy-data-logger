@@ -2,8 +2,10 @@
 
 import os
 import sys
+import logging
 import pandas as pd
 import traceback
+
 from io import StringIO
 from analyzer import DataAnalyzer
 
@@ -16,6 +18,9 @@ VISUALIZATION_TYPES = {
     '4': {'name': 'Energy Consumption', 'filter': 'Energy'},
     '5': {'name': 'All Parameters', 'columns': []}
 }
+log = logging.getLogger(__name__)
+
+# SERVICES
 
 class AnalyzerService:
     """
@@ -120,7 +125,7 @@ class AnalyzerService:
                 "normalized_plot": f"/plots/{normalized_filename}"
             }
         except Exception as e:
-            print(f"[VISUALIZATION ERROR]: {str(e)}")
+            log.error(f"Visualization Error: {str(e)}")
             print(traceback.format_exc())
             return {"error": str(e)}
 

@@ -3,6 +3,7 @@
 import random
 import time
 import minimalmodbus
+import logging
 
 from settings import settings
 from config import (
@@ -21,6 +22,7 @@ PARITY_MAP = {
     'E': minimalmodbus.serial.PARITY_EVEN,
     'O': minimalmodbus.serial.PARITY_ODD,
 }
+log = logging.getLogger(__name__)
 
 class MeterReader:
     """
@@ -46,9 +48,9 @@ class MeterReader:
                 self.instrument.serial.stopbits = settings.get("STOPBITS")
                 self.instrument.serial.timeout = settings.get("TIMEOUT")
                 self.instrument.mode = minimalmodbus.MODE_RTU
-                print("[INFO]: Modbus instrument initialized for real readings.")
+                log.info("Modbus instrument initialized for real readings.")
             except Exception as e:
-                raise ConnectionError(f"[MODBUS ERROR]: Failed to initialize Modbus on port {MODBUS_PORT}. {e}")
+                raise ConnectionError(f"Failed to initialize Modbus on port {MODBUS_PORT}. {e}")
 
     def meter_reading_mock(self):
         """
@@ -95,7 +97,7 @@ class MeterReader:
                 readings[name] = round(value, 3) # Set precision to 3 decimal places
             return readings
         except Exception as e:
-            print(f"[MODBUS ERROR]: {e}")
+            log.error(f"Modbus Error: {e}")
             return None
 
     def get_meter_readings(self):
@@ -113,11 +115,11 @@ class MeterReader:
                     return readings
                 else:
                     retry_count += 1
-                    print(f"[WARNING]: Modbus signal lost. Retrying: {retry_count}/{MAX_RETRIES}.")
+                    log.warning(f"Modbus signal lost. Retrying: {retry_count}/{MAX_RETRIES}.")
                     time.sleep(RETRY_INTERVAL)
 
-            print(f"[MODBUS ERROR]: Failed to get readings after {MAX_RETRIES} attempts.")
+            log.error(f"Modbus Error: Failed to get readings after {MAX_RETRIES} attempts.")
             return None
         else:
-            print("[ERROR]: No Modbus port detected and is not in developer mode.")
+            log.error("No Modbus port detected and is not in developer mode.")
             return None

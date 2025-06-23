@@ -2,18 +2,23 @@
 
 import os
 import pandas as pd
+import logging
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
-from config import PL_FILEPATH
+from config import PL_DIR
+
+# CONSTANTS
+
+log = logging.getLogger(__name__)
 
 class DataAnalyzer:
     """
     Computes statistics and generates plots for the logged CSV data.
     """
     def __init__(self):
-        self.plot_dir = PL_FILEPATH
+        self.plot_dir = PL_DIR
         os.makedirs(self.plot_dir, exist_ok=True)
 
     def calculate_statistics(self, filepath):
@@ -46,7 +51,7 @@ class DataAnalyzer:
 
             return df
         except Exception as e:
-            print(f"[STATISTICS ERROR]: {e}")
+            log.error(f"Statistics Error: {e}")
             return None
 
     def visualize_data(self, df, source=None):
@@ -57,11 +62,11 @@ class DataAnalyzer:
         @source: Optional source filename for generating plots.
         """
         if df is None or len(df) < 2:
-            print("\n[WARNING]: Not enough data for visualization.")
+            log.warning("Not enough data for visualization.")
             return
 
         if 'Timestamp' not in df.columns:
-            print("[PLOT ERROR]: Timestamp column not found. Cannot create time-series plots.")
+            log.error("Plot Error: Timestamp column not found. Cannot create time-series plots.")
             return
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
         
@@ -101,13 +106,13 @@ class DataAnalyzer:
                     self._generate_plot(df, "Custom Selection", selected_columns, source)
                     return
                 else:
-                    print("[WARNING]: No valid parameters selected.")
+                    log.warning("No valid parameters selected.")
                 return
             elif choice in categories and categories[choice]['columns']:
                 self._generate_plot(df, categories[choice]['name'], categories[choice]['columns'], source)
                 return
             else:
-                print("[WARNING]: Invalid choice or no data available for that option.")
+                log.warning("Invalid choice or no data available for that option.")
 
     def _generate_plot(self, df, title, columns_to_plot, source=None):
         """
@@ -116,7 +121,7 @@ class DataAnalyzer:
         columns = [col for col in columns_to_plot if col in df.columns]
 
         if not columns:
-            print(f"[WARNING]: None of the requested columns for '{title}' plot exist in the data. Skipping plot.")
+            log.warning(f"None of the requested columns for '{title}' plot exist in the data. Skipping plot.")
             return
 
         base_filename = "visualization"
@@ -138,10 +143,10 @@ class DataAnalyzer:
 
         # Create standard plot filename
         safe_suffix = title.replace(' ', '_').lower()
-        filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}.png")
+        filename = os.path.join(PL_DIR, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         plt.close()
-        print(f"Plot saved as: {filename}")
+        log.info(f"Plot saved as: {filename}")
 
         # Create normalized version of the plot for comparison
         if len(columns) > 1:
@@ -162,7 +167,7 @@ class DataAnalyzer:
             plt.tight_layout()
 
             # Create normalized plot filename
-            norm_filename = os.path.join(PL_FILEPATH, f"{base_filename}_{safe_suffix}_normalized.png")
+            norm_filename = os.path.join(PL_DIR, f"{base_filename}_{safe_suffix}_normalized.png")
             plt.savefig(norm_filename)
             plt.close()
-            print(f"Normalized plot saved as: {norm_filename}")
+            log.info(f"Normalized plot saved as: {norm_filename}")

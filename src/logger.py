@@ -3,30 +3,35 @@
 import os
 import csv
 import time
+import logging
 
-from settings import settings
-from reader import MeterReader
-from datetime import datetime, timezone
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
 from config import (
     REGISTERS,
     USE_MODBUS,
     DS_HEADER,
-    DS_FILEPATH,
+    DS_DIR,
     INFLUXDB_URL,
     INFLUXDB_TOKEN,
     INFLUXDB_ORG,
     INFLUXDB_BUCKET,
     INFLUXDB_TIMEOUT
 )
+from reader import MeterReader
+from datetime import datetime, timezone
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+from settings import settings
+
+# CONSTANTS
+
+log = logging.getLogger(__name__)
 
 class DataLogger:
     """
     Handles CSV setup, InfluxDB initialization and continuous data logging.
     """
     def __init__(self, filename):
-        self.ds_dir = DS_FILEPATH
+        self.ds_dir = DS_DIR
         if not os.path.exists(self.ds_dir):
             os.makedirs(self.ds_dir, exist_ok=True)
 
@@ -39,8 +44,7 @@ class DataLogger:
             if is_new_file:
                 writer = csv.writer(file)
                 writer.writerow(self.ds_header)
-        
-        print(f"[INFO]: Data logging initialized. CSV file: {self.ds_filename}")
+        log.info(f"Data logging initialized. CSV file: {self.ds_filename}")
 
         self.reader = None
 
@@ -64,7 +68,7 @@ class DataLogger:
         """
         self.influx_enabled = False
         if not (INFLUXDB_URL and INFLUXDB_TOKEN):
-            print("[INFO]: InfluxDB config not provided. Continuing with CSV logging only.")
+            log.info("InfluxDB config not provided. Continuing with CSV logging only.")
             return
 
         try:
@@ -77,12 +81,12 @@ class DataLogger:
             if self.client.ping():
                 self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
                 self.influx_enabled = True
-                print("[INFO]: InfluxDB connection established successfully.")
+                log.info("InfluxDB connection established successfully.")
             else:
-                print("[ERROR]: InfluxDB ping failed. Please check token and organization settings.")
+                log.error("InfluxDB ping failed. Please check token and organization settings.")
         except Exception as e:
-            print(f"[INFLUXDB CONNECTION ERROR]: {e}")
-            print("[WARNING]: Could not connect to InfluxDB. Continuing with CSV logging only.")
+            log.error(f"InfluxDB Connection Error: {e}")
+            log.warning("Could not connect to InfluxDB. Continuing with CSV logging only.")
             self.client = None
 
     def log(self):
@@ -93,7 +97,7 @@ class DataLogger:
             while self._running:
                 readings = self.reader.get_meter_readings()
                 if not readings:
-                    print("\n[WARNING]: Could not retrieve readings. Terminating logger session.")
+                    log.warning("Could not retrieve readings. Terminating logger session.")
                     self.stop()
                     continue
 
@@ -101,20 +105,18 @@ class DataLogger:
                 self.latest = {"ts": timestamp, **readings}
                 timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
-                # DYNAMIC CSV WRITING
-
-                csv_status = "✗"
+                # CSV WRITING
+                csv_status = "FAIL"
                 try:
                     row_data = [timestamp_str] + [readings.get(key) for key in REGISTERS.keys()]
                     with open(self.ds_filename, 'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(row_data)
-                    csv_status = "✓"
+                    csv_status = "OK"
                 except Exception as e:
-                    print(f"[CSV WRITE ERROR]: {e}")
+                    log.error(f"CSV Write Error: {e}")
 
-                # DYNAMIC INFLUXDB WRITING
-
+                # INFLUXDB WRITING
                 influx_status = "-"
                 if self.influx_enabled:
                     try:
@@ -127,17 +129,17 @@ class DataLogger:
                         point.time(datetime.now(tz=timezone.utc), WritePrecision.S)
                         
                         self.write_api.write(bucket=INFLUXDB_BUCKET, record=point)
-                        influx_status = "✓"
+                        influx_status = "OK"
                     except Exception as e:
-                        print(f"[INFLUXDB WRITE ERROR]: {e}")
-                        influx_status = "✗"
+                        log.error(f"InfluxDB Write Error: {e}")
+                        influx_status = "FAIL"
                 else:
-                    influx_status = "✗" if (INFLUXDB_URL and INFLUXDB_TOKEN) else "-"
+                    influx_status = "FAIL" if (INFLUXDB_URL and INFLUXDB_TOKEN) else "-"
 
-                print(f"[{timestamp_str}] Logged successfully | CSV: {csv_status} | InfluxDB: {influx_status}")
+                log.info(f"Data logged successfully! | CSV: {csv_status} | InfluxDB: {influx_status} |")
                 time.sleep(settings.get("LOG_INTERVAL"))
         except KeyboardInterrupt:
-            print("\n[INFO]: Logging stopped by user.")
+            log.info("Data logging stopped by user.")
         finally:
             self.stop()
 
@@ -150,10 +152,10 @@ class DataLogger:
             input("\nPress Enter to continue...")
             clear_screen()
         except Exception as e:
-            print(f"\n[LOG ERROR]: {e}")
+            log.error(f"Log Error: {e}")
 
     def stop(self):
         self._running = False
         if self.influx_enabled and self.client:
             self.client.close()
-            print("[INFO]: InfluxDB connection closed.")
+            log.info("InfluxDB connection closed.")

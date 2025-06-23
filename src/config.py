@@ -35,14 +35,16 @@ REGISTERS = {
 # FILE SETTINGS
 
 DS_HEADER = ["Timestamp"] + [params["description"] for params in REGISTERS.values()]
-DS_FILEPATH = "../data/"
-PL_FILEPATH = "../plots/"
-STATIC_FILEPATH = Path(__file__).resolve().parent.parent / "static"
+DS_DIR = "../data/"
+PL_DIR = "../plots/"
+LOG_DIR = "../logs/"
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+STATE_FILE = "../data/logger.state"
 
 # READING & LOGGING SETTINGS
 
-USE_MODBUS = False
-DEVELOPER_MODE = True
+USE_MODBUS = True
+DEVELOPER_MODE = False
 RETRY_INTERVAL = 5
 MAX_RETRIES = 10
 

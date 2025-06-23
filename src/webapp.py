@@ -1,17 +1,21 @@
 # src/webapp.py
 
+# NOTE: Make sure `DEVELOPER_MODE` and `USE_MODBUS` are set to False and True respectively
+#       in src/settings.py file. Then run this script from the CLI: `python src/webapp.py`.
+#       This is the main application for the data logger.
+
 import os
 
+from flask import Flask, jsonify, send_from_directory, request
+from config import STATIC_DIR
 from util import list_csv_files
 from settings import settings
 from logger_wrapper import logger_service
 from analyzer_wrapper import analyzer_service
-from config import STATIC_FILEPATH
-from flask import Flask, jsonify, send_from_directory, request
 
-# INITIALIZE FLASK
+# CONSTANTS
 
-app = Flask(__name__, static_folder=str(STATIC_FILEPATH))
+app = Flask(__name__, static_folder=str(STATIC_DIR))
 
 # GET ROUTES
 
@@ -117,7 +121,7 @@ def generate_custom_visualization(filename):
     result = analyzer_service.visualize_file(filename, "custom", data['columns'])
     return jsonify(result)
 
-# CONVENIENT CLI
+# RUN FLASK APP
 
 if __name__ == "__main__":
     # cd src/ => python webapp.py

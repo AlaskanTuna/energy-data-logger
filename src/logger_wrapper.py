@@ -4,19 +4,24 @@ import threading
 import os
 import json
 import time
+import logging
+
 from datetime import datetime
-from logger import DataLogger
+from config import STATE_FILE
 from util import get_current_filename
+from logger import DataLogger
+from app_logger import log_manager
 
 # CONSTANTS
 
-STATE_FILE = "../data/logger.state"
+log = logging.getLogger(__name__)
+
+# SERVICES
 
 class LoggerService:
     """
-    A self-monitoring wrapper around DataLogger.
-    It uses a main logging thread and a separate monitor thread to ensure
-    the system state is always synchronized with reality.
+    Wrapper around DataLogger.
+    Exposes helpers for the web layer.
     """
     def __init__(self):
         self._lock = threading.Lock()
@@ -29,7 +34,7 @@ class LoggerService:
         # Check for pre-existing state to resume logging
         state = self._read_state()
         if state and state.get("status") == "running":
-            print("[INFO]: Resuming 'running' state. Continuing logging thread from initialization.")
+            log.info("Resuming RUNNING state. Continuing data logging thread.")
             self.start(from_init=True, initial_state=state)
 
     # STATE MANAGEMENT
@@ -52,12 +57,12 @@ class LoggerService:
             with open(STATE_FILE, 'w') as f:
                 json.dump(state, f, indent=4)
         except IOError:
-            print(f"[ERROR]: Could not write to state file.")
+            log.error(f"Could not write to state file.")
 
     def _clear_state(self):
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
-            print("[INFO]: State file cleared.")
+            log.info("State file cleared.")
 
     # MAIN THREAD LOGIC
 
@@ -72,10 +77,14 @@ class LoggerService:
                 csv_filepath = get_current_filename("ds")
             
             if not csv_filepath:
+                log.error("Could not determine CSV file path for new session.")
                 return {"status": "error", "message": "Could not determine CSV file path."}
 
-            print(f"[INFO] Starting logging process for {csv_filepath}")
+            if not self._logging_thread or not self._logging_thread.is_alive():
+                session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
+                log_manager.start_session_logging(session_name)
 
+            log.info(f"Starting data logging process for {csv_filepath}")
             self._dl = DataLogger(filename=csv_filepath)
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
             self._write_state(csv_filepath)
@@ -87,9 +96,11 @@ class LoggerService:
             self._clear_state()
 
             if not self._logging_thread or not self._logging_thread.is_alive():
+                log_manager.stop_session_logging()
                 return {"status": "already_stopped"}
 
-            print("[INFO]: Stopping logging process.")
+            log.info("Stopping data logging process.")
+            log_manager.stop_session_logging()
 
             if self._dl:
                 self._dl.stop()
@@ -98,7 +109,7 @@ class LoggerService:
             self._logging_thread = None
             self._dl = None
 
-            print("[INFO]: Logging process stopped cleanly.")
+            log.info("Data logging process stopped cleanly.")
             return {"status": "stopped"}
 
     # MONITOR THREAD LOGIC
@@ -109,7 +120,7 @@ class LoggerService:
         """
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
-        print("[INFO]: Heartbeat monitor started.")
+        log.info("Heartbeat monitor started.")
 
     def _monitor_loop(self):
         """
@@ -121,8 +132,7 @@ class LoggerService:
             if state_exists and self._logging_thread and not self._logging_thread.is_alive():
                 with self._lock:
                     if self._logging_thread and not self._logging_thread.is_alive():
-                        # TODO: Log last 200 lines of Flask debug lines
-                        print("[INFO]: Detected crashed logging thread. Terminating logger session and state.")
+                        log.info("Detected crashed data logging thread. Terminating session and state.")
                         self._clear_state()
                         self._logging_thread = None
                         self._dl = None

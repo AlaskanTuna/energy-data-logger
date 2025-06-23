@@ -4,6 +4,7 @@ import os
 import pandas as pd
 
 from settings import settings
+from config import DEVELOPER_MODE
 from datetime import datetime
 from logger import DataLogger
 
@@ -11,37 +12,41 @@ def main_menu():
     """
     Display and handle main menu options for CLI mode.
     """
-    print("===== Main Menu =====")
-    print("1. Log New Data")
-    print("2. View Data")
-    print("3. Analyze Data")
-    print("4. Visualize Data")
-    print("5. Settings")
-    print("6. Exit")
+    if DEVELOPER_MODE:
+        print("===== Main Menu =====")
+        print("1. Log New Data")
+        print("2. View Data")
+        print("3. Analyze Data")
+        print("4. Visualize Data")
+        print("5. Settings")
+        print("6. Exit")
 
-    choice = input("\nEnter your choice: ").strip()
+        choice = input("\nEnter your choice: ").strip()
 
-    if choice == '1':
-        clear_screen()
-        logger = DataLogger(filename=get_current_filename("ds"))
-        logger.start()
-    elif choice == '2':
-        clear_screen()
-        view_data()
-    elif choice == '3':
-        clear_screen()
-        analyze_data()
-    elif choice == '4':
-        clear_screen()
-        visualize_data()
-    elif choice == '5':
-        clear_screen()
-        settings_menu()
-    elif choice == '6':
-        exit(0)
+        if choice == '1':
+            clear_screen()
+            logger = DataLogger(filename=get_current_filename("ds"))
+            logger.start()
+        elif choice == '2':
+            clear_screen()
+            view_data()
+        elif choice == '3':
+            clear_screen()
+            analyze_data()
+        elif choice == '4':
+            clear_screen()
+            visualize_data()
+        elif choice == '5':
+            clear_screen()
+            settings_menu()
+        elif choice == '6':
+            exit(0)
+        else:
+            clear_screen()
+            return main_menu()
     else:
-        clear_screen()
-        return main_menu()
+        print("[INFO]: Developer mode is disabled.")
+        exit(0)
 
 def clear_screen():
     """
@@ -72,7 +77,8 @@ def get_current_filename(file="ds"):
 def list_csv_files(directory="../data/"):
     """
     List all CSV files in the specified directory.
-    Returns a list of filenames.
+    
+    @directory: Directory where the file is located.
     """
     try:
         if not os.path.exists(directory):
@@ -87,14 +93,16 @@ def list_csv_files(directory="../data/"):
 def display_csv_file(filename, directory="../data/"):
     """
     Display the content of a CSV file in the terminal.
-    Similar to the 'cat' command in Linux.
+    
+    @filename: Name of the CSV file to display.
+    @directory: Directory where the file is located.
     """
     try:
         filepath = os.path.join(directory, filename)
         if not os.path.exists(filepath):
             print(f"File not found: {filepath}")
             return False
-        
+
         # Read and display the file content
         with open(filepath, 'r') as file:
             print(f"\n===== Content of {filename} =====\n")
@@ -120,13 +128,11 @@ def select_csv_file(purpose="action"):
         input("\nPress Enter to continue...")
         clear_screen()
         return None
-    
-    # Display file list with numbers
+
     print("0. Return to Main Menu")
     for i, file in enumerate(csv_files, 1):
         print(f"{i}. {file}")
-    
-    # Get user selection
+
     try:
         selection = int(input(f"\nPlease select a file: ").strip())
         if selection == 0:
