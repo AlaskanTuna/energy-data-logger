@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const themeSwitcher = document.querySelector('.theme-switcher');
     const themeIcon = document.getElementById('theme-icon');
-    const sunIcon = "https://raw.githubusercontent.com/feathericons/feather/master/icons/sun.svg";
-    const moonIcon = "https://raw.githubusercontent.com/feathericons/feather/master/icons/moon.svg";
+    const sunIcon = "/static/icons/sun.svg";
+    const moonIcon = "/static/icons/moon.svg";
 
     const setTheme = (isDark) => {
         document.body.classList.toggle('dark-mode', isDark);
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <strong>${file}</strong>
                                 <div class="file-item-date">Created: ${dateStr}</div>
                             </div>
-                            <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/chevron-right.svg" class="icon" alt="Select">
+                            <img src="/static/icons/chevron-right.svg" class="icon" alt="Select">
                         </div>
                     `;
                 });
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const formattedAnalysis = data.analysis_text.replace(/\n/g, '<br>').replace(/=+/g, '<hr>');
             modalBody.innerHTML = `
                 <div class="statistics-container"><div class="statistics-output">${formattedAnalysis}</div></div>
-                <button id="download-stats" class="action-button"><img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/download.svg" class="icon" style="filter:invert(100%)">Download Statistics</button>`;
+                <button id="download-stats" class="action-button"><img src="/static/icons/download.svg" class="icon" style="filter:invert(100%)">Download Statistics</button>`;
             document.getElementById('download-stats').addEventListener('click', () => downloadStatistics(data.analysis_text, filename));
         }).catch(err => modalBody.innerHTML = '<p class="error-message">Error analyzing data.</p>');
     }
@@ -191,15 +191,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const iconName = icons[type.name] || 'trending-up';
                 html += `
                     <div class="viz-option" data-viz-type="${type.id}" data-filename="${filename}">
-                        <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/${iconName}.svg" class="icon" alt="">
+                        <img src="/static/icons/${iconName}.svg" class="icon" alt="">
                         <span>${type.name}</span>
                     </div>`;
             });
 
-            // Add custom option separately to ensure it's always last
+            // Add custom option separately
             html += `
                 <div class="viz-option" data-viz-type="custom" data-filename="${filename}">
-                    <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/edit-3.svg" class="icon" alt="">
+                    <img src="/static/icons/edit-3.svg" class="icon" alt="">
                     <span>Custom Selection</span>
                 </div>`;
 

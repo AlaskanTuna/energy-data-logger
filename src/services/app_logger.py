@@ -79,6 +79,12 @@ class LogManager:
         log_filepath = os.path.join(config.LOG_DIR, f"{filename}.log")
         log.info(f"Starting log session for: {log_filepath}")
 
+        try:
+            os.makedirs(config.LOG_DIR, exist_ok=True)
+        except OSError as e:
+            log.error(f"Fatal: Could not create log directory {config.LOG_DIR}: {e}")
+            return
+
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
         # FILE HANDLER
