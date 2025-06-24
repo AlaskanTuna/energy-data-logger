@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class DataLogger:
     """
-    Handles CSV setup, InfluxDB initialization and continuous data logging.
+    Handles CSV and InfluxDB logging of energy meter readings.
     """
     def __init__(self, filename):
         self.ds_dir = config.DS_DIR
@@ -134,6 +134,9 @@ class DataLogger:
             self.stop()
 
     def start(self):
+        """ 
+        Starts the data logging procecss.
+        """
         from util import clear_screen
         try:
             print("\n===== Energy Data Logger: Started Execution =====\n")
@@ -145,6 +148,9 @@ class DataLogger:
             log.error(f"Log Error: {e}", exc_info=True)
 
     def stop(self):
+        """ 
+        Stops the data logging process.
+        """
         self._running = False
         if self.influx_enabled and self.client:
             self.client.close()

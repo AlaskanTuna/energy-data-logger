@@ -323,7 +323,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
    # COMMAND
    ExecStart=/home/admin/energy-data-logger/venv/bin/gunicorn \
-            -b 192.168.69.1:80 web.webapp:app
+            -b 192.168.69.1:80 webapp:app
 
    # RELIABILITY
    Restart=on-failure

@@ -20,8 +20,6 @@ log = logging.getLogger(__name__)
 class MeterReader:
     """
     Encapsulates the logic for reading from a power meter.
-    
-    @use_modbus_flag: If True, uses Modbus to read data; otherwise, uses mock data.
     """
     def __init__(self, use_modbus_flag=config.USE_MODBUS):
         self.instrument = None
@@ -48,6 +46,8 @@ class MeterReader:
     def meter_reading_mock(self):
         """
         Simulate electrical data readings for testing purposes.
+        
+        @return: Dictionary with mock readings
         """
         readings = {}
         voltage_base = random.uniform(215, 240)
@@ -78,6 +78,8 @@ class MeterReader:
     def meter_reading_modbus(self):
         """
         Polls electrical data from the power meter registers through Modbus.
+        
+        @return: Dictionary with Modbus readings or None
         """
         readings = {}
         try:
@@ -95,8 +97,9 @@ class MeterReader:
 
     def get_meter_readings(self):
         """
-        Get meter readings either using mock values or Modbus polling.
-        Returns a dictionary of readings.
+        Get meter readings based on configuration settings.
+        
+        @return: Dictionary with meter readings or None
         """
         if not self.use_modbus and self.use_mock:
             return self.meter_reading_mock()

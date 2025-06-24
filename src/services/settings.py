@@ -73,18 +73,26 @@ class Settings:
     def get(self, key):
         """
         Gets a specific setting value.
+        
+        @key: Setting key to retrieve
+        @return: Value of the setting
         """
         return self.data.get(key)
 
     def get_all(self):
         """
-        Returns all current settings.
+        Get all setting values.
+        
+        @return: Dictionary of all settings
         """
         return self.data.copy()
 
     def update(self, new_settings):
         """
         Updates multiple settings and saves them.
+        
+        @new_settings: Dictionary with new settings to update
+        @return: Boolean flag indicating success
         """
         for key, value in new_settings.items():
             if key in self.data:

@@ -66,15 +66,17 @@ class LogManager:
 
         log.info("App logger initialized. Logging program activity now.")
 
-    def start_session_logging(self, session_filename):
+    def start_session_logging(self, filename):
         """
         Starts logging to a specific file for a data logging session.
+        
+        @filename: Name of the log file
         """
         if self._log_handler:
             log.warning("A session log handler is already active.")
             self.stop_session_logging()
 
-        log_filepath = os.path.join(config.LOG_DIR, f"{session_filename}.log")
+        log_filepath = os.path.join(config.LOG_DIR, f"{filename}.log")
         log.info(f"Starting log session for: {log_filepath}")
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -98,6 +100,8 @@ class LogManager:
     def stop_session_logging(self, compress=True):
         """
         Stops logging to the session file ands compresses it.
+        
+        @compress: Flag to compress log file after session ends
         """
         if not self._log_handler:
             log.info("No active session log handler to stop.")

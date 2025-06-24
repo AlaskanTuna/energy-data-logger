@@ -39,6 +39,11 @@ class LoggerService:
     # STATE MANAGEMENT
 
     def _read_state(self):
+        """ 
+        Reads the current state from the state file.
+        
+        @return: Dictionary with state information or None if file not exist
+        """
         if os.path.exists(config.STATE_FILE):
             try:
                 with open(config.STATE_FILE, 'r') as f:
@@ -47,6 +52,11 @@ class LoggerService:
         return None
 
     def _write_state(self, csv_filepath):
+        """ 
+        Writes the current state to the state file.
+        
+        @csv_filepath: Path to CSV file being logged
+        """
         state = {
             "status": "running",
             "startTime": datetime.now().isoformat(),
@@ -59,6 +69,9 @@ class LoggerService:
             log.error(f"Could not write to state file.")
 
     def _clear_state(self):
+        """ 
+        Clears the state file if exists.
+        """
         if os.path.exists(config.STATE_FILE):
             os.remove(config.STATE_FILE)
             log.info("State file cleared.")
@@ -66,6 +79,13 @@ class LoggerService:
     # MAIN THREAD LOGIC
 
     def start(self, from_init=False, initial_state=None):
+        """ 
+        Starts the webapp data logging process.
+        
+        @from_init: Flag to indicate if called from initialization
+        @initial_state: Initial state dictionary from existing state
+        @return: Dictionary with status and state information
+        """
         with self._lock:
             if self._logging_thread and self._logging_thread.is_alive():
                 return {"status": "already_running", "state": self._read_state()}
@@ -90,6 +110,11 @@ class LoggerService:
             return {"status": "started", "state": self._read_state()}
 
     def stop(self):
+        """ 
+        Stops the webapp data logging process.
+        
+        @return: Dictionary with status of the stop operation
+        """
         with self._lock:
             self._clear_state()
 
@@ -139,14 +164,18 @@ class LoggerService:
 
     def get_status(self):
         """ 
-        Returns the current status of the logger.
+        Get the current status of the logger.
+        
+        @return: Dictionary with status information
         """
         state = self._read_state()
         return state if state else {"status": "inactive"}
 
     def latest(self):
         """ 
-        Returns the latest logged data.
+        Get the latest logged data.
+        
+        @return: Latest data dictionary or None
         """
         if self._dl:
             return self._dl.latest
@@ -154,7 +183,9 @@ class LoggerService:
 
     def is_running(self):
         """
-        Checks if the logger should be running based on the state file.
+        Check if the logger is currently running.
+        
+        @return: Boolean flag indicating if logger is running
         """
         state = self._read_state()
         return state is not None and state.get("status") == "running"

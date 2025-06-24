@@ -21,28 +21,59 @@ app = Flask(__name__, static_folder=str(config.STATIC_DIR))
 
 @app.get("/")
 def index():
+    """ 
+    Get the main index page of the web application.
+    
+    @return: HTML content of the index page
+    """
     return send_from_directory(app.static_folder, "index.html")
 
 @app.get("/api/latest")
 def latest():
+    """ 
+    Get the latest logged data.
+    
+    @return: JSON object with latest data or empty if no data
+    """
     data = logger_service.latest()
     return jsonify(data if data else {})
 
 @app.get("/api/status")
 def get_logger_status():
+    """ 
+    Get the current status of the logger service.
+    
+    @return: JSON object with logger status
+    """
     return jsonify(logger_service.get_status())
 
 @app.get("/api/settings")
 def get_settings():
+    """ 
+    Get the current application settings.
+    
+    @return: JSON object with all settings
+    """
     return jsonify(settings.get_all())
 
 @app.get("/api/files")
 def list_files():
+    """
+    Get a list of all logged CSV files.
+    
+    @return: JSON list of file names
+    """
     files = list_csv_files()
     return jsonify(files)
 
 @app.get("/api/files/<filename>")
 def get_file(filename):
+    """ 
+    Get the specified CSV file for download.
+    
+    @filename: Name of the file to download
+    @return: File download response
+    """
     filename = os.path.basename(filename)
     return send_from_directory(
         "../data",
@@ -53,11 +84,22 @@ def get_file(filename):
 
 @app.get("/api/analyze/<filename>")
 def analyze_file(filename):
+    """ 
+    Get the analysis results for a specified CSV file.
+    
+    @filename: Name of the file to analyze
+    @return: JSON object with analysis results
+    """
     result = analyzer_service.analyze_file(filename)
     return jsonify(result if result else {"error": "Analysis failed"})
 
 @app.get("/api/visualization-types")
 def get_visualization_types():
+    """ 
+    Get the list of available visualization types.
+    
+    @return: JSON list of visualization types with IDs and names
+    """
     viz_types = []
     for key, config in analyzer_service.VISUALIZATION_TYPES.items():
         viz_types.append({
@@ -68,16 +110,35 @@ def get_visualization_types():
 
 @app.get("/api/columns/<filename>")
 def get_columns(filename):
+    """ 
+    Get available columns for custom visualization from a file.
+    
+    @filename: Name of the file to analyze
+    @return: JSON object with filename and list of columns
+    """
     result = analyzer_service.get_columns(filename)
     return jsonify(result)
 
 @app.get("/api/visualize/<filename>/<plot_type>")
 def generate_visualization(filename, plot_type):
+    """ 
+    Get a visualization for a specified file and plot type.
+    
+    @filename: Name of the file to visualize
+    @plot_type: Type of visualization to generate
+    @return: JSON object with paths to generated plots
+    """
     result = analyzer_service.visualize_file(filename, plot_type)
     return jsonify(result)
 
 @app.get("/plots/<path:filename>")
 def serve_plot(filename):
+    """ 
+    Get a generated plot file for download.
+    
+    @filename: Name of the plot file to download
+    @return: File download response
+    """
     return send_from_directory(
         "../plots", 
         filename,
@@ -88,16 +149,31 @@ def serve_plot(filename):
 
 @app.post("/api/start")
 def start_logging():
+    """ 
+    Post request to start the data logging service.
+    
+    @return: JSON object with status of the logging service
+    """
     result = logger_service.start()
     return jsonify(result)
 
 @app.post("/api/stop")
 def stop_logging():
+    """ 
+    Post request to stop the data logging service.
+    
+    @return: JSON object with status of the logging service
+    """
     result = logger_service.stop()
     return jsonify(result)
 
 @app.post("/api/settings")
 def save_settings():
+    """ 
+    Post request to update and save application settings.
+    
+    @return: JSON object with status of the settings update
+    """
     new_settings = request.get_json()
     if not new_settings:
         return jsonify({"error": "Invalid data"}), 400
@@ -114,6 +190,12 @@ def save_settings():
 
 @app.post("/api/visualize/custom/<filename>")
 def generate_custom_visualization(filename):
+    """ 
+    Post request to generate a custom visualization for a file.
+    
+    @filename: Name of the file to visualize
+    @return: JSON object with paths to generated plotss
+    """
     data = request.get_json()
     if not data or 'columns' not in data:
         return jsonify({"error": "No columns specified"}), 400

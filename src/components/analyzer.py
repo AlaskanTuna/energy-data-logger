@@ -23,7 +23,10 @@ class DataAnalyzer:
 
     def calculate_statistics(self, filepath):
         """
-        Compute statistics for each column, organized by parameter groups.
+        Compute statistics for the given CSV file.
+        
+        @filepath: Path to the CSV file to analyze
+        @return: DataFrame with statistics or None if error
         """
         try:
             df = pd.read_csv(filepath)
@@ -58,8 +61,8 @@ class DataAnalyzer:
         """
         Interactive CLI visualization.
         
-        @df: DataFrame containing the logged data.
-        @source: Optional source filename for generating plots.
+        @df: DataFrame containing the logged data
+        @source: Optional source filename for generating plots
         """
         if df is None or len(df) < 2:
             log.warning("Not enough data for visualization.")
@@ -117,6 +120,11 @@ class DataAnalyzer:
     def _generate_plot(self, df, title, columns_to_plot, source=None):
         """
         Helper method to generate and save a plot.
+        
+        @df: DataFrame containing the logged data
+        @title: Title for the plot
+        @columns_to_plot: List of columns to include in the plot
+        @source: Optional source filename for generating plots
         """
         columns = [col for col in columns_to_plot if col in df.columns]
 

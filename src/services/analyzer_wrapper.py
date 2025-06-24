@@ -4,7 +4,6 @@ import os
 import sys
 import logging
 import pandas as pd
-import traceback
 
 from components.analyzer import DataAnalyzer
 from io import StringIO
@@ -83,6 +82,7 @@ class AnalyzerService:
         @filename: CSV file to visualize
         @plot_type: Type of visualization to generate
         @custom_columns: List of custom columns for 'custom' plot type
+        @return: Dictionary with paths to generated plots
         """
         try:
             filename = os.path.basename(filename)
@@ -132,6 +132,9 @@ class AnalyzerService:
     def get_columns(self, filename):
         """
         Get available columns from a file for custom visualization.
+        
+        @filename: CSV file to analyze
+        @return: Dictionary with filename and list of columns
         """
         try:
             filename = os.path.basename(filename)

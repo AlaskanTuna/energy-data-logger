@@ -64,7 +64,8 @@ def get_filename(file="type"):
     """
     Generate a timestamped CSV filename for data logging.
 
-    @file: Specify file type.
+    @file: Specify file type
+    @return: Timestamped filename for data or plot.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if file == "ds":
@@ -72,11 +73,12 @@ def get_filename(file="type"):
     elif file == "pl":
         return f"../plots/{timestamp}.png"
 
-def get_current_filename(file="ds"):
+def get_current_filename(file):
     """
-    Get a fresh timestamp-based filename for the current time.
+    Get the current filename
     
-    @file: Specify file type (ds=data, pl=plot).
+    @file: Specify file type
+    @return: Filename based on the type
     """
     return get_filename(file)
 
@@ -84,7 +86,8 @@ def list_csv_files(directory="../data/"):
     """
     List all CSV files in the specified directory.
     
-    @directory: Directory where the file is located.
+    @directory: Directory where the file is located
+    @return: List of CSV sorted alphabetically
     """
     try:
         if not os.path.exists(directory):
@@ -100,8 +103,8 @@ def display_csv_file(filename, directory="../data/"):
     """
     Display the content of a CSV file in the terminal.
     
-    @filename: Name of the CSV file to display.
-    @directory: Directory where the file is located.
+    @filename: Name of the CSV file
+    @directory: Directory where the file is located
     """
     try:
         filepath = os.path.join(directory, filename)
@@ -121,10 +124,10 @@ def display_csv_file(filename, directory="../data/"):
 
 def select_csv_file(purpose="action"):
     """
-    Display a list of CSV files and let the user select one.
-    Returns the selected filename or None if user cancels.
+    Display a list of CSV files and let user select one.
 
     @purpose: String describing the purpose.
+    @return: Selected CSV filename or None
     """
     print(f"\n===== Available CSV Files for {purpose.capitalize()} =====\n")
 
