@@ -1,18 +1,44 @@
 // static/app.js
 
-let modalMode = '';
-
-/**
- * @brief Main JavaScript for the Logger Dashboard
- */
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Get references to UI elements
+
+    // THEME SWITCHER
+
+    const themeSwitcher = document.querySelector('.theme-switcher');
+    const themeIcon = document.getElementById('theme-icon');
+    const sunIcon = "https://raw.githubusercontent.com/feathericons/feather/master/icons/sun.svg";
+    const moonIcon = "https://raw.githubusercontent.com/feathericons/feather/master/icons/moon.svg";
+
+    const setTheme = (isDark) => {
+        document.body.classList.toggle('dark-mode', isDark);
+        themeIcon.src = isDark ? sunIcon : moonIcon;
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    };
+
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDarkMode = savedTheme ? savedTheme === 'dark' : prefersDark;
+    setTheme(isDarkMode);
+
+    themeSwitcher.addEventListener('click', () => {
+        setTheme(!document.body.classList.contains('dark-mode'));
+    });
+
+    // APPLICATION LOGIC
+
     const loggerStatus = document.getElementById('logger-status');
     const lastUpdate = document.getElementById('last-update');
     const latestReadingsDiv = document.getElementById('latest-readings');
-    const menuItems = document.querySelectorAll('.menu-item');
-    const logButton = menuItems[0];
+    const logButton = document.getElementById('log-button');
+    const logButtonText = document.getElementById('log-button-text');
+    
+    const menuButtons = {
+        log: logButton,
+        view: document.getElementById('view-data-button'),
+        analyze: document.getElementById('analyze-data-button'),
+        visualize: document.getElementById('visualize-data-button'),
+        settings: document.getElementById('settings-button')
+    };
 
     let isLogging = false;
     let pollingInterval = null;
@@ -37,348 +63,284 @@ document.addEventListener('DOMContentLoaded', function() {
         isLogging = loggingStatus;
         if (isLogging) {
             loggerStatus.textContent = 'Active';
-            loggerStatus.style.color = 'green';
-            logButton.textContent = '1. Stop Logging';
+            loggerStatus.classList.add('active');
             logButton.classList.add('active');
+            logButtonText.textContent = 'Stop Logging';
         } else {
             loggerStatus.textContent = 'Inactive';
-            loggerStatus.style.color = '';
-            logButton.textContent = '1. Log New Data';
+            loggerStatus.classList.remove('active');
             logButton.classList.remove('active');
+            logButtonText.textContent = 'Log New Data';
         }
     }
 
+    // Event listeners for menu buttons
+    menuButtons.log.addEventListener('click', () => handleLoggerToggle());
+    menuButtons.view.addEventListener('click', () => showFileModal('view'));
+    menuButtons.analyze.addEventListener('click', () => showFileModal('analyze'));
+    menuButtons.visualize.addEventListener('click', () => showFileModal('visualize'));
+    menuButtons.settings.addEventListener('click', () => showSettingsModal());
+
+    // Modal close event listener
     document.addEventListener('click', function(event) {
-        // Handle closing any modal
-        if (event.target.classList.contains('close-modal')) {
-            const modalToClose = event.target.closest('.modal');
-            if (modalToClose) {
-                modalToClose.style.display = 'none';
-            }
-        }
-
-        // Handle clicking outside a modal to close it
-        if (event.target.classList.contains('modal')) {
-            event.target.style.display = 'none';
-        }
-
-        // Handle file item clicks specifically
-        if (event.target.closest('.file-item')) {
-            const fileItem = event.target.closest('.file-item');
-            const filename = fileItem.dataset.filename;
-            const mode = fileItem.dataset.mode;
-            
-            if (mode === 'analyze') {
-                showAnalysisOptions(filename);
-            } else if (mode === 'view') {
-                window.location.href = `/api/files/${filename}`;
-                closeFileModal();
-            } else if (mode === 'visualize') {
-                showVisualizationOptions(filename);
+        if (event.target.classList.contains('close-modal') || event.target.classList.contains('modal')) {
+            const modal = event.target.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
             }
         }
     });
-
-    menuItems.forEach((item, index) => {
-        item.addEventListener('click', function() {
-            // 1. Log New Data
-            if (index === 0) {
-                handleLoggerToggle();
-            }
-
-            // 2. View Data
-            if (index === 1) { 
-                showFileModal('view');
-            }
-
-            // 3. Analyze Data
-            if (index === 2) {
-                showFileModal('analyze');
-            }
-
-            // 4. Visualize Data
-            if (index === 3) {
-                showFileModal('visualize');
-            }
-
-            // 5. Settings
-            if (index === 4) {
-                showSettingsModal();
-            }
-        });
-    });
-
-    /**
-     * @brief Shows the file selection modal with context-specific behavior.
-     * @mode Determines which modal to show.
-     */
 
     function showFileModal(mode) {
-        modalMode = mode;
         const modal = document.getElementById('file-modal');
-        const fileList = document.getElementById('file-list');
-        const modalHeader = document.querySelector('.modal-header h2');
-        const modalBodyText = document.querySelector('.modal-body p');
+        const modalTitle = document.getElementById('file-modal-title');
+        const modalBody = document.getElementById('file-modal-body');
 
-        // Context specific modals
-        if (mode === 'analyze') {
-            modalHeader.textContent = "Analyze Data";
-            modalBodyText.textContent = "Select a file to analyze:";
-        } else if (mode === 'view') {
-            modalHeader.textContent = "View Data";
-            modalBodyText.textContent = "Select a file to view:";
-        } else if (mode === 'visualize') {
-            modalHeader.textContent = "Visualize Data";
-            modalBodyText.textContent = "Select a file to visualize:";
-        }
+        const titles = {
+            view: "View Data",
+            analyze: "Analyze Data",
+            visualize: "Visualize Data"
+        };
+        modalTitle.textContent = titles[mode];
+        modalBody.innerHTML = '<p class="loading">Loading files...</p>';
+        modal.style.display = 'flex';
 
-        // Fetch files
         fetch('/api/files')
             .then(response => response.json())
             .then(files => {
-                fileList.innerHTML = '';
                 if (files.length === 0) {
-                    fileList.innerHTML = '<p class="empty-message">No data files available.</p>';
+                    modalBody.innerHTML = '<p class="empty-message">No data files available.</p>';
                     return;
                 }
-
-                // Add each file to the list
-                files.forEach(file => {
-                    let dateStr = "N/A";
+                
+                let fileListHTML = '<div class="file-list">';
+                files.reverse().forEach(file => { // Show newest first
                     const match = file.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.csv$/);
-                    if (match) {
-                        const [_, year, month, day, hour, minute, second] = match;
-                        const date = new Date(year, month-1, day, hour, minute, second);
-                        dateStr = date.toLocaleString();
-                    }
+                    const dateStr = match ? new Date(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`).toLocaleString() : "N/A";
 
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.dataset.filename = file;
-                    fileItem.dataset.mode = mode;
-                    fileItem.innerHTML = `
-                        <div>
-                            <div>${file}</div>
-                            <div class="file-item-date">Created: ${dateStr}</div>
+                    fileListHTML += `
+                        <div class="file-item" data-filename="${file}" data-mode="${mode}">
+                            <div>
+                                <strong>${file}</strong>
+                                <div class="file-item-date">Created: ${dateStr}</div>
+                            </div>
+                            <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/chevron-right.svg" class="icon" alt="Select">
                         </div>
-                        <span class="${mode === 'analyze' ? 'analysis-icon' : 'download-icon'}">
-                            ${mode === 'analyze' ? '📊' : '📥'}
-                        </span>
                     `;
-                    
-                    fileList.appendChild(fileItem);
+                });
+                fileListHTML += '</div>';
+                modalBody.innerHTML = fileListHTML;
+
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.addEventListener('click', handleFileItemClick);
                 });
             })
             .catch(error => {
                 console.error('Error fetching files:', error);
-                fileList.innerHTML = '<p class="empty-message">Error loading files. Please try again.</p>';
+                modalBody.innerHTML = '<p class="error-message">Error loading files. Please try again.</p>';
             });
-
-        // Show modal
-        modal.style.display = 'flex';
     }
-
-    /**
-     * @brief Closes the file selection modal.
-     */
-
-    function closeFileModal() {
-        const modal = document.getElementById('file-modal');
-        modal.style.display = 'none';
-        const modalBody = document.querySelector('.modal-body');
-
-        // Reset modal structure
-        modalBody.innerHTML = `
-            <p>Select a file to ${modalMode}:</p>
-            <div id="file-list"></div>
-        `;
-
-        modalMode = '';
-        document.removeEventListener('click', handleVizOptionClick);
+    
+    function handleFileItemClick(event) {
+        const fileItem = event.currentTarget;
+        const filename = fileItem.dataset.filename;
+        const mode = fileItem.dataset.mode;
+        
+        if (mode === 'analyze') showAnalysisOptions(filename);
+        else if (mode === 'view') window.location.href = `/api/files/${filename}`;
+        else if (mode === 'visualize') showVisualizationOptions(filename);
     }
-
-    checkInitialStatus();
-
-    /**
-     * @brief Shows analysis options after selecting a file.
-     * @filename The name of the file to analyze.
-     */
 
     function showAnalysisOptions(filename) {
-        const modalBody = document.querySelector('.modal-body');
-        const modalHeader = document.querySelector('.modal-header h2');
-        
-        modalHeader.textContent = `Analyze: ${filename}`;
+        const modalBody = document.getElementById('file-modal-body');
+        document.getElementById('file-modal-title').textContent = `Analyze: ${filename}`;
         modalBody.innerHTML = '<p class="loading">Analyzing data...</p>';
-        
-        fetch(`/api/analyze/${filename}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    modalBody.innerHTML = `<p class="error-message">${data.error}</p>`;
-                    return;
-                }
 
-                // Format and display the statistics only
-                const formattedAnalysis = data.analysis_text
-                    .replace(/\n/g, '<br>')
-                    .replace(/=+/g, match => `<hr class="stats-divider">${match}<hr class="stats-divider">`);
-                
-                // Store the raw text for downloading
-                const rawStatsText = data.analysis_text;
-
-                let html = `
-                    <h3>Statistics</h3>
-                    <div class="statistics-container">
-                        <div class="statistics-output">${formattedAnalysis}</div>
-                    </div>
-                    <button id="download-stats" class="action-button">
-                        <span class="icon">📥</span> Download Statistics
-                    </button>
-                `;
-
-                modalBody.innerHTML = html;
-                
-                // Add click handler for the download button
-                document.getElementById('download-stats').addEventListener('click', () => {
-                    downloadStatistics(rawStatsText, filename);
-                });
-            })
-            .catch(error => {
-                console.error('Error loading analysis:', error);
-                modalBody.innerHTML = '<p class="error-message">Error analyzing data. Please try again.</p>';
-            });
+        fetch(`/api/analyze/${filename}`).then(response => response.json()).then(data => {
+            if (data.error) { modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; return; }
+            const formattedAnalysis = data.analysis_text.replace(/\n/g, '<br>').replace(/=+/g, '<hr>');
+            modalBody.innerHTML = `
+                <div class="statistics-container"><div class="statistics-output">${formattedAnalysis}</div></div>
+                <button id="download-stats" class="action-button"><img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/download.svg" class="icon" style="filter:invert(100%)">Download Statistics</button>`;
+            document.getElementById('download-stats').addEventListener('click', () => downloadStatistics(data.analysis_text, filename));
+        }).catch(err => modalBody.innerHTML = '<p class="error-message">Error analyzing data.</p>');
     }
-
-    /**
-     * @brief Shows visualization options for the selected file.
-     * @filename Shows visualization options for the selected file.
-     */
 
     function showVisualizationOptions(filename) {
-        const modalBody = document.querySelector('.modal-body');
-        const modalHeader = document.querySelector('.modal-header h2');
+        const modalBody = document.getElementById('file-modal-body');
+        document.getElementById('file-modal-title').textContent = `Visualize: ${filename}`;
+        modalBody.innerHTML = '<p class="loading">Loading visualization types...</p>';
 
-        modalHeader.textContent = `Visualize: ${filename}`;
+        fetch('/api/visualization-types').then(r => r.json()).then(types => {
+            if (!types || !types.length) {
+                modalBody.innerHTML = '<p class="error-message">No visualization types available.</p>';
+                return;
+            }
 
-        // Fetch visualization types
-        fetch('/api/visualization-types')
-            .then(response => response.json())
-            .then(types => {
-                if (!types || types.length === 0) {
-                    modalBody.innerHTML = '<p class="error-message">No visualization types available.</p>';
-                    return;
-                }
+            let html = '<h3>Select Visualization Type</h3><div class="viz-options">';
+            const icons = {
+                'Voltage Comparison': 'zap',
+                'Current Comparison': 'activity',
+                'Power Analysis': 'bar-chart-2',
+                'Energy Consumption': 'battery-charging',
+                'All Parameters': 'layers',
+                'Custom Selection': 'edit-3'
+            };
 
-                let html = `
-                    <h3>Select Visualization Type</h3>
-                    <div class="viz-options">`;
-
-                // Add visualization options
-                types.forEach(type => {
-                    if (type.name !== 'Custom Selection') {
-                        html += `
-                            <div class="viz-option" data-viz-type="${type.id}" data-filename="${filename}">
-                                <span class="viz-icon">📈</span>
-                                <span>${type.name}</span>
-                            </div>`;
-                    }
-                });
-
-                // Add custom option
+            types.forEach(type => {
+                const iconName = icons[type.name] || 'trending-up';
                 html += `
-                    <div class="viz-option" data-viz-type="custom" data-filename="${filename}">
-                        <span class="viz-icon">✏️</span>
-                        <span>Custom Selection</span>
-                    </div>
+                    <div class="viz-option" data-viz-type="${type.id}" data-filename="${filename}">
+                        <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/${iconName}.svg" class="icon" alt="">
+                        <span>${type.name}</span>
+                    </div>`;
+            });
+
+            // Add custom option separately to ensure it's always last
+            html += `
+                <div class="viz-option" data-viz-type="custom" data-filename="${filename}">
+                    <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/edit-3.svg" class="icon" alt="">
+                    <span>Custom Selection</span>
                 </div>`;
 
-                modalBody.innerHTML = html;
+            html += '</div>';
+            modalBody.innerHTML = html;
 
-                // Add event delegation for visualization options
-                document.addEventListener('click', handleVizOptionClick);
-            })
-            .catch(error => {
-                console.error('Error loading visualization types:', error);
-                modalBody.innerHTML = '<p class="error-message">Error loading visualization types. Please try again.</p>';
+            document.querySelectorAll('.viz-option').forEach(item => {
+                item.addEventListener('click', e => {
+                    const el = e.currentTarget;
+                    if (el.dataset.vizType === 'custom') {
+                        showCustomSelection(el.dataset.filename);
+                    } else {
+                        generateVisualization(el.dataset.filename, el.dataset.vizType);
+                    }
+                });
             });
+        }).catch(err => modalBody.innerHTML = '<p class="error-message">Error loading types.</p>');
     }
-
-    /**
-     * @brief Generates a visualization for the selected file and type.
-     * @filename The name of the file to visualize. 
-     */
 
     function showCustomSelection(filename) {
-        const modalBody = document.querySelector('.modal-body');
+        const modalBody = document.getElementById('file-modal-body');
         modalBody.innerHTML = '<p class="loading">Loading columns...</p>';
-        
-        fetch(`/api/columns/${filename}`)
+
+        fetch(`/api/columns/${filename}`).then(r => r.json()).then(data => {
+            if (data.error) { modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; return; }
+            let html = `<h3>Select Parameters</h3><div class="column-selection">`;
+            data.columns.forEach(column => {
+                html += `<label class="column-option"><input type="checkbox" name="column" value="${column}"><span>${column}</span></label>`;
+            });
+            html += `</div><div class="action-buttons">
+                <button id="generate-custom-viz" class="action-button">Generate</button>
+                <button id="back-to-viz-options" class="action-button secondary">Back</button>
+                </div>`;
+            modalBody.innerHTML = html;
+            document.getElementById('generate-custom-viz').addEventListener('click', () => {
+                const selected = Array.from(document.querySelectorAll('input[name="column"]:checked')).map(cb => cb.value);
+                if (selected.length > 0) generateVisualization(filename, 'custom', selected);
+                else alert('Please select at least one parameter.');
+            });
+            document.getElementById('back-to-viz-options').addEventListener('click', () => showVisualizationOptions(filename));
+        }).catch(err => modalBody.innerHTML = '<p class="error-message">Error loading columns.</p>');
+    }
+    
+    function generateVisualization(filename, vizType, columns = null) {
+        const modalBody = document.getElementById('file-modal-body');
+        modalBody.innerHTML = '<div class="loading">Generating visualization...</div>';
+
+        const fetchPromise = vizType === 'custom' && columns
+            ? fetch(`/api/visualize/custom/${filename}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({columns}) })
+            : fetch(`/api/visualize/${filename}/${vizType}`);
+            
+        fetchPromise.then(r => r.json()).then(data => {
+            if (data.error) { modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; return; }
+            modalBody.innerHTML = `
+                <h3>Visualization Generated</h3>
+                <p>Download the generated plot images:</p>
+                <div class="download-options">
+                    <a href="${data.regular_plot}" class="action-button" download style="text-decoration: none;">Download Standard Plot</a>
+                    <a href="${data.normalized_plot}" class="action-button" download style="text-decoration: none;">Download Normalized Plot</a>
+                </div>
+                <button id="back-to-viz-options" class="action-button secondary" style="margin-top: 1rem;">Back</button>`;
+            document.getElementById('back-to-viz-options').addEventListener('click', () => showVisualizationOptions(filename));
+        }).catch(err => modalBody.innerHTML = '<p class="error-message">Error generating visualization.</p>');
+    }
+
+    function handleLoggerToggle() {
+        const action = isLogging ? '/api/stop' : '/api/start';
+
+        // Disable the button to prevent double-clicks
+        logButton.disabled = true;
+
+        fetch(action, { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    modalBody.innerHTML = `<p class="error-message">${data.error}</p>`;
-                    return;
+                const isNowLogging = data.status === 'started' || data.status === 'already_running';
+                updateLoggerUI(isNowLogging);
+                
+                if (isNowLogging) {
+                    startDataPolling();
+                } else {
+                    stopDataPolling();
+                    const readingsDiv = document.getElementById('latest-readings');
+                    readingsDiv.innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
+                    lastUpdate.textContent = 'Never';
                 }
-                
-                const columns = data.columns;
-                if (!columns || columns.length === 0) {
-                    modalBody.innerHTML = '<p class="error-message">No columns available for visualization.</p>';
-                    return;
+
+                if (data.status === 'error') {
+                    alert('An error occurred: ' + (data.message || 'Unknown error'));
                 }
-                
-                let html = `
-                    <h3>Select Parameters for Custom Visualization</h3>
-                    <p>Choose at least one parameter to include in your visualization:</p>
-                    <div class="column-selection">`;
-                
-                columns.forEach(column => {
-                    html += `
-                        <label class="column-option">
-                            <input type="checkbox" name="column" value="${column}">
-                            <span>${column}</span>
-                        </label>`;
-                });
-                
-                html += `</div>
-                    <div class="action-buttons">
-                        <button id="generate-custom-viz" class="action-button" data-filename="${filename}">
-                            <span class="icon">📊</span> Generate Visualization
-                        </button>
-                        <button id="back-to-viz-options" class="action-button secondary" data-filename="${filename}">
-                            <span class="icon">↩️</span> Back
-                        </button>
-                    </div>`;
-                
-                modalBody.innerHTML = html;
-                
-                // Add handlers
-                document.getElementById('generate-custom-viz').addEventListener('click', function() {
-                    const selectedColumns = Array.from(
-                        document.querySelectorAll('input[name="column"]:checked')
-                    ).map(input => input.value);
-                    
-                    if (selectedColumns.length === 0) {
-                        alert('Please select at least one parameter');
-                        return;
-                    }
-                    
-                    generateVisualization(filename, 'custom', selectedColumns);
-                });
-                
-                document.getElementById('back-to-viz-options').addEventListener('click', function() {
-                    showVisualizationOptions(filename);
-                });
             })
-            .catch(error => {
-                console.error('Error loading columns:', error);
-                modalBody.innerHTML = '<p class="error-message">Error loading columns. Please try again.</p>';
+            .catch(error => { 
+                console.error('Error toggling logger:', error); 
+                alert('Failed to communicate with the server.'); 
+            })
+            .finally(() => {
+                logButton.disabled = false;
             });
     }
 
-    /**
-     * @brief Shows the settings modal for configuring logger settings.
-     */
+    function startDataPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(fetchLatestData, 3000);
+        fetchLatestData();
+    }
+
+    function stopDataPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+
+    function fetchLatestData() {
+        fetch('/api/latest').then(r => r.json()).then(data => {
+            const readingsDiv = document.getElementById('latest-readings');
+            const lastUpdateSpan = document.getElementById('last-update');
+
+            if (data && data.ts) {
+                lastUpdateSpan.textContent = new Date().toLocaleTimeString();
+                let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
+
+                const order = ['voltage', 'current', 'power', 'energy'];
+                const sortedKeys = Object.keys(data).sort((a, b) => {
+                    if(a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
+                    const aIndex = order.findIndex(p => a.includes(p));
+                    const bIndex = order.findIndex(p => b.includes(p));
+                    if(aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                    return a.localeCompare(b);
+                });
+
+                for (const key of sortedKeys) {
+                    if(key === 'ts') continue;
+                    const value = data[key];
+                    const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)}</td></tr>`;
+                }
+                html += '</tbody></table>';
+                readingsDiv.innerHTML = html;
+            }
+        }).catch(err => console.error('Error fetching data:', err));
+    }
 
     function showSettingsModal() {
         const modal = document.getElementById('settings-modal');
@@ -453,69 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    /**
-     * @brief Closes the settings modal.
-     */
-
-    function closeSettingsModal() {
-        const modal = document.getElementById('settings-modal');
-        modal.style.display = 'none';
-    }
-
-    /**
-     * @brief Handles the logger toggle button click.
-     */
-    function handleLoggerToggle() {
-        const action = isLogging ? '/api/stop' : '/api/start';
-        fetch(action, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                const isNowLogging = data.status === 'started' || data.status === 'already_running';
-                updateLoggerUI(isNowLogging);
-                
-                if (isNowLogging) {
-                    startDataPolling();
-                } else {
-                    stopDataPolling();
-                    latestReadingsDiv.innerHTML = '<h3>Latest Readings</h3><p>No data available. Start logging to see real-time measurements.</p>';
-                }
-
-                if (data.status === 'error') {
-                    alert('An error occurred: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error toggling logger:', error);
-                alert('Failed to communicate with the server.');
-            });
-    }
-
-    /**
-     * @brief Handles clicks on visualization options.
-     * @event The click event that triggered this function. 
-     */
-
-    function handleVizOptionClick(event) {
-        const vizOption = event.target.closest('.viz-option');
-        if (!vizOption) return;
-
-        document.removeEventListener('click', handleVizOptionClick);
-        
-        const vizType = vizOption.dataset.vizType;
-        const filename = vizOption.dataset.filename;
-        
-        if (vizType === 'custom') {
-            showCustomSelection(filename);
-        } else {
-            generateVisualization(filename, vizType);
-        }
-    }
-
-    /**
-     * @brief Handles saving settings from the settings modal.
-     * @event The click event that triggered this function. 
-     */
-
     function handleSaveSettings(event) {
         event.preventDefault();
         const form = event.target;
@@ -541,12 +440,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('New settings applied successfully. Please start a new session to use the settings.');
-                closeSettingsModal();
-                checkInitialStatus();
-                latestReadingsDiv.innerHTML = '<h3>Latest Readings</h3><p>No data available. Start logging to see real-time measurements.</p>';
+                alert('Settings saved. If a session was active, it has been stopped. Please start a new session for changes to take effect.');
+                document.getElementById('settings-modal').style.display = 'none';
+                // Re-check the main status since stopping the logger is a side effect
+                checkInitialStatus(); 
             } else {
-                alert('Error: ' + data.error);
+                alert('Error saving settings: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => alert('Failed to save settings.'))
@@ -556,150 +455,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    /**
-     * @brief Starts polling for the latest data from the server.
-     */
-
-    function startDataPolling() {
-        stopDataPolling();
-        pollingInterval = setInterval(fetchLatestData, 3000);
-        fetchLatestData();
-    }
-
-    /**
-     * @brief Stops the data polling interval.
-     */
-
-    function stopDataPolling() {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
-        }
-    }
-
-    /**
-     * @brief Fetches the latest data from the server and updates the UI.
-     */
-
-    function fetchLatestData() {
-        fetch('/api/latest')
-            .then(response => response.json())
-            .then(data => {
-                if (data && Object.keys(data).length > 0) {
-                    // Update last updated timestamp
-                    lastUpdate.textContent = new Date().toLocaleTimeString();
-
-                    // Build HTML table for concurrent readings
-                    let html = '<h3>Latest Readings</h3>';
-                    html += '<table class="readings-table">';
-                    html += '<thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
-
-                    // Format each reading
-                    for (const [key, value] of Object.entries(data)) {
-                        let displayValue = typeof value === 'number' ? 
-                            value.toFixed(3) : value;
-                        
-                        // Use the timestamp from the data if available
-                        if (key === 'ts') {
-                            displayValue = new Date(value).toLocaleString();
-                        }
-
-                        html += `<tr>
-                            <td>${key}</td>
-                            <td>${displayValue}</td>
-                        </tr>`;
-                    }
-
-                    html += '</tbody></table>';
-                    latestReadingsDiv.innerHTML = html;
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
-    }
-
-    /**
-     * @brief Downloads statistics as a text file.
-     * @text The statistics text to download.
-     * @filename The original CSV filename.
-     */
-
     function downloadStatistics(text, filename) {
         const statsFilename = filename.replace('.csv', '_statistics.txt');
         const blob = new Blob([text], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-
-        downloadLink.href = url;
-        downloadLink.download = statsFilename;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-
-        // Cleanup download link
-        setTimeout(() => {
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(url);
-        }, 100);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = statsFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
+    
+    // INITIAL CHECK
 
-    /**
-     * @brief Generates a visualization for the selected file and type.
-     * @filename The name of the file to visualize.
-     * @vizType The type of visualization to generate.
-     * @columns Optional array of columns for custom visualization.
-     */
-
-    function generateVisualization(filename, vizType, columns = null) {
-        const modalBody = document.querySelector('.modal-body');
-        modalBody.innerHTML = '<div class="loading">Generating visualization...</div>';
-
-        let fetchPromise;
-
-        if (vizType === 'custom' && columns) {
-            fetchPromise = fetch(`/api/visualize/custom/${filename}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ columns: columns })
-            });
-        } else {
-            fetchPromise = fetch(`/api/visualize/${filename}/${vizType}`);
-        }
-
-        // Process the response for both types
-        fetchPromise
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    modalBody.innerHTML = `<p class="error-message">${data.error}</p>`;
-                    return;
-                }
-
-                const title = vizType === 'custom' ? 'Custom' : '';
-                modalBody.innerHTML = `
-                    <h3>${title} Visualization Generated</h3>
-                    <p>Your visualization has been generated successfully. Download the plots:</p>
-                    <div class="download-options">
-                        <a href="${data.regular_plot}" class="action-button" download>
-                            <span class="icon">📥</span> Download Standard Plot
-                        </a>
-                        <a href="${data.normalized_plot}" class="action-button" download>
-                            <span class="icon">📥</span> Download Normalized Plot
-                        </a>
-                    </div>
-                    <button id="back-to-viz-options" class="action-button secondary spaced" data-filename="${filename}">
-                        <span class="icon">↩️</span> Back to Visualization Options
-                    </button>`;
-
-                document.getElementById('back-to-viz-options').addEventListener('click', function() {
-                    showVisualizationOptions(filename);
-                });
-            })
-            .catch(error => {
-                console.error('Error generating visualization:', error);
-                modalBody.innerHTML = '<p class="error-message">Error generating visualization. Please try again.</p>';
-            });
-    }
+    checkInitialStatus();
 });

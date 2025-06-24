@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from components.util import list_csv_files
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
+from services.analyzer_wrapper import VISUALIZATION_TYPES
 from services.settings import settings
 from config import config
 
@@ -101,7 +102,7 @@ def get_visualization_types():
     @return: JSON list of visualization types with IDs and names
     """
     viz_types = []
-    for key, config in analyzer_service.VISUALIZATION_TYPES.items():
+    for key, config in VISUALIZATION_TYPES.items():
         viz_types.append({
             "id": key,
             "name": config['name'],

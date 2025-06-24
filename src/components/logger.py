@@ -38,7 +38,10 @@ class DataLogger:
 
         self.reader = None
 
-        # Test if Modbus is actually available
+        # NOTE: Since the serial port on Pi is enabled, the Modbus port (/dev/serial0) is always available.
+        #       Modbus could appear available even without a connection to the meter.
+        #       To truly ensure Modbus availability, we attempt to test polling the meter.
+
         try:
             self.reader = MeterReader(use_modbus_flag=config.USE_MODBUS)
             test_readings = self.reader.get_meter_readings()

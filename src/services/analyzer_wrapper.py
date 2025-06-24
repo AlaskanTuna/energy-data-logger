@@ -100,8 +100,8 @@ class AnalyzerService:
             if plot_type == "custom" and custom_columns:
                 title = "Custom Selection"
                 columns_to_plot = [col for col in custom_columns if col in available_cols]
-            elif plot_type in self.VISUALIZATION_TYPES:
-                viz_config = self.VISUALIZATION_TYPES[plot_type]
+            elif plot_type in VISUALIZATION_TYPES:
+                viz_config = VISUALIZATION_TYPES[plot_type]
                 title = viz_config['name']
                 
                 if 'filter' in viz_config:
