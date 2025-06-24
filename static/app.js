@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startDataPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(fetchLatestData, 3000);
+        pollingInterval = setInterval(fetchLatestData, 5000); // Poll every 5 seconds
         fetchLatestData();
     }
 
