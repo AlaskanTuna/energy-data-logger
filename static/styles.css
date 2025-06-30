@@ -50,13 +50,14 @@ body {
 .container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 0 1.5rem 2rem 1.5rem;
+    padding: 0 1rem;
 }
 
 main {
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    padding: 2rem 0;
 }
 
 h1 {
@@ -74,15 +75,9 @@ h2 {
 
 header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    justify-content: center;
+    padding: 1.5rem 1rem;
     border-bottom: 1px solid var(--border-color);
-    padding-top: 1.5rem;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-    margin: 0 -1.5rem 2rem -1.5rem;
     background: linear-gradient(180deg, var(--panel-bg) 0%, var(--bg-color) 100%);
 }
 
@@ -93,8 +88,10 @@ header h1 {
 
 footer {
     margin-top: 2rem;
+    padding: 1.5rem 1rem;
     text-align: center;
     color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
 }
 
 /* ----- LIGHT/DARK THEME SWITCHER ----- */
@@ -107,12 +104,15 @@ footer {
     align-items: center;
     justify-content: center;
 }
+
 .theme-switcher:hover {
     background-color: rgba(0,0,0,0.05);
 }
+
 body.dark-mode .theme-switcher:hover {
-     background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255,255,255,0.1);
 }
+
 #theme-icon {
     width: 24px;
     height: 24px;
