@@ -1,4 +1,4 @@
-# Energy Data Logger - User Manual
+# User Manual: Info & Operating Instructions
 
 ## Table of Contents
 1. [Introduction](#section-1-introduction)
