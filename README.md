@@ -1,8 +1,36 @@
+# Setting Up Raspberry Pi for Energy Data Logger
+
+![Energy Data Logger Raspberry Pi Setup.](resources/rpi_clean_20250630.jpg)
+![Energy Data Logger dashboard in two distinct themes.](resources/themes_20250630.png)
+*Dashboard UI may subject to change in future updates*
+
+## Flashing OS to the Raspberry Pi
+
+1. Insert the MicroSD card into your laptop and launch the [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
+
+2. Select Raspberry Pi 4 for the model and Raspberry Pi OS Lite, which can be found by going to Choose OS -> Raspberry Pi OS (Other) -> Raspberry Pi OS Lite (64-bit) and select the microSD card's model for Storage.
+
+![RPi Imager.](resources/rpi_imager_20250630.png)
+
+3. Select Next -> Edit Settings and configure the settings as shown below.
+> **Note:** Enter your desired hostname, then create your root username and password. Wi-Fi is your personal hotspot's SSID and password.
+
+![RPi Imager Settiings.](resources/rpi_imager_settings_20250630.png)
+
+4. Enable SSH with password authentication.
+
+![RPi SSH.](resources/rpi_ssh_20250630.png)
+
+5. Apply the changes and allow the program to write to the SD card. Once complete, insert the SD card into its designated slot under the Pi and boot it up with the micro-USB adapter. Give it a few minutes to setup.
+
+*This documentation part is referenced from **[xyberii4](https://github.com/xyberii4)**.*
+
 ## Connecting to the Raspberry Pi via SSH
 
 ### Network Setup
 
 1. Boot Raspberry Pi up, wait about a minute for WiFi to activate
+
 2. Connect to the Pi’s configured WLAN
 
 ### Finding the Pi’s IP Address (Windows)
@@ -25,10 +53,11 @@
 
 ### Establishing SSH Connection
 
-* **Option 1**: Use PuTTY (GUI)
-* **Option 2**: Any UNIX Shell
+1. **Option 1**: Use [PuTTY](https://www.putty.org) (GUI)
 
-* **Command:**
+2. **Option 2**: Any UNIX Shell (e.g. WSL)
+
+3. **Command:**
   ```
   ssh <username>@<ip-address>
   ```
@@ -127,7 +156,7 @@
 
 ---
 
-## Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
+## OPTIONAL: Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
 
    ```bash
    curl --silent --location -O \
@@ -148,7 +177,7 @@
 
 ---
 
-## Installing Grafana OSS (Ubuntu & Debian) on the Pi
+## OPTIONAL: Installing Grafana OSS (Ubuntu & Debian) on the Pi
 
    ```bash
    sudo apt-get install -y apt-transport-https software-properties-common wget
@@ -193,8 +222,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 3. LAN device that supports ethernet
 
 ### Setting Up Pi as the LAN Server
-
-*Note: For RPi Debian Bookworm OS, the default network stack is NetworkManager, which network profiles are stored under `/etc/NetworkManager/system-connections/` and ignores `dhcpcd.conf`*
+>**Note:** For RPi Debian Bookworm OS, the default network stack is NetworkManager, which network profiles are stored under `/etc/NetworkManager/system-connections/` and ignores `dhcpcd.conf`
 
 1. Create a connection profile for the eth0 network interface:
 
@@ -247,8 +275,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 6. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it automatically.
 
 ### Setting Up Systemd for eth0 Interface
-
-*For some reason, the eth0 static IP won't be up unless there is a carrier or is manually configured. Therefore, we create a temporary solution for this.*
+>**Note:** For some reason, the eth0 static IP won't be up unless there is a carrier or is manually configured. Therefore, we create a temporary solution for this.
 
 1. Create the systemd unit file:
 

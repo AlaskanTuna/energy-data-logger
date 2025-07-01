@@ -139,23 +139,23 @@ To change these, press the **“Settings”** button. Modifying settings will au
 ### 5.1 Common Issues and Questions
 
 **Q: Why is the logger web page loading so slow or not at all?**
-If your controller device has Wi-Fi or Mobile Data enabled, they can interfere with the direct Ethernet connection. Turn them off and then refresh the web page. If it still doesn't load, ensure the logger device is powered on and the Ethernet cable is securely connected at both ends.
+*If your controller device has Wi-Fi or Mobile Data enabled, they can interfere with the direct Ethernet connection. Turn them off and then refresh the web page. If it still doesn't load, ensure the logger device is powered on and the Ethernet cable is securely connected at both ends.*
 
 **Q: When I press “Log New Data”, nothing happens. For example, the "Latest Readings" panel does not update.**
-This is typically a Modbus communication issue. Check the following factors:
+*This is typically a Modbus communication issue. Check the following factors:
 1.  The RS-485 wiring is securely connected and not faulty.
 2.  The logger's settings (Slave ID, Baud Rate, etc.) in the web UI exactly match the energy meter's configuration.
 3.  The energy meter itself is powered on and its Modbus communication is active.
-4.  The logging interval may be set to a long duration (default is 15 minutes), so you may need to wait for the first reading.
+4.  The logging interval may be set to a long duration (default is 15 minutes), so you may need to wait for the first reading.*
 
 **Q: I disconnected my controller device from the logger after I pressed “Log New Data”. Will it continue to log data?**
-Yes. The Energy Data Logger is designed to run as a standalone service on the Raspberry Pi. Once a session is started, it will continue logging in the background, regardless of whether a controller device is connected. The session only stops when the “Stop Logging” button is pressed.
+*Yes. The Energy Data Logger is designed to run as a standalone service on the Raspberry Pi. Once a session is started, it will continue logging in the background, regardless of whether a controller device is connected. The session only stops when the “Stop Logging” button is pressed.*
 
 **Q: My logger lost power or the RS-485 cable was disconnected during a session. What happens to the data?**
-The logger is designed to be resilient. If the power fails, the application will attempt to resume the previous logging session and append data to the same file upon restart. If the RS-485 cable is disconnected, the logger will repeatedly try to re-establish a connection. If it succeeds, logging will resume. If it fails after multiple retries, the session will terminate to prevent corrupted files.
+*The logger is designed to be resilient. If the power fails, the application will attempt to resume the previous logging session and append data to the same file upon restart. If the RS-485 cable is disconnected, the logger will repeatedly try to re-establish a connection. If it succeeds, logging will resume. If it fails after multiple retries, the session will terminate to prevent corrupted files.*
 
 **Q: When I press "View Data", "Analyze Data", or "Visualize Data", no files are shown.**
-This means no complete logging sessions have been saved yet. Ensure you have successfully started and stopped at least one session. If you are certain a session was completed, try refreshing the web page, as a hardware lag can sometimes delay the file list from appearing.
+*This means no complete logging sessions have been saved yet. Ensure you have successfully started and stopped at least one session. If you are certain a session was completed, try refreshing the web page, as a hardware lag can sometimes delay the file list from appearing.*
 
 **Q: There are multiple log files. How do I know which one I just created?**
-The log files are named using a `YYYYMMDD_HHMMSS.csv` format, which corresponds to the exact date and time the **“Log New Data”** button was pressed. For example, a session started on June 30th, 2025, at 12:00 PM will be named `20250630_120000.csv`.
+*The log files are named using a `YYYYMMDD_HHMMSS.csv` format, which corresponds to the exact date and time the **“Log New Data”** button was pressed. For example, a session started on June 30th, 2025, at 12:00 PM will be named `20250630_120000.csv`.*
