@@ -1,30 +1,24 @@
 # User Manual: Info & Operating Instructions
 
 ## Table of Contents
-1. [Introduction](#section-1-introduction)
-2. [Getting Started](#section-2-getting-started)
-   - [2.1 Component Checklist](#21-component-checklist)
-   - [2.2 Physical Hardware Connection](#22-physical-hardware-connection)
-3. [Standard Operating Procedures](#section-3-standard-operating-procedures)
-   - [3.1 Accessing the Web Dashboard](#31-accessing-the-web-dashboard)
-   - [3.2 Initiating a Data Logging Session](#32-initiating-a-data-logging-session-on-site-arrival)
-   - [3.3 Concluding a Data Logging Session](#33-concluding-a-data-logging-session-on-site-departure)
-4. [Advanced Features](#section-4-advanced-features)
-   - [4.1 Viewing and Analyzing Data](#41-viewing-and-analyzing-data)
-   - [4.2 Changing Settings](#42-changing-settings)
-5. [Troubleshooting](#section-5-troubleshooting)
-   - [5.1 Common Issues and Questions](#51-common-issues-and-questions)
+1. [Getting Started](#section-1-getting-started)
+   - [1.1 Component Checklist](#11-component-checklist)
+   - [1.2 Physical Hardware Connection](#12-physical-hardware-connection)
+2. [Standard Operating Procedures](#section-2-standard-operating-procedures)
+   - [2.1 Accessing the Web Dashboard](#21-accessing-the-web-dashboard)
+   - [2.2 Initiating a Data Logging Session](#22-initiating-a-data-logging-session-on-site-arrival)
+   - [2.3 Concluding a Data Logging Session](#23-concluding-a-data-logging-session-on-site-departure)
+3. [Advanced Features](#section-3-advanced-features)
+   - [3.1 Viewing and Analyzing Data](#31-viewing-and-analyzing-data)
+   - [3.2 Changing Settings](#32-changing-settings)
+4. [Troubleshooting](#section-4-troubleshooting)
+   - [4.1 Common Issues and Questions](#41-common-issues-and-questions)
 
 ---
 
-## Section 1: Introduction
-Welcome to the Energy Data Logger User Manual. This guide provides step-by-step instructions for setting up, operating, and troubleshooting the Energy Data Logger device.
+## Section 1: Getting Started
 
----
-
-## Section 2: Getting Started
-
-### 2.1 Component Checklist
+### 1.1 Component Checklist
 The Energy Data Logger kit consists of the following components:
 
 *   **Raspberry Pi 4B (Flashed):** The core of the logger. Ensure the MicroSD card has been flashed with the logger application.
@@ -43,9 +37,9 @@ The Energy Data Logger kit consists of the following components:
 
 > **Note:** The controller device must support a direct Ethernet connection. This includes Android phones that support "Ethernet Tethering" or any laptop computer with an Ethernet (RJ45) port. iPhones and other devices that do not support direct Ethernet are not compatible.
 
-### 2.2 Physical Hardware Connection
+### 1.2 Physical Hardware Connection
 
-#### 2.2.1 Connecting the Logger to the Power Meter
+#### 1.2.1 Connecting the Logger to the Power Meter
 1.  Ensure the energy meter (e.g., WAGO 879-series) is operating and functioning.
 2.  Connect the RS-485 cable’s wires from the logger's CAN HAT to the meter’s Modbus terminals as referenced in Figure 2.2.1.1.
 
@@ -77,9 +71,9 @@ The Energy Data Logger kit consists of the following components:
 
 ---
 
-## Section 3: Standard Operating Procedures
+## Section 2: Standard Operating Procedures
 
-### 3.1 Accessing the Web Dashboard
+### 2.1 Accessing the Web Dashboard
 After connecting your controller device to the logger, perform the following steps:
 
 1.  Open any web browser on your controller device (e.g., Chrome, Firefox, Safari).
@@ -112,15 +106,15 @@ To conclude the energy data logging session:
 
 ---
 
-## Section 4: Advanced Features
+## Section 3: Advanced Features
 
-### 4.1 Viewing and Analyzing Data
+### 3.1 Viewing and Analyzing Data
 The web dashboard provides several tools for working with your data:
 - **View Data:** Lists all logged CSV files and allows you to download them.
 - **Analyze Data:** Select a file to view a full statistical summary (min, max, mean, etc.) for all recorded parameters.
 - **Visualize Data:** Select a file to generate plots of the data over time. You can choose from pre-defined categories or create a custom plot by selecting specific parameters.
 
-### 4.2 Changing Settings
+### 3.2 Changing Settings
 The logger's default settings are:
 - `LOG_INTERVAL`: 900 (15 minutes)
 - `MODBUS_SLAVE_ID`: 1
@@ -134,9 +128,9 @@ To change these, press the **“Settings”** button. Modifying settings will au
 
 ---
 
-## Section 5: Troubleshooting
+## Section 4: Troubleshooting
 
-### 5.1 Common Issues and Questions
+### 4.1 Common Issues and Questions
 
 **Q: Why is the logger web page loading so slow or not at all?**
 *If your controller device has Wi-Fi or Mobile Data enabled, they can interfere with the direct Ethernet connection. Turn them off and then refresh the web page. If it still doesn't load, ensure the logger device is powered on and the Ethernet cable is securely connected at both ends.*
@@ -159,3 +153,6 @@ To change these, press the **“Settings”** button. Modifying settings will au
 
 **Q: There are multiple log files. How do I know which one I just created?**
 *The log files are named using a `YYYYMMDD_HHMMSS.csv` format, which corresponds to the exact date and time the **“Log New Data”** button was pressed. For example, a session started on June 30th, 2025, at 12:00 PM will be named `20250630_120000.csv`.*
+
+**Q: I set the wrong settings for the meter, would the logger still log?**  
+*No, the logger would not start logging and would prompt a “Failed to communicate with the server” error. In order to continue logging, set the correct parameters in the “Settings” option, then refresh once more before starting logging the data.*

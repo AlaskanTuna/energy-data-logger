@@ -301,8 +301,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startDataPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(fetchLatestData, 5000); // Poll every 5 seconds
-        fetchLatestData();
+
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(settings => {
+                const logIntervalSeconds = settings.LOG_INTERVAL || 900;
+                const pollingIntervalMS = logIntervalSeconds * 1000;
+                console.log(`Setting UI polling interval to: ${logIntervalSeconds} seconds.`);
+                pollingInterval = setInterval(fetchLatestData, pollingIntervalMS);
+
+                fetchLatestData();
+            })
+            .catch(error => {
+                console.error("Could not fetch settings to start polling.", error);
+                pollingInterval = setInterval(fetchLatestData, 900000);
+                fetchLatestData();
+            });
     }
 
     function stopDataPolling() {
@@ -321,7 +335,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastUpdateSpan.textContent = new Date().toLocaleTimeString();
                 let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
 
-                const order = ['voltage', 'current', 'power', 'energy'];
+                const units = {
+                    voltage: 'V',
+                    current: 'A',
+                    power: 'W',
+                    energy: 'kWh',
+                };
+                const order = [
+                    'voltage', 
+                    'current', 
+                    'power', 
+                    'energy',
+                ];
                 const sortedKeys = Object.keys(data).sort((a, b) => {
                     if(a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
                     const aIndex = order.findIndex(p => a.includes(p));
@@ -334,7 +359,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(key === 'ts') continue;
                     const value = data[key];
                     const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)}</td></tr>`;
+
+                    // Determine the unit for the parameter
+                    let unit = '';
+                    for (const paramType in units) {
+                        if (key.includes(paramType)) {
+                            unit = units[paramType];
+                            break;
+                        }
+                    }
+
+                    html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)} ${unit}</td></tr>`;
                 }
                 html += '</tbody></table>';
                 readingsDiv.innerHTML = html;
@@ -442,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.status === 'success') {
                 alert('Settings saved. If a session was active, it has been stopped. Please start a new session for changes to take effect.');
                 document.getElementById('settings-modal').style.display = 'none';
-                // Re-check the main status since stopping the logger is a side effect
+
                 checkInitialStatus(); 
             } else {
                 alert('Error saving settings: ' + (data.error || 'Unknown error'));
