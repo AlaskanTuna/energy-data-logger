@@ -1,24 +1,21 @@
-# Setting Up Raspberry Pi for Energy Data Logger
+# Setting Up Raspberry Pi for Energy Data Logger (Offline + Modbus RTU)
 
 ![Energy Data Logger Raspberry Pi Setup.](resources/rpi_clean_20250630.jpg)
 ![Energy Data Logger dashboard in two distinct themes.](resources/themes_20250630.png)
-*Dashboard UI may subject to change in future updates*
+*Setup and dashboard UI may subject to change in future updates*
 
 ## Flashing OS to the Raspberry Pi
 
 1. Insert the MicroSD card into your laptop and launch the [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
 
 2. Select Raspberry Pi 4 for the model and Raspberry Pi OS Lite, which can be found by going to Choose OS -> Raspberry Pi OS (Other) -> Raspberry Pi OS Lite (64-bit) and select the microSD card's model for Storage.
-
 ![RPi Imager.](resources/rpi_imager_20250630.png)
 
 3. Select Next -> Edit Settings and configure the settings as shown below.
-> **Note:** Enter your desired hostname, then create your root username and password. Wi-Fi is your personal hotspot's SSID and password.
-
+   > **Note:** Enter your desired hostname, then create your root username and password. Wi-Fi is your personal hotspot's SSID and password.
 ![RPi Imager Settiings.](resources/rpi_imager_settings_20250630.png)
 
 4. Enable SSH with password authentication.
-
 ![RPi SSH.](resources/rpi_ssh_20250630.png)
 
 5. Apply the changes and allow the program to write to the SD card. Once complete, insert the SD card into its designated slot under the Pi and boot it up with the micro-USB adapter. Give it a few minutes to setup.
@@ -89,15 +86,16 @@
    ```
 
    * Using your arrow keys, choose **System Options → Boot/Auto Login → Console/AutoLogin**.
-   * Next choose **Interface Options → Serial Port → No → Yes**.
-   * Finally, choose **Interface Options → RPi Connect → Yes**. Follow any on‐screen instructions.
+   * Choose **Interface Options → I2C → Yes**.
+   * Choose **Interface Options → Serial Port → No → Yes**.
+   * Choose **Interface Options → RPi Connect → Yes**. Follow any on‐screen instructions.
    * Choose **Finish → Yes** to reboot.
    * Once rebooted, reconnect to the Pi and update the system again:
 
-     ```bash
-     sudo apt-get update
-     sudo apt-get upgrade
-     ```
+   ```bash
+   sudo apt-get update
+   sudo apt-get upgrade
+   ```
 
 ---
 
@@ -128,6 +126,7 @@
    ```bash
    cd src/
    ```
+   > **Note:** Check the parameters `USE_MODBUS` and `DEVELOPER_MODE` in config.py before running either scripts. For development purposes, set `USE_MODBUS` to False and `DEVELOPER_MODE` to True, this will allow access to main.py's CLI implementation and mock data generation; for actual logging purposes, set `USE_MODBUS` to True and `DEVELOPER_MODE` to False, this will allow reading directly from the Modbus RTU protocol.
 
 ---
 
@@ -156,48 +155,6 @@
 
 ---
 
-## OPTIONAL: Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
-
-   ```bash
-   curl --silent --location -O \
-   https://repos.influxdata.com/influxdata-archive.key
-   echo "943666881a1b8d9b849b74caebf02d3465d6beb716510d86a39f6c8e8dac7515  influxdata-archive.key" \
-   | sha256sum --check - && cat influxdata-archive.key \
-   | gpg --dearmor \
-   | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive.gpg > /dev/null \
-   && echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main' \
-   | sudo tee /etc/apt/sources.list.d/influxdata.list
-
-   sudo apt-get update && sudo apt-get install influxdb2
-
-   # Followed by:
-   sudo service influxdb start
-   sudo service influxdb status --no-pager -l
-   ```
-
----
-
-## OPTIONAL: Installing Grafana OSS (Ubuntu & Debian) on the Pi
-
-   ```bash
-   sudo apt-get install -y apt-transport-https software-properties-common wget
-   sudo mkdir -p /etc/apt/keyrings/
-   wget -q -O - https://apt.grafana.com/gpg.key \
-   | gpg --dearmor \
-   | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
-   echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
-   | sudo tee -a /etc/apt/sources.list.d/grafana.list
-   sudo apt-get update && sudo apt-get install grafana
-
-   # Followed by:
-   sudo systemctl daemon-reload
-   sudo systemctl enable grafana-server
-   sudo systemctl start grafana-server
-   sudo systemctl status grafana-server --no-pager -l
-   ```
-
----
-
 ## Environment Variables for InfluxDB/Grafana (Optional)
 
 If you wish to enable InfluxDB/Grafana logging instead of CSV-only, create a `.env` file at the project root with:
@@ -213,16 +170,57 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
 ---
 
-## OTG Usage: Pi and LAN Connected Devices
+## Real Time Clock
 
-### Hardware Requirements
+1. Have the RTC module (DS-3231) wired accordingly to the Pi.
+   > **Note:** Make sure to have I2C interface enabled in `raspi-config` already.
 
-1. RJ45-to-USB Type-C adapter
-2. RJ45 LAN cable
-3. LAN device that supports ethernet
+2. Install the I2C helper tools:
 
-### Setting Up Pi as the LAN Server
->**Note:** For RPi Debian Bookworm OS, the default network stack is NetworkManager, which network profiles are stored under `/etc/NetworkManager/system-connections/` and ignores `dhcpcd.conf`
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y i2c-tools
+   ```
+
+3. Detect the device to confirm the wiring. The output should show `68`/`UU` at address 68:
+
+   ```bash
+   sudo i2cdetect -y 1
+   ```
+
+4. Enable RTC driver by editing the boot config file:
+
+   ```bash
+   sudo nano /boot/firmware/config.txt
+   
+   # Followed by adding this line under the `[all]` section:
+   dtoverlay=i2c-rtc,ds3231
+   ```
+
+5. Save the config file and reboot the Pi:
+
+   ```bash
+   sudo reboot
+   ```
+
+6. After rebooting, the RTC is active and needs to be set to the correct time once. Ensure that **Internet connection** is available on the Pi to synchronize system time.
+
+7. Write the Pi's correct system time to the RTC module for storage:
+
+   ```bash
+   sudo hwclock -w
+   ```
+
+8. Verify the time was saved by reading it back from the RTC module:
+
+   ```bash
+   sudo hwclock -r
+   ```
+
+## LAN Connection between Pi and Controller Device
+
+### Setting Up systemd for dnsmasq (For DHCP Server)
+>**Note:** For RPi Debian Bookworm OS, the default network stack is NetworkManager, which network profiles are stored under `/etc/NetworkManager/system-connections/` and ignores `dhcpcd.conf`.
 
 1. Create a connection profile for the eth0 network interface:
 
@@ -274,7 +272,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
 6. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it automatically.
 
-### Setting Up Systemd for eth0 Interface
+### Setting Up systemd for Pi's eth0 Interface
 >**Note:** For some reason, the eth0 static IP won't be up unless there is a carrier or is manually configured. Therefore, we create a temporary solution for this.
 
 1. Create the systemd unit file:
@@ -284,7 +282,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    ```
 
 2. Fill the content of the systemd unit file:
-*Note: This configuration will restart the eth0 service every X seconds/minutes to ensure the interface always have static IP regardless of crashes.*
+   > **Note:** This configuration will restart the eth0 service every X seconds/minutes to ensure the interface always have static IP regardless of crashes.
 
    ```bash
    [Unit]
@@ -315,7 +313,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo systemctl status configure-eth0.service --no-pager -l
    ```
 
-### Setting Up Systemd (Gunicorn) for Energy Data Logger Webapp
+### Setting Up systemd for Gunicorn (For Webapp)
 
 1. Create the systemd unit file:
 
@@ -380,13 +378,10 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
 ---
 
-## Test Modbus RTU Polling
-
-
-### Serial Port Configuration
+## Modbus RTU Polling
 
 1. Have the RS485 cable wires connected accordingly to the energy meter and the Pi's CAN HAT.
-*Note: Make sure to have serial port hardware enabled in `raspi-config` already.*
+   > **Note:** Make sure to have serial port hardware enabled in `raspi-config` already.
 
 2. Use the following command to check for available serial ports. There should be at least one port (e.g. `/dev/serial -> ttyS0`) being displayed.
    
@@ -404,7 +399,7 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
 ---
 
-## Setting Up Watchdog
+## Watchdog Client
 
 1. Install the Watchdog package:
 
@@ -483,6 +478,48 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
    sudo systemctl start watchdog
    sudo systemctl status watchdog --no-pager -l
    sudo reboot
+   ```
+
+---
+
+## Logger Extension: InfluxData
+
+### Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
+
+   ```bash
+   curl --silent --location -O \
+   https://repos.influxdata.com/influxdata-archive.key
+   echo "943666881a1b8d9b849b74caebf02d3465d6beb716510d86a39f6c8e8dac7515  influxdata-archive.key" \
+   | sha256sum --check - && cat influxdata-archive.key \
+   | gpg --dearmor \
+   | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive.gpg > /dev/null \
+   && echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main' \
+   | sudo tee /etc/apt/sources.list.d/influxdata.list
+
+   sudo apt-get update && sudo apt-get install influxdb2
+
+   # Followed by:
+   sudo service influxdb start
+   sudo service influxdb status --no-pager -l
+   ```
+
+### Installing Grafana OSS (Ubuntu & Debian) on the Pi
+
+   ```bash
+   sudo apt-get install -y apt-transport-https software-properties-common wget
+   sudo mkdir -p /etc/apt/keyrings/
+   wget -q -O - https://apt.grafana.com/gpg.key \
+   | gpg --dearmor \
+   | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+   echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
+   | sudo tee -a /etc/apt/sources.list.d/grafana.list
+   sudo apt-get update && sudo apt-get install grafana
+
+   # Followed by:
+   sudo systemctl daemon-reload
+   sudo systemctl enable grafana-server
+   sudo systemctl start grafana-server
+   sudo systemctl status grafana-server --no-pager -l
    ```
 
 ---
