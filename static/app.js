@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const units = {
                     voltage: 'V',
                     current: 'A',
-                    power: 'W',
+                    power: 'kW',
                     energy: 'kWh',
                 };
                 const order = [

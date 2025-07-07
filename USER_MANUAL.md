@@ -22,6 +22,7 @@
 The Energy Data Logger kit consists of the following components:
 
 *   **Raspberry Pi 4B (Flashed):** The core of the logger. Ensure the MicroSD card has been flashed with the logger application.
+*   **DS3231 RTC Module:** A battery-powered module that continuously provides the Pi synchronized real time.
 *   **RS-485 CAN HAT:** A Modbus module that sits on top of the Raspberry Pi.
 *   **RS-485 Cable:** Used to connect the CAN HAT’s port A and B for Modbus communication.
 *   **AC Power Adapter OR USB-C Adapter:** To power the logger device.
@@ -156,3 +157,6 @@ To change these, press the **“Settings”** button. Modifying settings will au
 
 **Q: I set the wrong settings for the meter, would the logger still log?**  
 *No, the logger would not start logging and would prompt a “Failed to communicate with the server” error. In order to continue logging, set the correct parameters in the “Settings” option, then refresh once more before starting logging the data.*
+
+**Q: I connected the OTG cable but there is no “Ethernet cable connected” or similar notification.**  
+*Sometimes the Ethernet interface on the controller device may hang and not receive the DHCP IP address from the logger device. To establish a successful Ethernet connection, restart the controller device once, and its Ethernet interface should be up. Alternatively, ensure that **Settings > Connections > Ethernet** is enabled.*

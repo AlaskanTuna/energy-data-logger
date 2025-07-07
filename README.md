@@ -9,40 +9,33 @@
 1. Insert the MicroSD card into your laptop and launch the [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
 
 2. Select Raspberry Pi 4 for the model and Raspberry Pi OS Lite, which can be found by going to Choose OS -> Raspberry Pi OS (Other) -> Raspberry Pi OS Lite (64-bit) and select the microSD card's model for Storage.
-![RPi Imager.](resources/rpi_imager_20250630.png)
+
+   ![RPi Imager.](resources/rpi_imager_20250630.png)
 
 3. Select Next -> Edit Settings and configure the settings as shown below.
    > **Note:** Enter your desired hostname, then create your root username and password. Wi-Fi is your personal hotspot's SSID and password.
-![RPi Imager Settiings.](resources/rpi_imager_settings_20250630.png)
+
+   ![RPi Imager Settiings.](resources/rpi_imager_settings_20250630.png)
 
 4. Enable SSH with password authentication.
-![RPi SSH.](resources/rpi_ssh_20250630.png)
+
+   ![RPi SSH.](resources/rpi_ssh_20250630.png)
 
 5. Apply the changes and allow the program to write to the SD card. Once complete, insert the SD card into its designated slot under the Pi and boot it up with the micro-USB adapter. Give it a few minutes to setup.
 
 *This documentation part is referenced from **[xyberii4](https://github.com/xyberii4)**.*
 
-## Connecting to the Raspberry Pi via SSH
-
-### Network Setup
-
-1. Boot Raspberry Pi up, wait about a minute for WiFi to activate
-
-2. Connect to the Pi’s configured WLAN
+## SSH into Raspberry Pi
 
 ### Finding the Pi’s IP Address (Windows)
 
-1. Make sure the local machine is on the same WLAN as the Pi, then open a terminal.
+1. Boot Raspberry Pi up, wait 30-60s for WiFi to activate and connect to the Pi’s configured WLAN.
 
-2. Run the following command and note the first three octets of your IPv4 address (network ID):
+2. Make sure the local machine is on the same WLAN as the Pi. Open a terminal and run the following command:
+   >**Note:** Replace `<NETWORK_ID>` with the first three octets of your IPv4 address.
 
-   ```
+   ```bash
    ipconfig
-   ```
-
-3. Run the following command to scan for devices on the network:
-
-   ```
    nmap -sn <NETWORK_ID>.1/24
    ```
 
@@ -54,10 +47,11 @@
 
 2. **Option 2**: Any UNIX Shell (e.g. WSL)
 
-3. **Command:**
-  ```
-  ssh <username>@<ip-address>
-  ```
+3. Run the following command in the terminal:
+
+   ```bash
+   ssh <username>@<ip-address>
+   ```
 
 ---
 
@@ -97,9 +91,7 @@
    sudo apt-get upgrade
    ```
 
----
-
-## Cloning Repository and Setting Up the Environment
+### Cloning Repository and Setting Up the Environment
 
 1. With Git installed, clone the project and navigate into it:
 
@@ -128,9 +120,7 @@
    ```
    > **Note:** Check the parameters `USE_MODBUS` and `DEVELOPER_MODE` in config.py before running either scripts. For development purposes, set `USE_MODBUS` to False and `DEVELOPER_MODE` to True, this will allow access to main.py's CLI implementation and mock data generation; for actual logging purposes, set `USE_MODBUS` to True and `DEVELOPER_MODE` to False, this will allow reading directly from the Modbus RTU protocol.
 
----
-
-## Retrieving Data from the Pi
+### Retrieving Data from the Pi
 
 1. Connect to the Pi via SSH.
 
@@ -155,24 +145,9 @@
 
 ---
 
-## Environment Variables for InfluxDB/Grafana (Optional)
+## Real Time Clock (RTC)
 
-If you wish to enable InfluxDB/Grafana logging instead of CSV-only, create a `.env` file at the project root with:
-
-```
-INFLUXDB_URL=<your-influxdb-url>
-INFLUXDB_TOKEN=<your-influxdb-token>
-GRAFANA_URL=<your-grafana-url>
-GRAFANA_VIEW_TOKEN=<your-influxdb-token>
-```
-
-The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missing or invalid credentials), the program will continue logging to CSV only.
-
----
-
-## Real Time Clock
-
-1. Have the RTC module (DS-3231) wired accordingly to the Pi.
+1. Have the RTC module (DS-3231) wired/connected accordingly to the Pi.
    > **Note:** Make sure to have I2C interface enabled in `raspi-config` already.
 
 2. Install the I2C helper tools:
@@ -226,13 +201,13 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 
    ```bash
    sudo nmcli connection add \
-     type ethernet \
-     ifname eth0 \
-     con-name eth0 \
-     ipv4.method manual \
-     ipv4.addresses <ENTER STATIC IP ADDRESS>/24 \
-     ipv4.gateway "" \
-     ipv4.dns ""
+      type ethernet \
+      ifname eth0 \
+      con-name eth0 \
+      ipv4.method manual \
+      ipv4.addresses <ENTER STATIC IP ADDRESS>/24 \
+      ipv4.gateway "" \
+      ipv4.dns ""
 
    # Make sure eth0 autoconnects upon boot
    sudo nmcli connection modify eth0 connection.autoconnect yes
@@ -483,6 +458,18 @@ The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. missi
 ---
 
 ## Logger Extension: InfluxData
+
+### Environment Variables for InfluxDB/Grafana
+>**Note:** The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. unconfigured or invalid credentials), the program will continue logging to CSV only.
+
+If you wish to enable InfluxDB/Grafana logging instead of CSV-only, create a `.env` file at the project root with:
+
+   ```bash
+   INFLUXDB_URL=<your-influxdb-url>
+   INFLUXDB_TOKEN=<your-influxdb-token>
+   GRAFANA_URL=<your-grafana-url>
+   GRAFANA_VIEW_TOKEN=<your-influxdb-token>
+   ```
 
 ### Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
 
