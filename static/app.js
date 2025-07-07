@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
         view: document.getElementById('view-data-button'),
         analyze: document.getElementById('analyze-data-button'),
         visualize: document.getElementById('visualize-data-button'),
+        download: document.getElementById('download-logs-button'),
         settings: document.getElementById('settings-button')
     };
 
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     menuButtons.view.addEventListener('click', () => showFileModal('view'));
     menuButtons.analyze.addEventListener('click', () => showFileModal('analyze'));
     menuButtons.visualize.addEventListener('click', () => showFileModal('visualize'));
+    menuButtons.download.addEventListener('click', () => showFileModal('download'));
     menuButtons.settings.addEventListener('click', () => showSettingsModal());
 
     // Modal close event listener
@@ -99,23 +101,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const titles = {
             view: "View Data",
             analyze: "Analyze Data",
-            visualize: "Visualize Data"
+            visualize: "Visualize Data",
+            download: "Download Application Logs"
         };
+        const apiEndpoint = (mode === 'download') ? '/api/logs' : '/api/files';
+
         modalTitle.textContent = titles[mode];
         modalBody.innerHTML = '<p class="loading">Loading files...</p>';
         modal.style.display = 'flex';
 
-        fetch('/api/files')
+        fetch(apiEndpoint)
             .then(response => response.json())
             .then(files => {
                 if (files.length === 0) {
-                    modalBody.innerHTML = '<p class="empty-message">No data files available.</p>';
+                    modalBody.innerHTML = '<p class="empty-message">No files available.</p>';
                     return;
                 }
-                
+
                 let fileListHTML = '<div class="file-list">';
-                files.reverse().forEach(file => { // Show newest first
-                    const match = file.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.csv$/);
+                files.reverse().forEach(file => { // Show latest file on top
+                    const namePart = file.split('.')[0];
+                    const match = namePart.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/);
                     const dateStr = match ? new Date(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`).toLocaleString() : "N/A";
 
                     fileListHTML += `
@@ -148,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (mode === 'analyze') showAnalysisOptions(filename);
         else if (mode === 'view') window.location.href = `/api/files/${filename}`;
+        else if (mode === 'download') window.location.href = `/api/logs/${filename}`;
         else if (mode === 'visualize') showVisualizationOptions(filename);
     }
 

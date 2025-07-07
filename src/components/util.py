@@ -51,7 +51,7 @@ def main_menu():
             clear_screen()
             return main_menu()
     else:
-        print("[INFO]: Developer mode is disabled.")
+        log.info("Developer mode is disabled.")
         exit(0)
 
 def clear_screen():
@@ -65,13 +65,15 @@ def get_filename(file="type"):
     Generate a timestamped CSV filename for data logging.
 
     @file: Specify file type
-    @return: Timestamped filename for data or plot.
+    @return: Timestamped filename for data or plot
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if file == "ds":
         return f"../data/{timestamp}.csv"
     elif file == "pl":
         return f"../plots/{timestamp}.png"
+    elif file == "log":
+        return f"../logs/{timestamp}.log.gz"
 
 def get_current_filename(file):
     """
@@ -82,24 +84,36 @@ def get_current_filename(file):
     """
     return get_filename(file)
 
-def list_csv_files(directory="../data/"):
-    """
-    List all CSV files in the specified directory.
+def list_files(file="type"):
+    """ 
+    List all files of a specific type.
     
-    @directory: Directory where the file is located
-    @return: List of CSV sorted alphabetically
+    @file: Specify file type
     """
+    if file == "ds":
+        directory = config.DS_DIR
+        extension = ".csv"
+    elif file == "pl":
+        directory = config.PL_DIR
+        extension = ".png"
+    elif file == "log":
+        directory = config.LOG_DIR
+        extension = ".log.gz"
+    else:
+        log.warning(f"Unknown file type: {file}.")
+        return []
+
     try:
         if not os.path.exists(directory):
             os.makedirs(directory)
             return []
-        csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
-        return sorted(csv_files)
+
+        files = [f for f in os.listdir(directory) if f.endswith(extension)]
+        return sorted(files)
     except Exception as e:
         log.error(f"File Listing Error: {e}", exc_info=True)
-        return []
 
-def display_csv_file(filename, directory="../data/"):
+def display_csv_file(filename, directory=config.DS_DIR):
     """
     Display the content of a CSV file in the terminal.
     
@@ -122,24 +136,26 @@ def display_csv_file(filename, directory="../data/"):
         log.error(f"Display File Error: {e}", exc_info=True)
         return False
 
-def select_csv_file(purpose="action"):
+def select_file(purpose="action", file="type"):
     """
-    Display a list of CSV files and let user select one.
+    Display a list of files and let user select one.
 
-    @purpose: String describing the purpose.
-    @return: Selected CSV filename or None
+    @purpose: String describing the purpose
+    @file: Specify file type
+    @return: Selected filename or None
     """
-    print(f"\n===== Available CSV Files for {purpose.capitalize()} =====\n")
+    file_type_name = "CSV" if file == "ds" else "PNG" if file == "pl" else "LOG" if file == "log" else "Unknown"
+    print(f"\n===== Available {file_type_name} Files for {purpose.capitalize()} =====\n")
 
-    csv_files = list_csv_files()
-    if not csv_files:
-        print("No CSV files found in the data directory.")
+    files = list_files(file)
+    if not files:
+        print(f"No {file_type_name} files found in the directory.")
         input("\nPress Enter to continue...")
         clear_screen()
         return None
 
     print("0. Return to Main Menu")
-    for i, file in enumerate(csv_files, 1):
+    for i, file in enumerate(files, 1):
         print(f"{i}. {file}")
 
     try:
@@ -148,18 +164,18 @@ def select_csv_file(purpose="action"):
             clear_screen()
             return None
 
-        if 1 <= selection <= len(csv_files):
-            return csv_files[selection - 1]
+        if 1 <= selection <= len(files):
+            return files[selection - 1]
     except ValueError:
         input("Invalid selection. Please enter a number. \n\nPress Enter to continue...")
         clear_screen()
-        return select_csv_file(purpose)
+        return select_file(purpose, file)
 
 def view_data():
     """
     Let user select a CSV file and display its content.
     """
-    selected_file = select_csv_file("view")
+    selected_file = select_file("view", "ds")
     if selected_file:
         display_csv_file(selected_file)
         input("Press Enter to return...")
@@ -169,9 +185,9 @@ def analyze_data():
     """
     Let user select a CSV file for data analysis.
     """
-    selected_file = select_csv_file("analyze")
+    selected_file = select_file("analyze", "ds")
     if selected_file:
-        filepath = os.path.join("../data/", selected_file)
+        filepath = os.path.join(config.DS_DIR, selected_file)
 
         try:
             DataAnalyzer.calculate_statistics(filepath)
@@ -185,14 +201,11 @@ def visualize_data():
     """
     Generate visualizaitons for a selected CSV file.
     """
-    selected_file = select_csv_file("visualize")
+    selected_file = select_file("visualize", "ds")
     if selected_file:
-        filepath = os.path.join("../data/", selected_file)
-
+        filepath = os.path.join(config.DS_DIR, selected_file)
         df = pd.read_csv(filepath)
-
         DataAnalyzer.visualize_data(df, filepath)
-
         input("\nPress Enter to continue...")
 
 def settings_menu():

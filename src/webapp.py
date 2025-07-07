@@ -7,7 +7,7 @@
 import os
 
 from flask import Flask, request, jsonify, send_from_directory
-from components.util import list_csv_files
+from components.util import list_files
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES
@@ -58,17 +58,17 @@ def get_settings():
     return jsonify(settings.get_all())
 
 @app.get("/api/files")
-def list_files():
+def list_data_files():
     """
-    Get a list of all logged CSV files.
+    Get a list of data files.
     
-    @return: JSON list of file names
+    @return: JSON list of data file names
     """
-    files = list_csv_files()
+    files = list_files("ds")
     return jsonify(files)
 
 @app.get("/api/files/<filename>")
-def get_file(filename):
+def get_data_file(filename):
     """ 
     Get the specified CSV file for download.
     
@@ -77,7 +77,33 @@ def get_file(filename):
     """
     filename = os.path.basename(filename)
     return send_from_directory(
-        "../data",
+        config.DS_DIR,
+        filename,
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.get("/api/logs")
+def list_log_files():
+    """ 
+    Get a list of log files.
+    
+    @return: JSON list of log file names
+    """
+    files = list_files("log")
+    return jsonify(files)
+
+@app.get("/api/logs/<filename>")
+def get_log_file(filename):
+    """ 
+    Get the specified CSV file for download.
+    
+    @filename: Name of the file to download
+    @return: File download response
+    """
+    filename = os.path.basename(filename)
+    return send_from_directory(
+        config.LOG_DIR,
         filename,
         as_attachment=True,
         download_name=filename
