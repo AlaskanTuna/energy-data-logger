@@ -71,10 +71,15 @@ class DataLogger:
                 org=config.INFLUXDB_ORG,
                 timeout=config.INFLUXDB_TIMEOUT
             )
+            
+            # Verify connection with ping
             if self.client.ping():
-                self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+                self.write_api = self.client.write_api(
+                    write_options=SYNCHRONOUS,
+                    timeout=config.INFLUXDB_TIMEOUT
+                )
                 self.influx_enabled = True
-                log.info("InfluxDB connection established successfully.")
+                log.info(f"InfluxDB ping successful. Ready to log.")
             else:
                 log.error("InfluxDB ping failed. Please check token and organization settings.")
         except Exception as e:
@@ -113,14 +118,14 @@ class DataLogger:
                 influx_status = "-"
                 if self.influx_enabled:
                     try:
-                        point = Point("power_measurements").tag("source", "wago_meter")
+                        point = Point("meter_measurements").tag("source", "wago_meter")
 
                         # Loop through all readings and add them as fields
                         for key, value in readings.items():
                             if value is not None:
                                 point.field(key, value)
                         point.time(datetime.now(tz=timezone.utc), WritePrecision.S)
-                        
+
                         self.write_api.write(bucket=config.INFLUXDB_BUCKET, record=point)
                         influx_status = "OK"
                     except Exception as e:
