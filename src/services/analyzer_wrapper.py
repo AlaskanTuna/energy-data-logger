@@ -57,8 +57,9 @@ class AnalyzerService:
 
             # Use existing analyzer to calculate statistics
             self._analyzer.calculate_statistics(filepath)
+            self._analyzer.calculate_session_consumption(filepath)
 
-            # Restore stdout
+            # Capture the output
             sys.stdout = old_stdout
             analysis_text = captured_output.getvalue()
 

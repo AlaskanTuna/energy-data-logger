@@ -50,25 +50,25 @@ class MeterReader:
         @return: Dictionary with mock readings
         """
         readings = {}
-        voltage_base = random.uniform(215, 240)
-        current_base = random.uniform(1.5, 15.0)
+        voltage_base = random.uniform(235, 245)
+        current_base = random.uniform(2.0, 15.0)
         power_base = voltage_base * current_base / 1000
-        energy_base = random.uniform(500, 10000)
+        energy_base = random.uniform(100, 200)
 
         for name in config.REGISTERS.keys():
             if 'voltage' in name:
-                readings[name] = round(voltage_base * random.uniform(0.98, 1.02), 2)
+                readings[name] = round(voltage_base * random.uniform(0.99, 1.01), 2)
             elif 'current' in name:
-                readings[name] = round(current_base * random.uniform(0.95, 1.05), 2)
+                readings[name] = round(current_base * random.uniform(0.8, 1.2), 2)
             elif 'power' in name and 'total' not in name:
                 readings[name] = round(power_base * random.uniform(0.9, 1.1), 3)
             elif name == 'total_power':
                 readings[name] = round(power_base * 3 * random.uniform(0.95, 1.05), 3)
             elif 'energy' in name:
                 if '_t' in name:
-                    readings[name] = round(energy_base * 0.4 * random.uniform(0.9, 1.1), 3)
+                    readings[name] = round(energy_base * 0.3 * random.uniform(0.95, 1.05), 3)
                 elif '_l' in name:
-                     readings[name] = round(energy_base / 3 * random.uniform(0.9, 1.1), 3)
+                     readings[name] = round(energy_base / 3 * random.uniform(0.95, 1.05), 3)
                 else:
                     readings[name] = round(energy_base * random.uniform(0.98, 1.02), 3)
             else:

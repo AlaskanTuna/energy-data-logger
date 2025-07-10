@@ -31,16 +31,19 @@ class DataAnalyzer:
         try:
             df = pd.read_csv(filepath)
 
+            # Find all columns that contain the keywords
             param_groups = {
-                "Voltage Parameters": [col for col in df.columns if "Voltage" in col],
-                "Current Parameters": [col for col in df.columns if "Current" in col],
-                "Power Parameters":   [col for col in df.columns if "Power" in col],
-                "Energy Parameters":  [col for col in df.columns if "Energy" in col],
+                "Voltage Parameters": [col for col in df.columns if "voltage" in col.lower()],
+                "Current Parameters": [col for col in df.columns if "current" in col.lower()],
+                "Power Parameters":   [col for col in df.columns if "power" in col.lower()],
+                "Energy Parameters":  [col for col in df.columns if "energy" in col.lower()],
             }
 
             print("\n===== Power Meter Statistics =====")
             for group_name, columns in param_groups.items():
-                if not columns: continue
+                if not columns: 
+                    print(f"\n{group_name}: Not enough data for statistics calculation.")
+                    continue
 
                 print(f"\n{group_name}:")
                 for column in columns:
@@ -55,6 +58,46 @@ class DataAnalyzer:
             return df
         except Exception as e:
             log.error(f"Statistics Error: {e}", exc_info=True)
+            return None
+
+    def calculate_session_consumption(self, filepath):
+        """ 
+        Compute total consumption for cumulative columns.
+        
+        @filepath: Path to the CSV file to analyze
+        @return: DataFrame with total consumption or None if error
+        """
+        try:
+            consumption_results = {}
+            df = pd.read_csv(filepath)
+
+            # Find all columns that contain the keywords
+            columns = [col for col in df.columns if "total" in col.lower()]
+            if not columns:
+                log.warning("No cumulative columns found for consumption calculation.")
+                return {}
+
+            print("\n===== Session Consumption Analysis =====\n")
+            for column in columns:
+                series = df[column].dropna()
+                if len(series) < 2:
+                    print(f"  {column}: Not enough data for consumption calculation.")
+                    continue
+
+                first_val = series.iloc[0]
+                last_val = series.iloc[-1]
+                consumption = last_val - first_val
+
+                # Extract the unit from the column name
+                unit = ""
+                if '(' in column and ')' in column:
+                    unit = column.split('(')[-1].split(')')[0]
+                print(f"  {column}: {consumption:.3f} {unit}")
+                consumption_results[column] = consumption
+
+            return consumption_results
+        except Exception as e:
+            log.error(f"Session Consumption Analysis Error: {e}", exc_info=True)
             return None
 
     def visualize_data(self, df, source=None):

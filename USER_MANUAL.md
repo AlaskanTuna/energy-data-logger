@@ -116,7 +116,7 @@ The web dashboard provides several tools for working with your data:
 - **Visualize Data:** Select a file to generate plots of the data over time. You can choose from pre-defined categories or create a custom plot by selecting specific parameters.
 
 ### 3.2 Changing Settings
-The logger's default settings are:
+The default settings the logger will poll the meter with are:
 - `LOG_INTERVAL`: 900 (15 minutes)
 - `MODBUS_SLAVE_ID`: 1
 - `BAUDRATE`: 9600
@@ -125,7 +125,7 @@ The logger's default settings are:
 - `STOPBITS`: 1
 - `TIMEOUT`: 2
 
-To change these, press the **“Settings”** button. Modifying settings will automatically stop any active logging session. The new settings will only apply to the next session you start.
+Changing settings in the midst of a logging operation will cause all operations to **stop**. The new settings will only apply in the **next logging session**.
 
 ---
 

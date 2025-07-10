@@ -190,7 +190,10 @@ def analyze_data():
         filepath = os.path.join(config.DS_DIR, selected_file)
 
         try:
-            DataAnalyzer.calculate_statistics(filepath)
+            analyzer = DataAnalyzer()
+
+            analyzer.calculate_statistics(filepath)
+            analyzer.calculate_session_consumption(filepath)
             input("\nPress Enter to continue...")
             clear_screen()
         except Exception as e:
@@ -205,7 +208,9 @@ def visualize_data():
     if selected_file:
         filepath = os.path.join(config.DS_DIR, selected_file)
         df = pd.read_csv(filepath)
-        DataAnalyzer.visualize_data(df, filepath)
+        analyzer = DataAnalyzer()
+
+        analyzer.visualize_data(df, filepath)
         input("\nPress Enter to continue...")
 
 def settings_menu():
