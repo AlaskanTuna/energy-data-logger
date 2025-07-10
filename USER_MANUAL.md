@@ -89,9 +89,10 @@ To begin logging energy data at a new site:
 
 1.  Access the web dashboard as described in Section 3.1.
 2.  Verify the initial status: the "System Status" panel should show **Logger: Inactive**. This confirms it is ready for a new session.
-3.  Press the **“Log New Data”** button.
-4.  The logger will begin its session in the background. The web page will update to show **Logger: Active** and the button text will change to **“Stop Logging”**.
-5.  You may now safely disconnect your controller device. The logger will continue to run independently.
+3.  Press **Settings** and match the logger settings with the onboard meter's Modbus settings.
+4.  Press the **“Log New Data”** button.
+5.  The logger will begin its session in the background. The web page will update to show **Logger: Active** and the button text will change to **“Stop Logging”**.
+6.  You may now safely disconnect your controller device. The logger will continue to run independently.
 
 ![Energy Data Logger webapp interface (ON).](resources/webapp_on_20250630.png)
 *Figure 3.2.1. Energy Data Logger webapp interface (ON).*
@@ -112,11 +113,11 @@ To conclude the energy data logging session:
 ### 3.1 Viewing and Analyzing Data
 The web dashboard provides several tools for working with your data:
 - **View Data:** Lists all logged CSV files and allows you to download them.
-- **Analyze Data:** Select a file to view a full statistical summary (min, max, mean, etc.) for all recorded parameters.
+- **Analyze Data:** Select a file to view a full statistical summary (min, max, mean, etc.) for all recorded parameters, as well as viewing the consumption data for every cumulative parameters (e.g. Total Active Energy).
 - **Visualize Data:** Select a file to generate plots of the data over time. You can choose from pre-defined categories or create a custom plot by selecting specific parameters.
 
 ### 3.2 Changing Settings
-The default settings the logger will poll the meter with are:
+The default Modbus settings the logger will poll the meter with are:
 - `LOG_INTERVAL`: 900 (15 minutes)
 - `MODBUS_SLAVE_ID`: 1
 - `BAUDRATE`: 9600
