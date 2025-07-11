@@ -48,12 +48,15 @@ class DataAnalyzer:
                 print(f"\n{group_name}:")
                 for column in columns:
                     if column in df.columns:
+                        unit = ""
+                        if '(' in column and ')' in column:
+                            unit = column.split('(')[-1].split(')')[0]
                         print(f"\n  {column}:")
                         stats = df[column].describe()
-                        print(f"    min:    {stats.get('min', 0):.2f}")
-                        print(f"    max:    {stats.get('max', 0):.2f}")
-                        print(f"    mean:   {stats.get('mean', 0):.2f}")
-                        print(f"    std:    {stats.get('std', 0):.2f}")
+                        print(f"    min:    {stats.get('min', 0):.2f} {unit}")
+                        print(f"    max:    {stats.get('max', 0):.2f} {unit}")
+                        print(f"    mean:   {stats.get('mean', 0):.2f} {unit}")
+                        print(f"    std:    {stats.get('std', 0):.2f} {unit}")
 
             return df
         except Exception as e:
