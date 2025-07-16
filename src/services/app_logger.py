@@ -10,7 +10,7 @@ from config import config
 
 log = logging.getLogger(__name__)
 
-# HANDLERS
+# SERVICES
 
 class BufferHandler(logging.Handler):
     """ 
@@ -56,14 +56,15 @@ class LogManager:
         )
 
         # CONSOLE HANDLER
+
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
 
         # BUFFER HANDLER
+
         self._buffer_handler = BufferHandler()
         root_logger.addHandler(self._buffer_handler)
-
         log.info("App logger initialized. Logging program activity now.")
 
     def start_session_logging(self, filename):
@@ -88,15 +89,15 @@ class LogManager:
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
         # FILE HANDLER
+
         file_handler = logging.FileHandler(log_filepath, mode='a', encoding='utf-8')
         file_handler.setFormatter(formatter)
 
         if self._buffer_handler:
-            # Flush buffer into file handler
-            for record in self._buffer_handler.buffer:
+            for record in self._buffer_handler.buffer: # Flush buffer into file handler
                 file_handler.handle(record)
-            # Clear the buffer after flushing
-            logging.getLogger().removeHandler(self._buffer_handler)
+
+            logging.getLogger().removeHandler(self._buffer_handler) # Clear the buffer after flushing
             self._buffer_handler = None
 
         # Add the handler to the root logger

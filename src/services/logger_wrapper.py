@@ -8,7 +8,7 @@ import logging
 from components import util, logger
 from config import config
 from services.app_logger import log_manager
-from services.database import SessionLocal, LoggerState
+from services.database import SessionLocal, LoggerState, archive_csv_to_db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,10 +32,10 @@ class LoggerService:
         self.start_monitor()
 
         # Check for pre-existing state to resume logging
-        state = self._get_logger_state()
-        if state and state.get("status") == "running":
-            log.info("Resuming RUNNING state. Continuing data logging thread.")
-            self.start(from_init=True, initial_state=state)
+        logger_state = self._get_logger_state()
+        if logger_state and logger_state.get("status") == "running":
+            log.info("Resuming RUNNING state. Continuing data logging session.")
+            self.start(from_init=True, initial_state=logger_state)
 
     # STATE MANAGEMENT
 
@@ -137,6 +137,12 @@ class LoggerService:
         @return: Dictionary with status of the stop operation
         """
         with self._lock:
+            logger_state = self._get_logger_state()
+            if logger_state:
+                csv_filepath = logger_state.get("csvFile")
+            else:
+                csv_filepath = None
+
             self._clear_logger_state()
 
             if not self._logging_thread or not self._logging_thread.is_alive():
@@ -152,6 +158,10 @@ class LoggerService:
             self._logging_thread.join(timeout=5)
             self._logging_thread = None
             self._dl = None
+
+            # Insert CSV data into the database
+            if csv_filepath:
+                archive_csv_to_db(csv_filepath)
 
             log.info("Data logging process stopped cleanly.")
             return {"status": "stopped"}

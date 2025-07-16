@@ -2,6 +2,7 @@
 
 import os
 import logging
+import pandas as pd
 
 from config import config
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
@@ -46,3 +47,27 @@ def init_db():
         Base.metadata.create_all(bind=ENGINE)
     except Exception as e:
         log.error(f"{e}", exc_info=True)
+
+def archive_csv_to_db(filepath):
+    """ 
+    Archives CSV data to the database with formatted timestamps.
+    
+    @filepath: Path to the CSV file to archive
+    """
+    if not os.path.exists(filepath):
+        log.error(f"DB Archive Error. CSV file not found at {filepath}.")
+        return
+
+    try:
+        df = pd.read_csv(filepath, parse_dates=['Timestamp'])
+        df['Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        # Create table name
+        table_name = os.path.splitext(os.path.basename(filepath))[0]
+        safe_table_name = "".join(c for c in table_name if c.isalnum() or c == '_')
+
+        # Write to SQL
+        df.to_sql(safe_table_name, con=ENGINE, if_exists='replace', index=False)
+        log.info(f"Archived CSV data to table '{safe_table_name}' from {filepath} successfully.")
+    except Exception as e:
+        log.error(f"DB Archive Error: {e}", exc_info=True)
