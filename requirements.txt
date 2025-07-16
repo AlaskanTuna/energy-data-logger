@@ -1,17 +1,18 @@
 # Python
 pandas==2.2.1
 matplotlib==3.8.2
-pyserial==3.5
 
 # WSGI
 flask==3.1.1
 gunicorn==23.0.0
 
 # MODBUS
+pyserial==3.5
 modpoll==1.5.0
 minimalmodbus==2.1.1
 
 # DB
+SQLAlchemy==2.0.41
 influxdb-client==1.49.0
 
 # Utilities

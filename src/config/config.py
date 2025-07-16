@@ -31,6 +31,15 @@ REGISTERS = {
     "total_active_energy_t3":   {"address": 0x604B, "number_of_registers": 2, "functioncode": 3, "description": "T3 Total Active Energy (kWh)"},
     "total_active_energy_t4":   {"address": 0x604D, "number_of_registers": 2, "functioncode": 3, "description": "T4 Total Active Energy (kWh)"},
 }
+DEFAULT_SETTINGS = {
+    "LOG_INTERVAL": 900,
+    "MODBUS_SLAVE_ID": 1,
+    "BAUDRATE": 9600,
+    "PARITY": 'N',
+    "BYTESIZE": 8,
+    "STOPBITS": 1,
+    "TIMEOUT": 2
+}
 
 # FILE SETTINGS
 
@@ -40,12 +49,14 @@ DS_DIR = ROOT / "data/"
 PL_DIR = ROOT / "plots/"
 LOG_DIR = ROOT / "logs/"
 STATIC_DIR = ROOT / "static/"
+SETTINGS_FILE = DS_DIR / "settings.json"
 STATE_FILE = DS_DIR / "logger.state"
+DB_FILE = DS_DIR / "database.sqlite"
 
 # READING & LOGGING SETTINGS
 
-USE_MODBUS = False
-DEVELOPER_MODE = True
+USE_MODBUS = True
+DEVELOPER_MODE = False
 RETRY_INTERVAL = 60
 MAX_RETRIES = 10
 

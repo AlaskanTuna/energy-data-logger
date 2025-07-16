@@ -59,12 +59,13 @@
 
 ### Install Necessary Resources
 
-1. Update the OS and install Python on the Pi:
+1. Update the OS and install necessary packages on the Pi:
 
    ```bash
    sudo apt-get update
    sudo apt-get upgrade
    sudo apt install python3 python3-pip python3-venv -y
+   sudo apt install sqlite3 -y
    ```
 
 2. Install Git on the Pi:

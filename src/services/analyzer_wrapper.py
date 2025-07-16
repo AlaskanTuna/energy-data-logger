@@ -156,5 +156,6 @@ class AnalyzerService:
         except Exception as e:
             return {"error": "An internal error occurred during visualization."}
 
-# Global instance for the web layer
+# GLOBAL INSTANCE
+
 analyzer_service = AnalyzerService()

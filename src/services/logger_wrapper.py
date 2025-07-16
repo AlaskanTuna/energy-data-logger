@@ -2,14 +2,15 @@
 
 import threading
 import os
-import json
 import time
 import logging
 
 from components import util, logger
 from config import config
 from services.app_logger import log_manager
+from services.database import SessionLocal, LoggerState
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
 
 # CONSTANTS
 
@@ -31,50 +32,70 @@ class LoggerService:
         self.start_monitor()
 
         # Check for pre-existing state to resume logging
-        state = self._read_state()
+        state = self._get_logger_state()
         if state and state.get("status") == "running":
             log.info("Resuming RUNNING state. Continuing data logging thread.")
             self.start(from_init=True, initial_state=state)
 
     # STATE MANAGEMENT
 
-    def _read_state(self):
+    def _get_logger_state(self):
         """ 
-        Reads the current state from the state file.
-        
-        @return: Dictionary with state information or None if file not exist
+        Get the current logger state from the database.
         """
-        if os.path.exists(config.STATE_FILE):
-            try:
-                with open(config.STATE_FILE, 'r') as f:
-                    return json.load(f)
-            except (IOError, json.JSONDecodeError): return None
-        return None
-
-    def _write_state(self, csv_filepath):
-        """ 
-        Writes the current state to the state file.
-        
-        @csv_filepath: Path to CSV file being logged
-        """
-        state = {
-            "status": "running",
-            "startTime": datetime.now().isoformat(),
-            "csvFile": csv_filepath
-        }
+        db = SessionLocal()
         try:
-            with open(config.STATE_FILE, 'w') as f:
-                json.dump(state, f, indent=4)
-        except IOError:
-            log.error(f"Could not write to state file.")
+            state_row = db.query(LoggerState).filter(LoggerState.id == 1).first()
+            if state_row:
+                return {
+                    "status": state_row.status,
+                    "csvFile": state_row.csvFile,
+                    "startTime": state_row.startTime.isoformat()
+                }
+            return None
+        except SQLAlchemyError as e:
+            log.error(f"State Get Error: {e}", exc_info=True)
+        finally:
+            db.close()
 
-    def _clear_state(self):
+    def _create_logger_state(self, filepath):
         """ 
-        Clears the state file if exists.
+        Create a new logger state in the database.
+        
+        @filepath: Path to the CSV file being logged
         """
-        if os.path.exists(config.STATE_FILE):
-            os.remove(config.STATE_FILE)
-            log.info("State file cleared.")
+        db = SessionLocal()
+        try:
+            # Clear old state first
+            db.query(LoggerState).delete()
+            new_state = LoggerState(
+                id=1,
+                status="running",
+                csvFile=filepath,
+                startTime=datetime.now()
+            )
+            db.add(new_state)
+            db.commit()
+        except SQLAlchemyError as e:
+            log.error(f"State Creation Error: {e}", exc_info=True)
+            db.rollback()
+        finally:
+            db.close()
+
+    def _clear_logger_state(self):
+        """ 
+        Clear the logger state from the database.
+        """
+        db = SessionLocal()
+        try:
+            db.query(LoggerState).delete()
+            db.commit()
+            log.info("Logger state cleared.")
+        except SQLAlchemyError as e:
+            log.error(f"State Clear Error: {e}", exc_info=True)
+            db.rollback()
+        finally:
+            db.close()
 
     # MAIN THREAD LOGIC
 
@@ -88,7 +109,7 @@ class LoggerService:
         """
         with self._lock:
             if self._logging_thread and self._logging_thread.is_alive():
-                return {"status": "already_running", "state": self._read_state()}
+                return {"status": "already_running", "state": self._get_logger_state()}
 
             if from_init:
                 csv_filepath = initial_state.get("csvFile")
@@ -105,9 +126,9 @@ class LoggerService:
             log.info(f"Starting data logging process for {csv_filepath}")
             self._dl = logger.DataLogger(filename=csv_filepath)
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
-            self._write_state(csv_filepath)
+            self._create_logger_state(csv_filepath)
             self._logging_thread.start()
-            return {"status": "started", "state": self._read_state()}
+            return {"status": "started", "state": self._get_logger_state()}
 
     def stop(self):
         """ 
@@ -116,7 +137,7 @@ class LoggerService:
         @return: Dictionary with status of the stop operation
         """
         with self._lock:
-            self._clear_state()
+            self._clear_logger_state()
 
             if not self._logging_thread or not self._logging_thread.is_alive():
                 log_manager.stop_session_logging()
@@ -156,7 +177,7 @@ class LoggerService:
                 with self._lock:
                     if self._logging_thread and not self._logging_thread.is_alive():
                         log.info("Detected crashed data logging thread. Terminating session and state.")
-                        self._clear_state()
+                        self._clear_logger_state()
                         self._logging_thread = None
                         self._dl = None
 
@@ -168,7 +189,7 @@ class LoggerService:
         
         @return: Dictionary with status information
         """
-        state = self._read_state()
+        state = self._get_logger_state()
         return state if state else {"status": "inactive"}
 
     def latest(self):
@@ -187,7 +208,7 @@ class LoggerService:
         
         @return: Boolean flag indicating if logger is running
         """
-        state = self._read_state()
+        state = self._get_logger_state()
         return state is not None and state.get("status") == "running"
 
 # GLOBAL INSTANCE

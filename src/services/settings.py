@@ -1,23 +1,13 @@
 # src/services/settings.py
 
-import json
-import os
 import logging
 
 from config import config
+from services.database import SessionLocal, Setting
+from sqlalchemy.exc import SQLAlchemyError
 
 # CONSTANTS
 
-SETTINGS_FILE = "../data/settings.json"
-DEFAULT_SETTINGS = {
-    "LOG_INTERVAL": 900,
-    "MODBUS_SLAVE_ID": 1,
-    "BAUDRATE": 9600,
-    "PARITY": 'N',
-    "BYTESIZE": 8,
-    "STOPBITS": 1,
-    "TIMEOUT": 2
-}
 log = logging.getLogger(__name__)
 
 # SERVICES
@@ -39,36 +29,32 @@ class Settings:
 
     def load_settings(self):
         """
-        Loads settings from the JSON file or default.
+        Loads settings from the JSON file or default from the database.
         """
-        if os.path.exists(SETTINGS_FILE):
-            try:
-                with open(SETTINGS_FILE, 'r') as f:
-                    loaded = json.load(f)
-                    self.data = DEFAULT_SETTINGS.copy()
-                    self.data.update(loaded)
-            except (IOError, json.JSONDecodeError):
-                log.error(f"Failed to read settings file. Using default settings.")
-                self.data = DEFAULT_SETTINGS.copy()
-        else:
-            log.warning(f"No settings file found. Using default settings.")
-            self.data = DEFAULT_SETTINGS.copy()
-            self.save_settings()
-
-    def save_settings(self):
-        """
-        Saves the current settings to the JSON file.
-        """
+        db = SessionLocal()
         try:
-            if not os.path.exists(config.DS_DIR):
-                os.makedirs(config.DS_DIR, exist_ok=True)
+            db_settings = db.query(Setting).all()
+            if not db_settings:
+                log.warning("No settings found in the database. Using default settings.")
+                for key, value in config.DEFAULT_SETTINGS.items():
+                    db.add(Setting(key=key, value=str(value)))
+                db.commit()
+                db_settings = db.query(Setting).all()
 
-            with open(SETTINGS_FILE, 'w') as f:
-                json.dump(self.data, f, indent=4)
-            return True
-        except IOError:
-            log.error(f"Failed to write settings file.")
-            return False
+            self.data = {}
+            temp_data = {s.key: s.value for s in db_settings}
+            for key, default_value in config.DEFAULT_SETTINGS.items():
+                expected_type = type(default_value)
+                try:
+                    self.data[key] = expected_type(temp_data.get(key)) # Convert database string value back to original datatype
+                except (ValueError, TypeError):
+                    self.data[key] = default_value
+        except SQLAlchemyError as e:
+            log.error(f"DB Loading Error: {e}. Using default settings.", exc_info=True)
+            self.data = config.DEFAULT_SETTINGS.copy()
+            db.rollback()
+        finally:
+            db.close()
 
     def get(self, key):
         """
@@ -89,19 +75,24 @@ class Settings:
 
     def update(self, new_settings):
         """
-        Updates multiple settings and saves them.
+        Updates multiple settings and saves them to the database.
         
         @new_settings: Dictionary with new settings to update
-        @return: Boolean flag indicating success
         """
-        for key, value in new_settings.items():
-            if key in self.data:
-                expected_type = type(DEFAULT_SETTINGS[key])
-                try:
-                    self.data[key] = expected_type(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Invalid type. Could not set '{key}' to '{value}'.")
-        return self.save_settings()
+        db = SessionLocal()
+        try:
+            for key, value in new_settings.items():
+                if key in config.DEFAULT_SETTINGS:
+                    self.data[key] = value
+                    db.merge(Setting(key=key, value=str(value)))
+            db.commit()
+            return True
+        except SQLAlchemyError as e:
+            log.error(f"DB Update Error: {e}", exc_info=True)
+            db.rollback()
+            return False
+        finally:
+            db.close()
 
 # GLOBAL INSTANCE
 
