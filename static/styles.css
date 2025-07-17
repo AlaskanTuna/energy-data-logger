@@ -1,6 +1,6 @@
 /* static/styles.css */
 
-/* ----- FONT IMPORT & VARIABLES ----- */
+/* ===== FONT IMPORT & VARIABLES ===== */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
@@ -31,13 +31,15 @@ body.dark-mode {
     --icon-filter: invert(98%) sepia(3%) saturate(1001%) hue-rotate(224deg) brightness(116%) contrast(82%);
 }
 
-/* ----- GENERAL & LAYOUT ----- */
+/* ===== RESET ===== */
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
+
+/* ===== BASE STYLES ===== */
 
 body {
     font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -60,6 +62,8 @@ main {
     padding: 2rem 0;
 }
 
+/* ===== TYPOGRAPHY ===== */
+
 h1 {
     font-size: 2.5rem;
     font-weight: 700;
@@ -72,6 +76,8 @@ h2 {
     margin-bottom: 1rem;
     color: var(--text-color);
 }
+
+/* ===== STRUCTURAL COMPONENTS ===== */
 
 header {
     display: flex;
@@ -94,7 +100,7 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
-/* ----- LIGHT/DARK THEME SWITCHER ----- */
+/* ===== THEME SWITCHER ===== */
 
 .theme-switcher {
     cursor: pointer;
@@ -120,7 +126,7 @@ body.dark-mode .theme-switcher:hover {
     transition: filter 0.3s ease;
 }
 
-/* ----- CARDS & PANELS ----- */
+/* ===== CARDS & PANELS ===== */
 
 .card {
     background-color: var(--panel-bg);
@@ -152,7 +158,7 @@ body.dark-mode .theme-switcher:hover {
     color: var(--success-color);
 }
 
-/* ----- MAIN MENU ----- */
+/* ===== MAIN MENU ===== */
 
 .menu {
     display: grid;
@@ -189,6 +195,7 @@ body.dark-mode .theme-switcher:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
 }
+
 .menu-item:hover .icon {
     filter: invert(65%) sepia(98%) saturate(3755%) hue-rotate(265deg) brightness(101%) contrast(101%);
 }
@@ -197,13 +204,16 @@ body.dark-mode .theme-switcher:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
 }
+
 .menu-item.primary .icon {
     filter: invert(65%) sepia(98%) saturate(3755%) hue-rotate(265deg) brightness(101%) contrast(101%);
 }
+
 .menu-item.primary:hover {
     background-color: var(--primary-color);
     color: #ffffff;
 }
+
 .menu-item.primary:hover .icon {
     filter: invert(100%);
 }
@@ -213,15 +223,17 @@ body.dark-mode .theme-switcher:hover {
     border-color: var(--secondary-color);
     color: #ffffff;
 }
+
 .menu-item.primary.active .icon {
     filter: invert(100%);
 }
+
 .menu-item.primary.active:hover {
     background-color: var(--secondary-color-hover);
     border-color: var(--secondary-color-hover);
 }
 
-/* ----- LATEST READINGS TABLE ----- */
+/* ===== TABLES ===== */
 
 #latest-readings p {
     color: var(--text-muted);
@@ -233,7 +245,8 @@ body.dark-mode .theme-switcher:hover {
     margin-top: 1rem;
 }
 
-.readings-table th, .readings-table td {
+.readings-table th,
+.readings-table td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -244,7 +257,7 @@ body.dark-mode .theme-switcher:hover {
     font-weight: 600;
 }
 
-/* ----- MODALS ----- */
+/* ===== MODALS ===== */
 
 .modal {
     position: fixed;
@@ -256,7 +269,6 @@ body.dark-mode .theme-switcher:hover {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -294,13 +306,17 @@ body.dark-mode .theme-switcher:hover {
     color: var(--text-muted);
     transition: color 0.2s ease;
 }
+
 .close-modal:hover {
     color: var(--text-color);
 }
 
-/* MODAL SPECIFIC ELEMENTS */
+/* ===== MODAL ELEMENTS ===== */
 
-.file-list { margin-top: 1rem; }
+.file-list {
+    margin-top: 1rem;
+}
+
 .file-item {
     display: flex;
     justify-content: space-between;
@@ -312,11 +328,18 @@ body.dark-mode .theme-switcher:hover {
     cursor: pointer;
     transition: border-color 0.2s ease, background-color 0.2s ease;
 }
+
 .file-item:hover {
     border-color: var(--primary-color);
     background-color: var(--bg-color);
 }
-.file-item-date { font-size: 0.9em; color: var(--text-muted); }
+
+.file-item-date {
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+/* ===== ACTION BUTTONS & UTILITIES ===== */
 
 .action-button {
     display: inline-flex;
@@ -331,9 +354,19 @@ body.dark-mode .theme-switcher:hover {
     background-color: var(--secondary-color);
     color: #ffffff;
 }
-.action-button:hover { background-color: var(--secondary-color-hover); }
-.action-button.secondary { background-color: var(--border-color); color: var(--text-color); }
-.action-button.secondary:hover { background-color: #c4b8c5; }
+
+.action-button:hover {
+    background-color: var(--secondary-color-hover);
+}
+
+.action-button.secondary {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.action-button.secondary:hover {
+    background-color: #c4b8c5;
+}
 
 .column-selection {
     display: grid;
@@ -341,6 +374,7 @@ body.dark-mode .theme-switcher:hover {
     gap: 0.75rem;
     margin: 1.5rem 0;
 }
+
 .column-option {
     display: flex;
     align-items: center;
@@ -349,13 +383,72 @@ body.dark-mode .theme-switcher:hover {
     background-color: var(--bg-color);
     cursor: pointer;
 }
-.column-option input { margin-right: 0.5rem; }
 
-.download-options { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
-.statistics-container { background-color: var(--bg-color); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; max-height: 300px; overflow-y: auto; }
-.statistics-output { font-family: 'Fira Code', 'Courier New', monospace; white-space: pre-wrap; font-size: 0.9em; }
+.column-option input {
+    margin-right: 0.5rem;
+}
 
-/* ----- DATA VISUALIZATION ----- */
+.download-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.statistics-container {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.statistics-output {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    white-space: pre-wrap;
+    font-size: 0.9em;
+}
+
+.segmented-control {
+    display: flex;
+    width: 100%;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.sg-button {
+    flex: 1;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sg-button.active {
+    background-color: var(--panel-bg);
+    color: var(--text-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+body.dark-mode .sg-button.active {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.sg-button:not(.active):hover {
+    color: var(--text-color);
+}
+
+/* ===== DATA VISUALIZATION ===== */
 
 .viz-options {
     display: grid;
@@ -395,7 +488,7 @@ body.dark-mode .theme-switcher:hover {
     filter: invert(65%) sepia(98%) saturate(3755%) hue-rotate(265deg) brightness(101%) contrast(101%);
 }
 
-/* ----- SETTIINGS MODAL ----- */
+/* ===== SETTINGS FORM ===== */
 
 .form-group {
     margin-bottom: 1.25rem;
@@ -433,7 +526,8 @@ body.dark-mode .theme-switcher:hover {
     justify-content: flex-end;
 }
 
-/* ----- CUSTOM SCROLLBAR ----- */
+
+/* ===== CUSTOM SCROLLBAR ===== */
 
 ::-webkit-scrollbar {
     width: 12px;
@@ -453,7 +547,8 @@ body.dark-mode .theme-switcher:hover {
     background-color: var(--text-muted);
 }
 
-/* ----- RESPONSIVENESS ----- */
+
+/* ===== RESPONSIVENESS ===== */
 
 @media (max-width: 600px) {
     .container {
@@ -462,17 +557,21 @@ body.dark-mode .theme-switcher:hover {
         padding-bottom: 1.5rem;
         padding-left: 1rem;
     }
+
     h1 {
         font-size: 1.75rem;
     }
+
     .menu {
         grid-template-columns: 1fr;
     }
+
     header {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
+
     .theme-switcher {
         position: absolute;
         top: 1.5rem;

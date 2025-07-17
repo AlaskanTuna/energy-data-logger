@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTheme(!document.body.classList.contains('dark-mode'));
     });
 
-    // APPLICATION LOGIC
+    // UI ELEMENTS
 
     const loggerStatus = document.getElementById('logger-status');
     const lastUpdate = document.getElementById('last-update');
@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
         settings: document.getElementById('settings-button')
     };
 
+    // GLOBAL VARIABLES
+
+    let statusRetries = 0;
     let isLogging = false;
     let pollingInterval = null;
 
@@ -57,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error fetching initial status:', error);
                 loggerStatus.textContent = 'Unknown';
                 loggerStatus.style.color = 'orange';
+
+                statusRetries++;
+                if (statusRetries >= 3) {
+                    alert('Unable to connect to the data logger. Please refresh the page again.');
+                    statusRetries = 0;
+                }
             });
     }
 
@@ -92,6 +101,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    function handleFileItemClick(event) {
+        const fileItem = event.currentTarget;
+        const filename = fileItem.dataset.filename;
+        const mode = fileItem.dataset.mode;
+        
+        if (mode === 'analyze') showAnalysisOptions(filename);
+        else if (mode === 'view') window.location.href = `/api/files/${filename}`;
+        else if (mode === 'download') window.location.href = `/api/logs/${filename}`;
+        else if (mode === 'visualize') showVisualizationOptions(filename);
+    }
+
+    // VIEW DATA MODAL
 
     function showFileModal(mode) {
         const modal = document.getElementById('file-modal');
@@ -146,36 +168,131 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalBody.innerHTML = '<p class="error-message">Error loading files. Please try again.</p>';
             });
     }
-    
-    function handleFileItemClick(event) {
-        const fileItem = event.currentTarget;
-        const filename = fileItem.dataset.filename;
-        const mode = fileItem.dataset.mode;
-        
-        if (mode === 'analyze') showAnalysisOptions(filename);
-        else if (mode === 'view') window.location.href = `/api/files/${filename}`;
-        else if (mode === 'download') window.location.href = `/api/logs/${filename}`;
-        else if (mode === 'visualize') showVisualizationOptions(filename);
-    }
+
+    // ANALYZE DATA MODAL
 
     function showAnalysisOptions(filename) {
+        const modalTitle = document.getElementById('file-modal-title');
         const modalBody = document.getElementById('file-modal-body');
-        document.getElementById('file-modal-title').textContent = `Analyze: ${filename}`;
+
+        modalTitle.textContent = `Analyze: ${filename}`;
+        modalBody.innerHTML = `
+            <h3>Select Analysis Time Range</h3>
+            <div class="segmented-control">
+                <button class="sg-button active" data-range-type="full">Full Timeline</button>
+                <button class="sg-button" data-range-type="custom">Custom Range</button>
+            </div>
+            
+            <div id="custom-range-inputs" style="display: none;">
+                <div class="form-group">
+                    <label for="start-time">Start Time</label>
+                    <input type="datetime-local" id="start-time" name="start-time" class="time-input" step="1">
+                </div>
+                <div class="form-group">
+                    <label for="end-time">End Time</label>
+                    <input type="datetime-local" id="end-time" name="end-time" class="time-input" step="1">
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="run-analysis-button" class="action-button">Run Analysis</button>
+                <button id="back-to-file-list" class="action-button secondary">Back</button>
+            </div>
+        `;
+
+        const segmentedButtons = document.querySelectorAll('.sg-button');
+        const customInputs = document.getElementById('custom-range-inputs');
+
+        segmentedButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                segmentedButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const rangeType = button.dataset.rangeType;
+                customInputs.style.display = rangeType === 'custom' ? 'block' : 'none';
+            });
+        });
+
+        document.getElementById('back-to-file-list').addEventListener('click', () => showFileModal('analyze'));
+        document.getElementById('run-analysis-button').addEventListener('click', () => {
+            const activeRangeButton = document.querySelector('.sg-button.active');
+            const rangeType = activeRangeButton ? activeRangeButton.dataset.rangeType : 'full';
+            
+            let startTime = null;
+            let endTime = null;
+
+            if (rangeType === 'custom') {
+                startTime = document.getElementById('start-time').value;
+                endTime = document.getElementById('end-time').value;
+                if (!startTime || !endTime) {
+                    alert('Please select both a start and end time for the custom range.');
+                    return;
+                }
+            }
+
+            runAnalysis(filename, startTime, endTime);
+        });
+    }
+
+    function runAnalysis(filename, startTime, endTime) {
+        const modalBody = document.getElementById('file-modal-body');
         modalBody.innerHTML = '<p class="loading">Analyzing data...</p>';
 
-        fetch(`/api/analyze/${filename}`).then(response => response.json()).then(data => {
-            if (data.error) { modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; return; }
+        const payload = {};
+        if (startTime && endTime) {
+            payload.start_time = startTime;
+            payload.end_time = endTime;
+        }
+
+        fetch(`/api/analyze/${filename}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(response => response.json()).then(data => {
+            if (data.error) { 
+                modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; 
+                return; 
+            }
             const formattedAnalysis = data.analysis_text.replace(/\n/g, '<br>').replace(/=+/g, '<hr>');
             modalBody.innerHTML = `
                 <div class="statistics-container"><div class="statistics-output">${formattedAnalysis}</div></div>
-                <button id="download-stats" class="action-button"><img src="/static/icons/download.svg" class="icon" style="filter:invert(100%)">Download Statistics</button>`;
+                <div class="action-buttons">
+                    <button id="download-stats" class="action-button">Download Statistics</button>
+                    <button id="back-to-time-range" class="action-button secondary">Back</button>
+                </div>`;
+
+            document.getElementById('back-to-time-range').addEventListener('click', () => showAnalysisOptions(filename));
             document.getElementById('download-stats').addEventListener('click', () => downloadStatistics(data.analysis_text, filename));
-        }).catch(err => modalBody.innerHTML = '<p class="error-message">Error analyzing data.</p>');
+
+        }).catch(err => {
+            console.error('Analysis fetch error:', err);
+            modalBody.innerHTML = '<p class="error-message">Error analyzing data.</p>';
+        });
     }
+
+    function downloadStatistics(text, filename) {
+        try {
+            const statsFilename = filename.replace('.csv', '_statistics.txt');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = statsFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Failed to download statistics. Please try again.');
+        }
+    }
+
+    // VISUALIZE DATA MODAL
 
     function showVisualizationOptions(filename) {
         const modalBody = document.getElementById('file-modal-body');
         document.getElementById('file-modal-title').textContent = `Visualize: ${filename}`;
+
         modalBody.innerHTML = '<p class="loading">Loading visualization types...</p>';
 
         fetch('/api/visualization-types').then(r => r.json()).then(types => {
@@ -228,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showCustomSelection(filename) {
         const modalBody = document.getElementById('file-modal-body');
+
         modalBody.innerHTML = '<p class="loading">Loading columns...</p>';
 
         fetch(`/api/columns/${filename}`).then(r => r.json()).then(data => {
@@ -241,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button id="back-to-viz-options" class="action-button secondary">Back</button>
                 </div>`;
             modalBody.innerHTML = html;
+
             document.getElementById('generate-custom-viz').addEventListener('click', () => {
                 const selected = Array.from(document.querySelectorAll('input[name="column"]:checked')).map(cb => cb.value);
                 if (selected.length > 0) generateVisualization(filename, 'custom', selected);
@@ -249,9 +368,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('back-to-viz-options').addEventListener('click', () => showVisualizationOptions(filename));
         }).catch(err => modalBody.innerHTML = '<p class="error-message">Error loading columns.</p>');
     }
-    
+
     function generateVisualization(filename, vizType, columns = null) {
         const modalBody = document.getElementById('file-modal-body');
+
         modalBody.innerHTML = '<div class="loading">Generating visualization...</div>';
 
         const fetchPromise = vizType === 'custom' && columns
@@ -268,125 +388,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a href="${data.normalized_plot}" class="action-button" download style="text-decoration: none;">Download Normalized Plot</a>
                 </div>
                 <button id="back-to-viz-options" class="action-button secondary" style="margin-top: 1rem;">Back</button>`;
+
             document.getElementById('back-to-viz-options').addEventListener('click', () => showVisualizationOptions(filename));
         }).catch(err => modalBody.innerHTML = '<p class="error-message">Error generating visualization.</p>');
     }
 
-    function handleLoggerToggle() {
-        const action = isLogging ? '/api/stop' : '/api/start';
-
-        // Disable the button to prevent double-clicks
-        logButton.disabled = true;
-
-        fetch(action, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                const isNowLogging = data.status === 'started' || data.status === 'already_running';
-                updateLoggerUI(isNowLogging);
-                
-                if (isNowLogging) {
-                    startDataPolling();
-                } else {
-                    stopDataPolling();
-                    const readingsDiv = document.getElementById('latest-readings');
-                    readingsDiv.innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
-                    lastUpdate.textContent = 'Never';
-                }
-
-                if (data.status === 'error') {
-                    alert('An error occurred: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => { 
-                console.error('Error toggling logger:', error); 
-                alert('Failed to communicate with the server.'); 
-            })
-            .finally(() => {
-                logButton.disabled = false;
-            });
-    }
-
-    function startDataPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
-
-        fetch('/api/settings')
-            .then(response => response.json())
-            .then(settings => {
-                const logIntervalSeconds = settings.LOG_INTERVAL || 900;
-                const pollingIntervalMS = logIntervalSeconds * 1000;
-                console.log(`Setting UI polling interval to: ${logIntervalSeconds} seconds.`);
-                pollingInterval = setInterval(fetchLatestData, pollingIntervalMS);
-
-                fetchLatestData();
-            })
-            .catch(error => {
-                console.error("Could not fetch settings to start polling.", error);
-                pollingInterval = setInterval(fetchLatestData, 900000);
-                fetchLatestData();
-            });
-    }
-
-    function stopDataPolling() {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
-        }
-    }
-
-    function fetchLatestData() {
-        fetch('/api/latest').then(r => r.json()).then(data => {
-            const readingsDiv = document.getElementById('latest-readings');
-            const lastUpdateSpan = document.getElementById('last-update');
-
-            if (data && data.ts) {
-                lastUpdateSpan.textContent = new Date().toLocaleTimeString();
-                let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
-
-                const units = {
-                    voltage: 'V',
-                    current: 'A',
-                    power: 'kW',
-                    energy: 'kWh',
-                };
-                const order = [
-                    'voltage', 
-                    'current', 
-                    'power', 
-                    'energy',
-                ];
-                const sortedKeys = Object.keys(data).sort((a, b) => {
-                    if(a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
-                    const aIndex = order.findIndex(p => a.includes(p));
-                    const bIndex = order.findIndex(p => b.includes(p));
-                    if(aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                    return a.localeCompare(b);
-                });
-
-                for (const key of sortedKeys) {
-                    if(key === 'ts') continue;
-                    const value = data[key];
-                    const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-                    // Determine the unit for the parameter
-                    let unit = '';
-                    for (const paramType in units) {
-                        if (key.includes(paramType)) {
-                            unit = units[paramType];
-                            break;
-                        }
-                    }
-
-                    html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)} ${unit}</td></tr>`;
-                }
-                html += '</tbody></table>';
-                readingsDiv.innerHTML = html;
-            }
-        }).catch(err => console.error('Error fetching data:', err));
-    }
+    // SETTINGS MODAL
 
     function showSettingsModal() {
         const modal = document.getElementById('settings-modal');
         const body = document.getElementById('settings-body');
+
         modal.style.display = 'flex';
         body.innerHTML = '<p class="loading">Loading settings...</p>';
 
@@ -483,6 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'success') {
                 alert('Settings saved. If a session was active, it has been stopped. Please start a new session for changes to take effect.');
+
                 document.getElementById('settings-modal').style.display = 'none';
 
                 checkInitialStatus(); 
@@ -497,20 +510,119 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function downloadStatistics(text, filename) {
-        const statsFilename = filename.replace('.csv', '_statistics.txt');
-        const blob = new Blob([text], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = statsFilename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-    
-    // INITIAL CHECK
+    // UI COMPONENT PROCESSES
 
+    function handleLoggerToggle() {
+        const action = isLogging ? '/api/stop' : '/api/start';
+        logButton.disabled = true; // Disable the button to prevent double-clicks
+
+        fetch(action, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                const isNowLogging = data.status === 'started' || data.status === 'already_running';
+                updateLoggerUI(isNowLogging);
+                
+                if (isNowLogging) {
+                    startDataPolling();
+                } else {
+                    stopDataPolling();
+                    const readingsDiv = document.getElementById('latest-readings');
+                    readingsDiv.innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
+                    lastUpdate.textContent = 'Never';
+                }
+
+                if (data.status === 'error') {
+                    alert('An error occurred: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => { 
+                console.error('Error toggling logger:', error); 
+                alert('Failed to communicate with the server.'); 
+            })
+            .finally(() => {
+                logButton.disabled = false;
+            });
+    }
+
+    function startDataPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(settings => {
+                const logIntervalSeconds = settings.LOG_INTERVAL || 900;
+                const pollingIntervalMS = logIntervalSeconds * 1000;
+                console.log(`Setting UI polling interval to: ${logIntervalSeconds} seconds.`);
+                pollingInterval = setInterval(fetchLatestData, pollingIntervalMS);
+
+                fetchLatestData();
+            })
+            .catch(error => {
+                console.error("Could not fetch settings to start polling.", error);
+                alert('Warning: Using default polling interval. Some settings may not be applied correctly.');
+                pollingInterval = setInterval(fetchLatestData, 900000);
+                fetchLatestData();
+            });
+    }
+
+    function stopDataPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+
+    function fetchLatestData() {
+        fetch('/api/latest').then(r => r.json()).then(data => {
+            const readingsDiv = document.getElementById('latest-readings');
+            const lastUpdateSpan = document.getElementById('last-update');
+
+            if (data && data.ts) {
+                lastUpdateSpan.textContent = new Date().toLocaleTimeString();
+                let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
+
+                const units = {
+                    voltage: 'V',
+                    current: 'A',
+                    power: 'kW',
+                    energy: 'kWh',
+                };
+                const order = [
+                    'voltage', 
+                    'current', 
+                    'power', 
+                    'energy',
+                ];
+                const sortedKeys = Object.keys(data).sort((a, b) => {
+                    if(a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
+                    const aIndex = order.findIndex(p => a.includes(p));
+                    const bIndex = order.findIndex(p => b.includes(p));
+                    if(aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                    return a.localeCompare(b);
+                });
+
+                for (const key of sortedKeys) {
+                    if(key === 'ts') continue;
+                    const value = data[key];
+                    const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                    // Determine the unit for the parameter
+                    let unit = '';
+                    for (const paramType in units) {
+                        if (key.includes(paramType)) {
+                            unit = units[paramType];
+                            break;
+                        }
+                    }
+
+                    html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)} ${unit}</td></tr>`;
+                }
+                html += '</tbody></table>';
+                readingsDiv.innerHTML = html;
+            }
+        }).catch(err => console.error('Error fetching data:', err));
+    }
+
+    // Run initial status check
     checkInitialStatus();
 });
