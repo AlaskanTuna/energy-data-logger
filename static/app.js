@@ -397,52 +397,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     <form id="settings-form">
                         <div class="form-group">
                             <label for="log_interval">Logging Interval (Seconds)</label>
-                            <input type="number" id="log_interval" name="log_interval" value="${data.log_interval}" min="1" required>
+                            <input type="number" id="log_interval" name="log_interval" value="${data.LOG_INTERVAL}" min="1" required>
                         </div>
                         <div class="form-group">
                             <label for="modbus_slave_id">Modbus Slave ID</label>
-                            <input type="number" id="modbus_slave_id" name="modbus_slave_id" value="${data.modbus_slave_id}" min="1" max="247" required>
+                            <input type="number" id="modbus_slave_id" name="modbus_slave_id" value="${data.MODBUS_SLAVE_ID}" min="1" max="247" required>
                         </div>
                         <div class="form-group">
                             <label for="baudrate">Baud Rate</label>
                             <select id="baudrate" name="baudrate">
-                                <option value="1200" ${data.baudrate === 1200 ? 'selected' : ''}>1200</option>
-                                <option value="2400" ${data.baudrate === 2400 ? 'selected' : ''}>2400</option>
-                                <option value="4800" ${data.baudrate === 4800 ? 'selected' : ''}>4800</option>
-                                <option value="9600" ${data.baudrate === 9600 ? 'selected' : ''}>9600 (Standard)</option>
-                                <option value="19200" ${data.baudrate === 19200 ? 'selected' : ''}>19200</option>
-                                <option value="38400" ${data.baudrate === 38400 ? 'selected' : ''}>38400</option>
-                                <option value="57600" ${data.baudrate === 57600 ? 'selected' : ''}>57600</option>
-                                <option value="115200" ${data.baudrate === 115200 ? 'selected' : ''}>115200</option>
+                                <option value="1200" ${data.BAUDRATE === 1200 ? 'selected' : ''}>1200</option>
+                                <option value="2400" ${data.BAUDRATE === 2400 ? 'selected' : ''}>2400</option>
+                                <option value="4800" ${data.BAUDRATE === 4800 ? 'selected' : ''}>4800</option>
+                                <option value="9600" ${data.BAUDRATE === 9600 ? 'selected' : ''}>9600 (Standard)</option>
+                                <option value="19200" ${data.BAUDRATE === 19200 ? 'selected' : ''}>19200</option>
+                                <option value="38400" ${data.BAUDRATE === 38400 ? 'selected' : ''}>38400</option>
+                                <option value="57600" ${data.BAUDRATE === 57600 ? 'selected' : ''}>57600</option>
+                                <option value="115200" ${data.BAUDRATE === 115200 ? 'selected' : ''}>115200</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="parity">Parity</label>
                             <select id="parity" name="parity">
-                                <option value='N' ${data.parity === 'N' ? 'selected' : ''}>None (Standard)</option>
-                                <option value='E' ${data.parity === 'E' ? 'selected' : ''}>Even</option>
-                                <option value='O' ${data.parity === 'O' ? 'selected' : ''}>Odd</option>
+                                <option value='N' ${data.PARITY === 'N' ? 'selected' : ''}>None (Standard)</option>
+                                <option value='E' ${data.PARITY === 'E' ? 'selected' : ''}>Even</option>
+                                <option value='O' ${data.PARITY === 'O' ? 'selected' : ''}>Odd</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="bytesize">Byte Size</label>
                             <select id="bytesize" name="bytesize">
-                                <option value="5" ${data.bytesize === 5 ? 'selected' : ''}>5</option>
-                                <option value="6" ${data.bytesize === 6 ? 'selected' : ''}>6</option>
-                                <option value="7" ${data.bytesize === 7 ? 'selected' : ''}>7</option>
-                                <option value="8" ${data.bytesize === 8 ? 'selected' : ''}>8 (Standard)</option>
+                                <option value="5" ${data.BYTESIZE === 5 ? 'selected' : ''}>5</option>
+                                <option value="6" ${data.BYTESIZE === 6 ? 'selected' : ''}>6</option>
+                                <option value="7" ${data.BYTESIZE === 7 ? 'selected' : ''}>7</option>
+                                <option value="8" ${data.BYTESIZE === 8 ? 'selected' : ''}>8 (Standard)</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="stopbits">Stop Bits</label>
                             <select id="stopbits" name="stopbits">
-                                <option value="1" ${data.stopbits === 1 ? 'selected' : ''}>1 (Standard)</option>
-                                <option value="2" ${data.stopbits === 2 ? 'selected' : ''}>2</option>
+                                <option value="1" ${data.STOPBITS === 1 ? 'selected' : ''}>1 (Standard)</option>
+                                <option value="2" ${data.STOPBITS === 2 ? 'selected' : ''}>2</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="timeout">Timeout (Seconds)</label>
-                            <input type="number" id="timeout" name="timeout" value="${data.timeout}" min="1" required>
+                            <input type="number" id="timeout" name="timeout" value="${data.TIMEOUT}" min="1" required>
                         </div>
                         <div class="action-buttons">
                             <button type="submit" class="action-button">Save Settings</button>
