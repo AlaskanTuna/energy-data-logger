@@ -2,6 +2,7 @@
 
 import os
 import logging
+import sqlalchemy
 import pandas as pd
 
 from config import config
@@ -50,7 +51,7 @@ def init_db():
 
 def archive_csv_to_db(filepath):
     """ 
-    Archives CSV data to the database with formatted timestamps.
+    Archives CSV data to the database with proper timestamp objects.
     
     @filepath: Path to the CSV file to archive
     """
@@ -59,15 +60,23 @@ def archive_csv_to_db(filepath):
         return
 
     try:
+        # Read CSV and parse dates
         df = pd.read_csv(filepath, parse_dates=['Timestamp'])
-        df['Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.floor('S')
 
         # Create table name
         table_name = os.path.splitext(os.path.basename(filepath))[0]
         safe_table_name = "".join(c for c in table_name if c.isalnum() or c == '_')
 
-        # Write to SQL
-        df.to_sql(safe_table_name, con=ENGINE, if_exists='replace', index=False)
+        # Write to SQL with proper datetime dtype
+        df.to_sql(
+            safe_table_name, 
+            con=ENGINE, 
+            if_exists='replace', 
+            index=False,
+            dtype={'Timestamp': sqlalchemy.types.DateTime()}
+        )
+
         log.info(f"Archived CSV data to table '{safe_table_name}' from {filepath} successfully.")
     except Exception as e:
         log.error(f"DB Archive Error: {e}", exc_info=True)

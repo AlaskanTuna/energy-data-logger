@@ -110,17 +110,6 @@ def get_log_file(filename):
         download_name=filename
     )
 
-@app.get("/api/analyze/<filename>")
-def analyze_file(filename):
-    """ 
-    Get the analysis results for a specified CSV file.
-    
-    @filename: Name of the file to analyze
-    @return: JSON object with analysis results
-    """
-    result = analyzer_service.analyze_file(filename)
-    return jsonify(result if result else {"error": "Analysis failed"})
-
 @app.get("/api/visualization-types")
 def get_visualization_types():
     """ 
@@ -194,6 +183,20 @@ def stop_logging():
     """
     result = logger_service.stop()
     return jsonify(result)
+
+@app.post("/api/analyze/<filename>")
+def analyze_file(filename):
+    """ 
+    Get the analysis results for a specified CSV file.
+    
+    @filename: Name of the file to analyze
+    @return: JSON object with analysis results
+    """
+    data = request.get_json() or {}
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    result = analyzer_service.analyze_file(filename, start_time, end_time)
+    return jsonify(result if result else {"error": "Analysis failed"})
 
 @app.post("/api/settings")
 def save_settings():

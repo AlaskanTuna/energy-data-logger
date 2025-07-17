@@ -6,7 +6,9 @@ import logging
 import pandas as pd
 
 from components.analyzer import DataAnalyzer
+from services.database import ENGINE
 from io import StringIO
+from datetime import datetime, timedelta
 
 # CONSTANTS
 
@@ -30,51 +32,77 @@ class AnalyzerService:
         self._analyzer = DataAnalyzer()
         self._cache = {}
 
+    def _get_data_from_db(self, filename, start_time=None, end_time=None):
+        """ 
+        Gets data from the database for a logged data file.
+        
+        @filename: CSV file to query
+        @start_time: Optional start time for filtering
+        @end_time: Optional end time for filtering
+        @return: DataFrame with queried data
+        """
+        table_name = os.path.splitext(os.path.basename(filename))[0]
+        safe_table_name = "".join(c for c in table_name if c.isalnum() or c == '_')
+        query = f'SELECT * FROM "{safe_table_name}"'
+        params = {}
+        conditions = []
+
+        if start_time:
+            conditions.append("Timestamp >= :start")
+            params["start"] = datetime.fromisoformat(start_time)
+        if end_time:
+            end_time_dt = datetime.fromisoformat(end_time)
+            stepped_end_time_dt = end_time_dt + timedelta(seconds=1)
+            conditions.append("Timestamp < :end")
+            params["end"] = stepped_end_time_dt
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        try:
+            df = pd.read_sql(query, ENGINE, params=params, parse_dates=['Timestamp'])
+            return df
+        except Exception as e:
+            log.error(f"DB Query Error: {e}", exc_info=True)
+            return None
+
     # PUBLIC API
 
-    def analyze_file(self, filename):
+    def analyze_file(self, filename, start_time=None, end_time=None):
         """
-        Analyze a file and return the statistics.
+        Analyze a file and return the statistics for a given time range.
         
         @filename: CSV file to analyze
+        @start_time: Optional start time for the time range (ISO format string)
+        @end_time: Optional end time for the time range (ISO format string)
         @return: Dictionary with analysis text and status
         """
-        # Check cache first
-        cache_key = f"stats_{filename}"
-        if cache_key in self._cache:
-            return self._cache[cache_key]
+        df = self._get_data_from_db(filename, start_time, end_time)
 
-        filename = os.path.basename(filename)
-        filepath = os.path.join("../data/", filename)
-
-        if not os.path.exists(filepath):
-            return {"error": "File not found"}
+        if df is None:
+            return {"error": "Missing data in database yet."}
 
         try:
             old_stdout = sys.stdout
             captured_output = StringIO()
             sys.stdout = captured_output
 
-            # Use existing analyzer to calculate statistics
-            self._analyzer.calculate_statistics(filepath)
-            self._analyzer.calculate_session_consumption(filepath)
+            self._analyzer.calculate_statistics(df)
+            self._analyzer.calculate_session_consumption(df)
 
             # Capture the output
             sys.stdout = old_stdout
             analysis_text = captured_output.getvalue()
 
-            # Cache and return the result (without visualization options)
             result = {
                 "filename": filename,
                 "analysis_text": analysis_text
             }
-            self._cache[cache_key] = result
             return result
         except Exception as e:
             log.error(f"Analysis Error: {e}", exc_info=True)
             if sys.stdout != old_stdout:
                 sys.stdout = old_stdout
-            return {"error": "An internal error occurred during visualization."}
+            return {"error": "An internal error occurred during analysis."}
 
     def visualize_file(self, filename, plot_type, custom_columns=None):
         """

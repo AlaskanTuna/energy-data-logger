@@ -193,13 +193,20 @@ def analyze_data():
         filepath = os.path.join(config.DS_DIR, selected_file)
 
         try:
+            if not os.path.exists(filepath):
+                log.error(f"File not found at {filepath}.")
+                input("\nPress Enter to continue...")
+                clear_screen()
+                return
+
+            df = pd.read_csv(filepath)
             analyzer = DataAnalyzer()
 
-            analyzer.calculate_statistics(filepath)
-            analyzer.calculate_session_consumption(filepath)
-            input("\nPress Enter to continue...")
-            clear_screen()
+            analyzer.calculate_statistics(df)
+            analyzer.calculate_session_consumption(df)
         except Exception as e:
+            log.error(f"Analysis Error: {e}", exc_info=True)
+        finally:
             input("\nPress Enter to continue...")
             clear_screen()
 

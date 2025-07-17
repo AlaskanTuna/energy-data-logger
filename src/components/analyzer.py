@@ -21,16 +21,16 @@ class DataAnalyzer:
         self.plot_dir = config.PL_DIR
         os.makedirs(self.plot_dir, exist_ok=True)
 
-    def calculate_statistics(self, filepath):
+    # DATA ANALYSIS
+
+    def calculate_statistics(self, df):
         """
-        Compute statistics for the given CSV file.
+        Compute statistics for the given DataFrame.
         
-        @filepath: Path to the CSV file to analyze
+        @df: DataFrame to analyze
         @return: DataFrame with statistics or None if error
         """
         try:
-            df = pd.read_csv(filepath)
-
             # Find all columns that contain the keywords
             param_groups = {
                 "Voltage Parameters": [col for col in df.columns if "voltage" in col.lower()],
@@ -40,6 +40,10 @@ class DataAnalyzer:
             }
 
             print("\n===== Power Meter Statistics =====")
+            if df.empty:
+                print("No data available for the selected time range.")
+                return df
+
             for group_name, columns in param_groups.items():
                 if not columns: 
                     print(f"\n{group_name}: Not enough data for statistics calculation.")
@@ -63,21 +67,24 @@ class DataAnalyzer:
             log.error(f"Statistics Error: {e}", exc_info=True)
             return None
 
-    def calculate_session_consumption(self, filepath):
+    def calculate_session_consumption(self, df):
         """ 
-        Compute total consumption for cumulative columns.
+        Compute total consumption for cumulative columns from a DataFrame.
         
-        @filepath: Path to the CSV file to analyze
-        @return: DataFrame with total consumption or None if error
+        @df: DataFrame to analyze
+        @return: Dictionary with total consumption or None if error
         """
         try:
             consumption_results = {}
-            df = pd.read_csv(filepath)
 
             # Find all columns that contain the keywords
             columns = [col for col in df.columns if "total" in col.lower()]
             if not columns:
                 log.warning("No cumulative columns found for consumption calculation.")
+                return {}
+            
+            if df.empty:
+                print("\nNo data available for consumption calculation in the selected time range.")
                 return {}
 
             print("\n===== Session Consumption Analysis =====\n")
@@ -102,6 +109,8 @@ class DataAnalyzer:
         except Exception as e:
             log.error(f"Session Consumption Analysis Error: {e}", exc_info=True)
             return None
+
+    # TIME SERIES PLOTTING
 
     def visualize_data(self, df, source=None):
         """
