@@ -36,7 +36,7 @@ The Energy Data Logger kit consists of the following components:
 ![OTG cable of the Energy Data Logger kit.](resources/otg_cable_adapter_20250630.png)
 *Figure 2.1.2. OTG cable of the Energy Data Logger kit.*
 
-> **Note:** The controller device must support a direct Ethernet connection. This includes Android phones that support "Ethernet Tethering" or any laptop computer with an Ethernet (RJ45) port. iPhones and other devices that do not support direct Ethernet are not compatible.
+> **Note:** The controller device must support a direct Ethernet connection. This includes Android phones that support "Ethernet" or any laptop computer with an Ethernet (RJ45) port. iPhones and other devices that do not support direct Ethernet are not compatible.
 
 ### 1.2 Physical Hardware Connection
 
@@ -45,6 +45,7 @@ The Energy Data Logger kit consists of the following components:
 2.  Connect the RS-485 cable’s wires from the logger's CAN HAT to the meter’s Modbus terminals as referenced in Figure 2.2.1.1.
 
 ![Connecting RS-485 between energy meter and logger device.](resources/modbus_20250630.png)
+
 *Figure 2.2.1.1. Connecting RS-485 between energy meter and logger device.*
 
 #### 2.2.2 Powering on the Logger
@@ -52,6 +53,7 @@ The Energy Data Logger kit consists of the following components:
 2.  Confirm that the red LED indicator (PWR) on the Raspberry Pi lights up, indicating it has power (Figure 2.2.2.1).
 
 ![Light indicator on the Raspberry Pi.](resources/power_20250630.png)
+
 *Figure 2.2.2.1. Light indicator on the Raspberry Pi.*
 
 #### 2.2.3 Connecting the Logger to a Mobile Device
@@ -62,12 +64,15 @@ The Energy Data Logger kit consists of the following components:
 5.  If no connection is established, first try restarting the mobile device. If that fails, navigate to your device's network settings and manually enable the Ethernet connection if possible (Figure 2.2.3.3). If no such setting exists, the device may be incompatible.
 
 ![LEDs around RJ-45 ports indicate working conditions.](resources/lan_20250630.jpg)
+
 *Figure 2.2.3.1. LEDs around RJ-45 ports indicate working conditions.*
 
 ![Ethernet connection notification after connecting OTG cable.](resources/ethernet_20250630.jpg)
+
 *Figure 2.2.3.2. Ethernet connection notification after connecting OTG cable.*
 
 ![Configuring Ethernet connection settings.](resources/ethernet_settings_20250630.png)
+
 *Figure 2.2.3.3. Configuring Ethernet connection settings.*
 
 ---
