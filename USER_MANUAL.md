@@ -83,7 +83,7 @@ The Energy Data Logger kit consists of the following components:
 After connecting your controller device to the logger, perform the following steps:
 
 1.  Open any web browser on your controller device (e.g., Chrome, Firefox, Safari).
-2.  In the address bar, type `192.168.69.1` and press Enter.
+2.  In the address bar, type `http://energylogger.local` or `192.168.69.1` and press Enter.
 3.  The Energy Data Logger dashboard should now load on your screen.
 
 ![Energy Data Logger webapp interface (OFF).](resources/webapp_off_20250630.png)
@@ -107,7 +107,7 @@ To begin logging energy data at a new site:
 ### 3.3 Concluding a Data Logging Session (On-site Departure)
 To conclude the energy data logging session:
 
-1.  Reconnect your controller device and access the web dashboard at `192.168.69.1`.
+1.  Reconnect your controller device and access the web dashboard at `http://energylogger.local` or `192.168.69.1`.
 2.  Verify the logger status is still **“Active”**.
 3.  Press the **“Stop Logging”** button. The status will change back to **“Inactive”**.
 4.  To retrieve your data, press the **“View Data”** button. A window will appear showing a list of available data files. Each file is named with the date and time it was created. Click on a file to download it.

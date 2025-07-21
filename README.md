@@ -231,16 +231,22 @@
    ```bash
    # Create the DHCP (dnsmasq) config file
    sudo nano /etc/dnsmasq.d/eth0-dhcp.conf
+   ```
 
-   # Paste the following content into the nano editor
+5. Paste the following content into the nano editor
+   ```bash
+   # INTERFACES
    interface=eth0
    bind-dynamic
 
-   # StartIP,EndIP,SubnetMask,LeaseDuration
+   # DNS ADDRESSES
+   address=/energylogger.local/192.168.69.1
+
+   # ETH0: StartIP,EndIP,SubnetMask,LeaseDuration
    dhcp-range=192.168.69.2,192.168.69.254,255.255.255.0,12h
    ```
 
-5. Save the file, enable and restart the service:
+6. Save the file, enable and restart the service:
 
    ```bash
    sudo systemctl enable dnsmasq
@@ -248,7 +254,7 @@
    sudo systemctl status dnsmasq --no-pager -l
    ```
 
-6. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it automatically.
+7. Connect the OTG adapter to a LAN device (client), the DHCP service on the Pi will allocate an IP address to the it automatically.
 
 ### Setting Up systemd to Always Bring Up Ethernet's Interface
 >**Note:** The eth0 interface won't have static IP unless there is a carrier or is manually brought up. For constant uptime, we force the eth0 interface to always be up.
@@ -333,11 +339,19 @@
 
    # Create the new DHCP (dnsmasq) config file
    sudo nano /etc/dnsmasq.d/logger-dhcp.conf
+   ```
 
-   # Paste the following content into the nano editor
+6. Paste the following content into the nano editor:
+
+   ```bash
+   # INTERFACES
    interface=eth0
    interface=wlan0
    bind-dynamic
+
+   # DNS ADDRESSES
+   address=/energylogger.local/192.168.69.1
+   address=/energylogger.local/192.168.42.1
 
    # ETH0: StartIP,EndIP,SubnetMask,LeaseDuration
    dhcp-range=interface:eth0,192.168.69.2,192.168.69.254,255.255.255.0,12h
@@ -346,14 +360,14 @@
    dhcp-range=interface:wlan0,192.168.42.2,192.168.42.254,255.255.255.0,12h
    ```
 
-6. Save the file and restart the service:
+7. Save the file and restart the service:
 
    ```bash
    sudo systemctl restart dnsmasq
    sudo systemctl status dnsmasq --no-pager -l
    ```
 
-7. To configure the WiFi client, plug in the USB WiFi adapter to the Pi and perform the following command:
+8. To configure the WiFi client, plug in the USB WiFi adapter to the Pi and perform the following command:
 > **Note:** This configuration assumes you have a USB WiFi adapter for the Pi.
 
    ```bash
@@ -362,19 +376,20 @@
 
    * Using your arrow keys, choose **Edit a connection → Add → Wi-Fi → Create**.
    * Fill in the necessary information fields of your Wi-Fi to connect.
+   * Choose **Device → wlan1**.
    * Choose **Mode → Client**.
    * Choose **Security → WPA & WPA2 Personal**.
    * Choose **IPv4/IPv6 CONFIGURATION → AUTOMATIC**.
    * Choose **Automatically connect** and **Available to all users**.
    * Choose **OK → Back → Quit** and do `sudo reboot`.
 
-8. Once rebooted, verify the interface profiles for IP addresses, `wlan0` should have the static IP and `wlan1` should have an IP:
+9. Once rebooted, verify the interface profiles for IP addresses, `wlan0` should have the static IP and `wlan1` should have an IP:
 
    ```bash
    ifconfig
    ```
 
-9. Try testing the Internet connection on the Pi from `wlan1`:
+10. Try testing the Internet connection on the Pi from `wlan1`:
 
    ```bash
    ping -c 4 8.8.8.8
