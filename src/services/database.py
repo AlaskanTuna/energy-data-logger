@@ -62,7 +62,7 @@ def archive_csv_to_db(filepath):
     try:
         # Read CSV and parse dates
         df = pd.read_csv(filepath, parse_dates=['Timestamp'])
-        df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.floor('S')
+        df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.floor('s')
 
         # Create table name
         table_name = os.path.splitext(os.path.basename(filepath))[0]
