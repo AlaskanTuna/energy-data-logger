@@ -448,6 +448,18 @@ body.dark-mode .sg-button.active {
     color: var(--text-color);
 }
 
+.datetime-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.datetime-group input[type="date"] {
+    flex: 2;
+}
+.datetime-group input[type="time"] {
+    flex: 1;
+}
+
 /* ===== DATA VISUALIZATION ===== */
 
 .viz-options {

@@ -185,12 +185,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div id="custom-range-inputs" style="display: none;">
                 <div class="form-group">
-                    <label for="start-time">Start Time</label>
-                    <input type="datetime-local" id="start-time" name="start-time" class="time-input" step="1">
+                    <label for="start-date">Start Date & Time</label>
+                    <div class="datetime-group">
+                        <input type="date" id="start-date" name="start-date" class="time-input">
+                        <input type="time" id="start-time" name="start-time" class="time-input" step="1">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="end-time">End Time</label>
-                    <input type="datetime-local" id="end-time" name="end-time" class="time-input" step="1">
+                    <label for="end-date">End Date & Time</label>
+                    <div class="datetime-group">
+                        <input type="date" id="end-date" name="end-date" class="time-input">
+                        <input type="time" id="end-time" name="end-time" class="time-input" step="1">
+                    </div>
                 </div>
             </div>
 
@@ -216,17 +222,24 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('run-analysis-button').addEventListener('click', () => {
             const activeRangeButton = document.querySelector('.sg-button.active');
             const rangeType = activeRangeButton ? activeRangeButton.dataset.rangeType : 'full';
-            
+
             let startTime = null;
             let endTime = null;
 
             if (rangeType === 'custom') {
-                startTime = document.getElementById('start-time').value;
-                endTime = document.getElementById('end-time').value;
-                if (!startTime || !endTime) {
-                    alert('Please select both a start and end time for the custom range.');
+                const startDate = document.getElementById('start-date').value;
+                const startTimeVal = document.getElementById('start-time').value;
+                const endDate = document.getElementById('end-date').value;
+                const endTimeVal = document.getElementById('end-time').value;
+
+                if (!startDate || !startTimeVal || !endDate || !endTimeVal) {
+                    alert('Please select a valid start datetime and an end datetime.');
                     return;
                 }
+
+                // Combine date and time into the required ISO format string
+                startTime = `${startDate}T${startTimeVal}`;
+                endTime = `${endDate}T${endTimeVal}`;
             }
 
             runAnalysis(filename, startTime, endTime);
@@ -560,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error("Could not fetch settings to start polling.", error);
                 alert('Warning: Using default polling interval. Some settings may not be applied correctly.');
-                pollingInterval = setInterval(fetchLatestData, 900000);
+                pollingInterval = setInterval(fetchLatestData, 5000);
                 fetchLatestData();
             });
     }
