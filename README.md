@@ -289,7 +289,7 @@
    sudo systemctl status configure-eth0.service --no-pager -l
    ```
 
-## OPTIONAL: Setting Up systemd for dnsmasq (For Access Point WiFi)
+### OPTIONAL: Setting Up systemd for dnsmasq (For Access Point WiFi)
 > **Note:** This configuration assumes that the Pi already has eth0 setup for SSH and wlan0 as client (WiFi default) currently.
 
 1. Make sure the Pi is currently being accessed using the eth0's SSH connection.
