@@ -298,7 +298,7 @@
 ### OPTIONAL: Setting Up systemd for dnsmasq (For Access Point WiFi)
 > **Note:** This configuration assumes that the Pi already has eth0 setup for SSH and wlan0 as client (WiFi default) currently.
 
-1. Make sure the Pi is currently being accessed using the eth0's SSH connection.
+1. Make sure the Pi is currently being accessed using the `eth0`'s SSH connection.
 
 2. Delete all old WiFi client profiles that are associated with `wlan0`:
 
@@ -308,7 +308,7 @@
    sudo nmcli connection delete <network-profile>
    ```
 
-3. Create a connection profile for the NEW wlan0 interface:
+3. Create a connection profile for the **NEW** `wlan0` interface:
 
    ```bash
    sudo nmcli connection add \
@@ -368,7 +368,7 @@
    ```
 
 8. To configure the WiFi client, plug in the USB WiFi adapter to the Pi and perform the following command:
-> **Note:** This configuration assumes you have a USB WiFi adapter for the Pi.
+   > **Note:** This configuration assumes you have a USB WiFi adapter for the Pi.
 
    ```bash
    sudo nmtui
@@ -391,9 +391,9 @@
 
 10. Try testing the Internet connection on the Pi from `wlan1`:
 
-   ```bash
-   ping -c 4 8.8.8.8
-   ```
+      ```bash
+      ping -c 4 8.8.8.8
+      ```
 
 ### Setting Up systemd for Gunicorn WSGI (For Webapp)
 
@@ -479,7 +479,7 @@
 4. Install dependencies (modpoll to be specific) in `/energy-data-logger/requirements.txt`.
 
 5. Run the following command to see if there are responses from the Modbus RTU:
-> **Note:** Parameter settings may vary depending on the meter's on-board settings.
+   > **Note:** Parameter settings may vary depending on the meter's on-board settings.
 
    ```bash
    mbpoll -m rtu -a 1 -b 9600 -P none -t 4:float -r 20482 -c 2 -l 1000 /dev/serial0
