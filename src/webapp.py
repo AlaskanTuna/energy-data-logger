@@ -8,20 +8,29 @@ import os
 import datetime
 import apscheduler
 
+from config import config
+from components.util import list_files
 from services.database import init_db; init_db()
 from services.settings import settings
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES
-from config import config
-from components.util import list_files
+from datetime import datetime, time, timedelta
 from flask import Flask, request, jsonify, send_from_directory
 
 # CONSTANTS
 
 app = Flask(__name__, static_folder=str(config.STATIC_DIR))
 
-# GET ROUTES
+# HELPER FUNCTIONS
+
+def start_logging_job(**kwargs):
+    return logger_service.start()
+
+def stop_logging_job(**kwargs):
+    return logger_service.stop()
+
+# FLASK GET ROUTES
 
 @app.get("/")
 def index():
@@ -71,32 +80,45 @@ def get_scheduler_status():
         "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None
     }
 
-    # Determine status
     if logger_state.get("status") == "running":
         response["status"] = "logging"
     elif jobs:
         response["status"] = "scheduled"
 
-    if jobs:
-        start_job = next((j for j in jobs if j.id == "start_job"), None)
-        stop_job = next((j for j in jobs if j.id == "stop_job"), None)
+    start_job = next((j for j in jobs if j.id == "start_job"), None)
+    stop_job = next((j for j in jobs if j.id == "stop_job"), None)
 
-        # Determine scheduled logging mode
-        if start_job:
-            if isinstance(start_job.trigger, apscheduler.triggers.date.DateTrigger):
-                response["mode"] = "basic"
-            elif isinstance(start_job.trigger, apscheduler.triggers.interval.IntervalTrigger):
-                response["mode"] = "automated"
+    if start_job:
+        job_mode = start_job.kwargs.get('schedule_mode')
+        if job_mode:
+            response["mode"] = job_mode
 
-            # Determine next event
-            if response["status"] == "logging":
-                response["nextEventTime"] = stop_job.next_run_time.isoformat() if stop_job and stop_job.next_run_time else None
-                response["nextEventType"] = "stop"
-            else:
-                response["nextEventTime"] = start_job.next_run_time.isoformat() if start_job.next_run_time else None
-                response["nextEventType"] = "start"
+        if response["status"] == "logging":
+            stop_time_fields = {str(field): field.expression for field in stop_job.trigger.fields}
+            stop_dt = datetime.now().replace(
+                hour=int(stop_time_fields.get('hour', 0)),
+                minute=int(stop_time_fields.get('minute', 0)),
+                second=0, microsecond=0
+            )
+
+            if stop_dt < datetime.now():
+                stop_dt += timedelta(days=1)
+            
+            if response["mode"] == 'once':
+                stop_dt = stop_dt.replace(
+                    year=int(stop_time_fields['year']),
+                    month=int(stop_time_fields['month']),
+                    day=int(stop_time_fields['day'])
+                )
+
+            response["nextEventTime"] = stop_dt.isoformat()
+            response["nextEventType"] = "stop"
+        elif response["status"] == "scheduled":
+            response["nextEventTime"] = start_job.next_run_time.isoformat() if start_job.next_run_time else None
+            response["nextEventType"] = "start"
     elif response["status"] == "logging":
         response["mode"] = "default"
+
     return jsonify(response)
 
 @app.get("/api/settings")
@@ -212,7 +234,7 @@ def serve_plot(filename):
         as_attachment=True
     )
 
-# POST ROUTES
+# FLASK POST ROUTES
 
 @app.post("/api/schedules/set")
 def set_schedule():
@@ -222,53 +244,78 @@ def set_schedule():
     @return: JSON object with status of the start operation
     """
     data = request.get_json()
-    mode = data.get("mode")
+    if not data:
+        return jsonify({"error": "Invalid data"}), 400
 
+    mode = data.get("mode")
     logger_service._scheduler.remove_all_jobs()
 
     if mode == "default":
         result = logger_service.start()
         return jsonify(result)
 
-    if mode == "basic":
-        start_dt = datetime.fromisoformat(data["start_datetime"])
-        end_dt = datetime.fromisoformat(data["end_datetime"])
-        logger_service._scheduler.add_job(
-            logger_service.start,
-            "date",
-            run_date=start_dt,
-            id="start_job"
-        )
-        logger_service._scheduler.add_job(
-            logger_service.stop,
-            "date",
-            run_date=end_dt,
-            id="stop_job"
-        )
-        return jsonify({"status": "scheduled", "mode": "basic"})
+    try:
+        start_t_str = data.get("start_time")
+        end_t_str = data.get("end_time")
 
-    # TODO: Implement functional logic on placeholder logic
-    if mode == "automated":
-        # start_t = data["start_time"]
-        # end_t = data["end_time"]
-        interval_days = int(data.get("day_interval", 0)) + 1
-        logger_service._scheduler.add_job(
-            logger_service.start, 
-            "interval", 
-            days=interval_days, 
-            hour=9, 
-            id="start_job"
-        )
-        logger_service._scheduler.add_job(
-            logger_service.stop, 
-            "interval", 
-            days=interval_days, 
-            hour=17, 
-            id="stop_job"
-        )
-        return jsonify({"status": "scheduled", "mode": "automated"})
+        if not start_t_str or not end_t_str:
+            return jsonify({"error": "Start and end times are required."}), 400
 
-    return jsonify({"error": "Invalid mode specified"}), 400
+        start_t = time.fromisoformat(start_t_str)
+        end_t = time.fromisoformat(end_t_str)
+        now = datetime.now()
+
+        # Calculate the next run datetime for start job
+        # NOTE: If the start time is scheduled before the start time, it will be scheduled for the next day
+        start_dt = now.replace(hour=start_t.hour, minute=start_t.minute, second=start_t.second, microsecond=0)
+        if start_dt < now:
+            start_dt += timedelta(days=1)
+
+        # Calculate the next run datetime for end job
+        end_dt = now.replace(hour=end_t.hour, minute=end_t.minute, second=end_t.second)
+        if end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": f"Invalid time format: {e}"}), 400
+
+    if mode == "once":
+        logger_service._scheduler.add_job(
+            start_logging_job, "cron",
+            year=start_dt.year, month=start_dt.month, day=start_dt.day,
+            hour=start_dt.hour, minute=start_dt.minute, second=start_dt.second,
+            id="start_job",
+            kwargs={'schedule_mode': 'once'}
+        )
+        logger_service._scheduler.add_job(
+            stop_logging_job, "cron",
+            year=end_dt.year, month=end_dt.month, day=end_dt.day,
+            hour=end_dt.hour, minute=end_dt.minute, second=end_dt.second,
+            id="stop_job",
+            kwargs={'schedule_mode': 'once'}
+        )
+        return jsonify({"status": "scheduled", "mode": "once"})
+
+    if mode == "recurring":
+        day_interval = int(data.get("day_interval", 0))
+        day_of_week_str = f"*/{day_interval + 1}" if day_interval > 0 else "*"
+        
+        logger_service._scheduler.add_job(
+            start_logging_job, "cron",
+            hour=start_t.hour, minute=start_t.minute, second=start_t.second,
+            day_of_week=day_of_week_str,
+            id="start_job",
+            kwargs={'schedule_mode': 'recurring'}
+        )
+        logger_service._scheduler.add_job(
+            stop_logging_job, "cron",
+            hour=end_t.hour, minute=end_t.minute, second=end_t.second,
+            day_of_week=day_of_week_str,
+            id="stop_job",
+            kwargs={'schedule_mode': 'recurring'}
+        )
+        return jsonify({"status": "scheduled", "mode": "recurring"})
+
+    return jsonify({"error": "Invalid mode specified."}), 400
 
 @app.post("/api/schedules/clear")
 def clear_schedule():
@@ -329,8 +376,8 @@ def generate_custom_visualization(filename):
     result = analyzer_service.visualize_file(filename, "custom", data['columns'])
     return jsonify(result)
 
-# RUN FLASK APP
+# RUN FLASK
 
 if __name__ == "__main__":
-    # cd src/ => python webapp.py
+    # NOTE: To manually run the webapp, do `cd src/ && python webapp.py`
     app.run(host="0.0.0.0", port=8000, debug=True)

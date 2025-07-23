@@ -122,33 +122,23 @@
                     <div class="form-group">
                         <label>Schedule Type</label>
                         <div class="segmented-control">
-                            <button class="sg-button active" data-schedule-type="basic">Basic</button>
-                            <button class="sg-button" data-schedule-type="automated">Automated</button>
+                            <button class="sg-button active" data-schedule-type="once">Run Once</button>
+                            <button class="sg-button" data-schedule-type="recurring">Run Recurring</button>
                         </div>
                     </div>
 
-                    <!-- Basic Scheduling Inputs -->
-                    <div id="basic-schedule-inputs">
+                    <div id="time-inputs">
                         <div class="form-group">
-                            <label for="start-datetime">Start Datetime</label>
-                            <input type="datetime-local" id="start-datetime" name="start-datetime">
+                            <label for="start-time">Start Time</label>
+                            <input type="time" id="start-time" name="start-time" step="1" required>
                         </div>
                         <div class="form-group">
-                            <label for="end-datetime">End Datetime</label>
-                            <input type="datetime-local" id="end-datetime" name="end-datetime">
+                            <label for="end-time">End Time</label>
+                            <input type="time" id="end-time" name="end-time" step="1" required>
                         </div>
                     </div>
 
-                    <!-- Automated Scheduling Inputs -->
                     <div id="automated-schedule-inputs" style="display: none;">
-                        <div class="form-group">
-                            <label for="start-time">Daily Start Time</label>
-                            <input type="time" id="start-time" name="start-time" step="1">
-                        </div>
-                        <div class="form-group">
-                            <label for="end-time">Daily End Time</label>
-                            <input type="time" id="end-time" name="end-time" step="1">
-                        </div>
                         <div class="form-group">
                             <label for="day-interval">Day Interval</label>
                             <input type="number" id="day-interval" name="day-interval" value="0" min="0">

@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modeMap = {
             'none': 'None',
             'default': 'Default',
-            'basic': 'Scheduled (Basic)',
-            'automated': 'Scheduled (Automated)'
+            'once': 'Scheduled (Once)',
+            'recurring': 'Scheduled (Recurring)'
         };
         const statusMap = {
             'idle': 'Idle',
@@ -114,100 +114,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // LOG NEW DATA MODAL
-
-    function showScheduleModal() {
-        const modal = document.getElementById('schedule-modal');
-        modal.querySelector('[data-mode="default"]').click();
-        modal.querySelector('[data-schedule-type="basic"]').click();
-        modal.style.display = 'flex';
-    }
-
-    function clearSchedule() {
-        if (!confirm('Do you want to stop the current logging session and clear all log schedules?')) {
-            return;
-        }
-        fetch('/api/schedules/clear', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'cleared'){
-                    fetchStatus();
-                } else {
-                    alert('Failed to stop logging session and clear schedules.');
-                }
-            });
-    }
-
-    // Add event listeners for the new schedule modal
-    const scheduleModal = document.getElementById('schedule-modal');
-    const scheduleOptions = document.getElementById('schedule-options');
-    const basicInputs = document.getElementById('basic-schedule-inputs');
-    const automatedInputs = document.getElementById('automated-schedule-inputs');
-    
-    scheduleModal.querySelector('[data-mode="default"]').addEventListener('click', (e) => {
-        scheduleOptions.style.display = 'none';
-        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-    });
-    scheduleModal.querySelector('[data-mode="scheduled"]').addEventListener('click', (e) => {
-        scheduleOptions.style.display = 'block';
-        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-    });
-    scheduleModal.querySelector('[data-schedule-type="basic"]').addEventListener('click', (e) => {
-        basicInputs.style.display = 'block';
-        automatedInputs.style.display = 'none';
-        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-    });
-    scheduleModal.querySelector('[data-schedule-type="automated"]').addEventListener('click', (e) => {
-        basicInputs.style.display = 'none';
-        automatedInputs.style.display = 'block';
-        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-    });
-
-    document.getElementById('start-schedule-button').addEventListener('click', () => {
-        const payload = {};
-        const modeButton = scheduleModal.querySelector('.sg-button[data-mode].active');
-        payload.mode = modeButton.dataset.mode;
-
-        if (payload.mode === 'scheduled') {
-            const typeButton = scheduleModal.querySelector('.sg-button[data-schedule-type].active');
-            payload.mode = typeButton.dataset.scheduleType === 'basic' ? 'basic' : 'automated';
-            
-            if (payload.mode === 'basic') {
-                payload.start_datetime = document.getElementById('start-datetime').value;
-                payload.end_datetime = document.getElementById('end-datetime').value;
-                if (!payload.start_datetime || !payload.end_datetime) {
-                    alert('Please provide both start and end datetimes for Basic Scheduling.');
-                    return;
-                }
-            } else {
-                payload.start_time = document.getElementById('start-time').value;
-                payload.end_time = document.getElementById('end-time').value;
-                payload.day_interval = document.getElementById('day-interval').value;
-                if (!payload.start_time || !payload.end_time) {
-                    alert('Please provide both start and end times for Automated Scheduling.');
-                    return;
-                }
-            }
-        }
-
-        fetch('/api/schedules/set', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).then(res => res.json()).then(data => {
-            if (data.error) {
-                alert('Error setting schedule: ' + data.error);
-            } else {
-                scheduleModal.style.display = 'none';
-                fetchStatus();
-            }
-        });
-    });
-
     // EVENT LISTENERS
 
     menuButtons.view.addEventListener('click', () => showFileModal('view'));
@@ -235,6 +141,95 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (mode === 'download') window.location.href = `/api/logs/${filename}`;
         else if (mode === 'visualize') showVisualizationOptions(filename);
     }
+
+    // LOG NEW DATA MODAL
+
+    function showScheduleModal() {
+        const modal = document.getElementById('schedule-modal');
+        modal.querySelector('[data-mode="default"]').click();
+        modal.querySelector('[data-schedule-type="once"]').click();
+        modal.querySelector('#start-time').value = '';
+        modal.querySelector('#end-time').value = '';
+        modal.querySelector('#day-interval').value = '0';
+        modal.style.display = 'flex';
+    }
+
+    function clearSchedule() {
+        if (!confirm('Do you want to stop the current logging session and clear all log schedules?')) {
+            return;
+        }
+        fetch('/api/schedules/clear', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'cleared'){
+                    fetchStatus();
+                } else {
+                    alert('Failed to stop logging session and clear schedules.');
+                }
+            });
+    }
+
+    // Add event listeners for the new schedule modal
+    const scheduleModal = document.getElementById('schedule-modal');
+    const scheduleOptions = document.getElementById('schedule-options');
+    const automatedInputs = document.getElementById('automated-schedule-inputs');
+    
+    scheduleModal.querySelector('[data-mode="default"]').addEventListener('click', (e) => {
+        scheduleOptions.style.display = 'none';
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-mode="scheduled"]').addEventListener('click', (e) => {
+        scheduleOptions.style.display = 'block';
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-schedule-type="once"]').addEventListener('click', (e) => {
+        automatedInputs.style.display = 'none';
+        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-schedule-type="recurring"]').addEventListener('click', (e) => {
+        automatedInputs.style.display = 'block';
+        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+
+    document.getElementById('start-schedule-button').addEventListener('click', () => {
+        const payload = {};
+        const modeButton = scheduleModal.querySelector('.sg-button[data-mode].active');
+        payload.mode = modeButton.dataset.mode;
+
+        if (payload.mode === 'scheduled') {
+            const typeButton = scheduleModal.querySelector('.sg-button[data-schedule-type].active');
+            payload.mode = typeButton.dataset.scheduleType;
+
+            payload.start_time = document.getElementById('start-time').value;
+            payload.end_time = document.getElementById('end-time').value;
+
+            if (!payload.start_time || !payload.end_time) {
+                alert('Please provide both start and end time.');
+                return;
+            }
+
+            if (payload.mode === 'recurring') {
+                payload.day_interval = document.getElementById('day-interval').value;
+            }
+        }
+
+        fetch('/api/schedules/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => res.json()).then(data => {
+            if (data.error) {
+                alert('Error setting schedule: ' + data.error);
+            } else {
+                scheduleModal.style.display = 'none';
+                fetchStatus();
+            }
+        });
+    });
 
     // VIEW DATA MODAL
 
