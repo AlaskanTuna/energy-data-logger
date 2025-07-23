@@ -2,19 +2,22 @@
 
 import threading
 import os
-import time
 import logging
 
 from components import util, logger
-from config import config
 from services.app_logger import log_manager
-from services.database import SessionLocal, LoggerState, archive_csv_to_db
+from services.database import ENGINE, SessionLocal, LoggerState, archive_csv_to_db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 # CONSTANTS
 
 log = logging.getLogger(__name__)
+jobstores = {
+    "default": SQLAlchemyJobStore(engine=ENGINE, tablename="scheduler_jobs")
+}
 
 # SERVICES
 
@@ -26,16 +29,21 @@ class LoggerService:
     def __init__(self):
         self._lock = threading.Lock()
         self._logging_thread = None
-        self._monitor_thread = None
         self._dl = None
-        self._stop_monitor = threading.Event()
-        self.start_monitor()
+
+        # Initialize the log scheduler
+        self._scheduler = BackgroundScheduler(jobstores=jobstores)
+        self._scheduler.start()
+        log.info("Scheduler initialized and started successfully.")
 
         # Check for pre-existing state to resume logging
         logger_state = self._get_logger_state()
         if logger_state and logger_state.get("status") == "running":
-            log.info("Resuming RUNNING state. Continuing data logging session.")
-            self.start(from_init=True, initial_state=logger_state)
+            if not self._scheduler.get_jobs():
+                log.info("Recovery Mode: Found 'RUNNING' state and no jobs, resuming Default Logging session.")
+                self.start(from_init=True, initial_state=logger_state)
+            else:
+                log.info("Recovery Mode: Found 'RUNNING' state and active jobs, resuming Scheduled Logging session.")
 
     # STATE MANAGEMENT
 
@@ -90,7 +98,7 @@ class LoggerService:
         try:
             db.query(LoggerState).delete()
             db.commit()
-            log.info("Logger state cleared.")
+            log.info("Logger state cleared successfully.")
         except SQLAlchemyError as e:
             log.error(f"State Clear Error: {e}", exc_info=True)
             db.rollback()
@@ -105,7 +113,7 @@ class LoggerService:
         
         @from_init: Flag to indicate if called from initialization
         @initial_state: Initial state dictionary from existing state
-        @return: Dictionary with status and state information
+        @return: JSON object with status of the start operation
         """
         with self._lock:
             if self._logging_thread and self._logging_thread.is_alive():
@@ -115,7 +123,7 @@ class LoggerService:
                 csv_filepath = initial_state.get("csvFile")
             else:
                 csv_filepath = util.get_current_filename("ds")
-            
+
             if not csv_filepath:
                 log.error("Could not determine CSV file path for new session.")
                 return {"status": "error", "message": "Could not determine CSV file path."}
@@ -123,11 +131,11 @@ class LoggerService:
             session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
             log_manager.start_session_logging(session_name)
 
-            log.info(f"Starting data logging process for {csv_filepath}")
             self._dl = logger.DataLogger(filename=csv_filepath)
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
             self._create_logger_state(csv_filepath)
             self._logging_thread.start()
+            log.info(f"Starting data logging process for {csv_filepath}.")
             return {"status": "started", "state": self._get_logger_state()}
 
     def stop(self):
@@ -163,33 +171,8 @@ class LoggerService:
             if csv_filepath:
                 archive_csv_to_db(csv_filepath)
 
-            log.info("Data logging process stopped cleanly.")
+            log.info("Data logging session stopped successfully.")
             return {"status": "stopped"}
-
-    # MONITOR THREAD LOGIC
-
-    def start_monitor(self):
-        """
-        Starts a thread that monitors the logger.
-        """
-        self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
-        self._monitor_thread.start()
-        log.info("Heartbeat monitor started.")
-
-    def _monitor_loop(self):
-        """
-        Main loop of the monitor thread.
-        """
-        while not self._stop_monitor.is_set():
-            time.sleep(5)
-            state_exists = os.path.exists(config.STATE_FILE)
-            if state_exists and self._logging_thread and not self._logging_thread.is_alive():
-                with self._lock:
-                    if self._logging_thread and not self._logging_thread.is_alive():
-                        log.info("Detected crashed data logging thread. Terminating session and state.")
-                        self._clear_logger_state()
-                        self._logging_thread = None
-                        self._dl = None
 
     # PUBLIC API
 

@@ -154,8 +154,19 @@ body.dark-mode .theme-switcher:hover {
     margin-top: 0.5rem;
 }
 
-#logger-status.active {
-    color: var(--success-color);
+.logger-status.logging {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.logger-status.scheduled {
+    color: #ff9800;
+    font-weight: bold;
+}
+
+.logger-status.error {
+    color: #f44336;
+    font-weight: bold;
 }
 
 /* ===== MAIN MENU ===== */

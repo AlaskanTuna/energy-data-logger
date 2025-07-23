@@ -5,6 +5,8 @@
 #       This is the main application for the data logger.
 
 import os
+import datetime
+import apscheduler
 
 from services.database import init_db; init_db()
 from services.settings import settings
@@ -47,7 +49,55 @@ def get_logger_status():
     
     @return: JSON object with logger status
     """
-    return jsonify(logger_service.get_status())
+    return get_scheduler_status()
+
+@app.get("/api/schedules/status")
+def get_scheduler_status():
+    """ 
+    Gets the current status of the scheduler service.
+    
+    @return: JSON object with scheduler status
+    """
+    logger_state = logger_service.get_status()
+    jobs = logger_service._scheduler.get_jobs()
+    latest_data = logger_service.latest()
+
+    response = {
+        "mode": "none",
+        "status": "idle",
+        "activeCSVFile": logger_state.get("csvFile"),
+        "nextEventTime": None,
+        "nextEventType": None,
+        "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None
+    }
+
+    # Determine status
+    if logger_state.get("status") == "running":
+        response["status"] = "logging"
+    elif jobs:
+        response["status"] = "scheduled"
+
+    if jobs:
+        start_job = next((j for j in jobs if j.id == "start_job"), None)
+        stop_job = next((j for j in jobs if j.id == "stop_job"), None)
+
+        # Determine scheduled logging mode
+        if start_job:
+            if isinstance(start_job.trigger, apscheduler.triggers.date.DateTrigger):
+                response["mode"] = "basic"
+            elif isinstance(start_job.trigger, apscheduler.triggers.interval.IntervalTrigger):
+                response["mode"] = "automated"
+
+            # Determine next event
+            if response["status"] == "logging":
+                response["nextEventTime"] = stop_job.next_run_time.isoformat() if stop_job and stop_job.next_run_time else None
+                response["nextEventType"] = "stop"
+            else:
+                response["nextEventTime"] = start_job.next_run_time.isoformat() if start_job.next_run_time else None
+                response["nextEventType"] = "start"
+    elif response["status"] == "logging":
+        response["mode"] = "default"
+    return jsonify(response)
 
 @app.get("/api/settings")
 def get_settings():
@@ -164,25 +214,70 @@ def serve_plot(filename):
 
 # POST ROUTES
 
-@app.post("/api/start")
-def start_logging():
+@app.post("/api/schedules/set")
+def set_schedule():
     """ 
-    Post request to start the data logging service.
+    Sets the logging action based on the provided mode.
     
-    @return: JSON object with status of the logging service
+    @return: JSON object with status of the start operation
     """
-    result = logger_service.start()
-    return jsonify(result)
+    data = request.get_json()
+    mode = data.get("mode")
 
-@app.post("/api/stop")
-def stop_logging():
+    logger_service._scheduler.remove_all_jobs()
+
+    if mode == "default":
+        result = logger_service.start()
+        return jsonify(result)
+
+    if mode == "basic":
+        start_dt = datetime.fromisoformat(data["start_datetime"])
+        end_dt = datetime.fromisoformat(data["end_datetime"])
+        logger_service._scheduler.add_job(
+            logger_service.start,
+            "date",
+            run_date=start_dt,
+            id="start_job"
+        )
+        logger_service._scheduler.add_job(
+            logger_service.stop,
+            "date",
+            run_date=end_dt,
+            id="stop_job"
+        )
+        return jsonify({"status": "scheduled", "mode": "basic"})
+
+    # TODO: Implement functional logic on placeholder logic
+    if mode == "automated":
+        # start_t = data["start_time"]
+        # end_t = data["end_time"]
+        interval_days = int(data.get("day_interval", 0)) + 1
+        logger_service._scheduler.add_job(
+            logger_service.start, 
+            "interval", 
+            days=interval_days, 
+            hour=9, 
+            id="start_job"
+        )
+        logger_service._scheduler.add_job(
+            logger_service.stop, 
+            "interval", 
+            days=interval_days, 
+            hour=17, 
+            id="stop_job"
+        )
+        return jsonify({"status": "scheduled", "mode": "automated"})
+
+    return jsonify({"error": "Invalid mode specified"}), 400
+
+@app.post("/api/schedules/clear")
+def clear_schedule():
     """ 
-    Post request to stop the data logging service.
-    
-    @return: JSON object with status of the logging service
+    Stops the logger and clears all scheduled jobs.
     """
-    result = logger_service.stop()
-    return jsonify(result)
+    logger_service.stop()
+    logger_service._scheduler.remove_all_jobs()
+    return jsonify({"status": "cleared"})
 
 @app.post("/api/analyze/<filename>")
 def analyze_file(filename):

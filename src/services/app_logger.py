@@ -65,7 +65,7 @@ class LogManager:
 
         self._buffer_handler = BufferHandler()
         root_logger.addHandler(self._buffer_handler)
-        log.info("App logger initialized. Logging program activity now.")
+        log.info("Application logger initialized and started successfully.")
 
     def start_session_logging(self, filename):
         """

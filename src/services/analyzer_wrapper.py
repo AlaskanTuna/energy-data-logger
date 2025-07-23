@@ -79,7 +79,7 @@ class AnalyzerService:
         df = self._get_data_from_db(filename, start_time, end_time)
 
         if df is None:
-            return {"error": "Missing data in database yet."}
+            return {"error": "Unable to retrieve data from database."}
 
         try:
             old_stdout = sys.stdout

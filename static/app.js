@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // THEME SWITCHER
+    // DARK-LIGHT THEME SWITCHER
 
     const themeSwitcher = document.querySelector('.theme-switcher');
     const themeIcon = document.getElementById('theme-icon');
@@ -26,12 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // UI ELEMENTS
 
-    const loggerStatus = document.getElementById('logger-status');
     const lastUpdate = document.getElementById('last-update');
-    const latestReadingsDiv = document.getElementById('latest-readings');
     const logButton = document.getElementById('log-button');
     const logButtonText = document.getElementById('log-button-text');
-    
     const menuButtons = {
         log: logButton,
         view: document.getElementById('view-data-button'),
@@ -43,56 +40,182 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // GLOBAL VARIABLES
 
-    let statusRetries = 0;
-    let isLogging = false;
-    let pollingInterval = null;
+    let dataPollingInterval = null;
+    let statusPollingInterval = null;
 
-    function checkInitialStatus() {
-        fetch('/api/status')
+    // STATUS POLLING AND RENDERING
+
+    function startStatusPolling() {
+        if (statusPollingInterval) clearInterval(statusPollingInterval);
+        fetchStatus();
+        statusPollingInterval = setInterval(fetchStatus, 5000);
+    }
+
+    function fetchStatus() {
+        fetch('/api/schedules/status')
             .then(response => response.json())
             .then(data => {
-                updateLoggerUI(data.status === 'running');
-                if (data.status === 'running') {
-                    startDataPolling();
-                }
+                updateUIFromStatus(data);
             })
             .catch(error => {
-                console.error('Error fetching initial status:', error);
-                loggerStatus.textContent = 'Unknown';
-                loggerStatus.style.color = 'orange';
+                console.error('Error fetching status:', error);
+                document.getElementById('logger-status').textContent = 'Error';
+                document.getElementById('logger-status').className = 'error';
+            });
+    }
 
-                statusRetries++;
-                if (statusRetries >= 3) {
-                    alert('Unable to connect to the data logger. Please refresh the page again.');
-                    statusRetries = 0;
+    function updateUIFromStatus(data) {
+        const modeMap = {
+            'none': 'None',
+            'default': 'Default',
+            'basic': 'Scheduled (Basic)',
+            'automated': 'Scheduled (Automated)'
+        };
+        const statusMap = {
+            'idle': 'Idle',
+            'scheduled': 'Scheduled',
+            'logging': 'Logging'
+        };
+
+        document.getElementById('logger-mode').textContent = modeMap[data.mode] || 'Unknown';
+        const statusElement = document.getElementById('logger-status');
+        statusElement.textContent = statusMap[data.status] || 'Unknown';
+        statusElement.className = 'logger-status ' + data.status;
+
+        let nextEventText = 'None';
+        if (data.next_event_time) {
+            const eventDate = new Date(data.next_event_time);
+            nextEventText = `${data.next_event_type === 'start' ? 'Starts' : 'Stops'} at ${eventDate.toLocaleString()}`;
+        }
+        document.getElementById('next-event').textContent = nextEventText;
+
+        const lastUpdateElement = document.getElementById('last-update');
+        if (data.status === 'logging' && data.lastUpdated) {
+            lastUpdateElement.textContent = new Date(data.lastUpdated).toLocaleTimeString();
+        } else {
+            lastUpdateElement.textContent = 'None';
+        }
+
+        if (data.status === 'idle' && data.mode === 'none') {
+            logButtonText.textContent = 'Log New Data';
+            logButton.onclick = () => showScheduleModal();
+            logButton.classList.remove('active');
+        } else {
+            logButtonText.textContent = 'Stop Logging';
+            logButton.onclick = () => clearSchedule();
+            logButton.classList.add('active');
+        }
+
+        if (data.status === 'logging') {
+            if (!dataPollingInterval) startDataPolling();
+        } else {
+            if (dataPollingInterval) stopDataPolling();
+            document.getElementById('latest-readings').innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
+        }
+    }
+
+    // LOG NEW DATA MODAL
+
+    function showScheduleModal() {
+        const modal = document.getElementById('schedule-modal');
+        modal.querySelector('[data-mode="default"]').click();
+        modal.querySelector('[data-schedule-type="basic"]').click();
+        modal.style.display = 'flex';
+    }
+
+    function clearSchedule() {
+        if (!confirm('Do you want to stop the current logging session and clear all log schedules?')) {
+            return;
+        }
+        fetch('/api/schedules/clear', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'cleared'){
+                    fetchStatus();
+                } else {
+                    alert('Failed to stop logging session and clear schedules.');
                 }
             });
     }
 
-    function updateLoggerUI(loggingStatus) {
-        isLogging = loggingStatus;
-        if (isLogging) {
-            loggerStatus.textContent = 'Active';
-            loggerStatus.classList.add('active');
-            logButton.classList.add('active');
-            logButtonText.textContent = 'Stop Logging';
-        } else {
-            loggerStatus.textContent = 'Inactive';
-            loggerStatus.classList.remove('active');
-            logButton.classList.remove('active');
-            logButtonText.textContent = 'Log New Data';
-        }
-    }
+    // Add event listeners for the new schedule modal
+    const scheduleModal = document.getElementById('schedule-modal');
+    const scheduleOptions = document.getElementById('schedule-options');
+    const basicInputs = document.getElementById('basic-schedule-inputs');
+    const automatedInputs = document.getElementById('automated-schedule-inputs');
+    
+    scheduleModal.querySelector('[data-mode="default"]').addEventListener('click', (e) => {
+        scheduleOptions.style.display = 'none';
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-mode="scheduled"]').addEventListener('click', (e) => {
+        scheduleOptions.style.display = 'block';
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-schedule-type="basic"]').addEventListener('click', (e) => {
+        basicInputs.style.display = 'block';
+        automatedInputs.style.display = 'none';
+        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+    scheduleModal.querySelector('[data-schedule-type="automated"]').addEventListener('click', (e) => {
+        basicInputs.style.display = 'none';
+        automatedInputs.style.display = 'block';
+        document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
 
-    // Event listeners for menu buttons
-    menuButtons.log.addEventListener('click', () => handleLoggerToggle());
+    document.getElementById('start-schedule-button').addEventListener('click', () => {
+        const payload = {};
+        const modeButton = scheduleModal.querySelector('.sg-button[data-mode].active');
+        payload.mode = modeButton.dataset.mode;
+
+        if (payload.mode === 'scheduled') {
+            const typeButton = scheduleModal.querySelector('.sg-button[data-schedule-type].active');
+            payload.mode = typeButton.dataset.scheduleType === 'basic' ? 'basic' : 'automated';
+            
+            if (payload.mode === 'basic') {
+                payload.start_datetime = document.getElementById('start-datetime').value;
+                payload.end_datetime = document.getElementById('end-datetime').value;
+                if (!payload.start_datetime || !payload.end_datetime) {
+                    alert('Please provide both start and end datetimes for Basic Scheduling.');
+                    return;
+                }
+            } else {
+                payload.start_time = document.getElementById('start-time').value;
+                payload.end_time = document.getElementById('end-time').value;
+                payload.day_interval = document.getElementById('day-interval').value;
+                if (!payload.start_time || !payload.end_time) {
+                    alert('Please provide both start and end times for Automated Scheduling.');
+                    return;
+                }
+            }
+        }
+
+        fetch('/api/schedules/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => res.json()).then(data => {
+            if (data.error) {
+                alert('Error setting schedule: ' + data.error);
+            } else {
+                scheduleModal.style.display = 'none';
+                fetchStatus();
+            }
+        });
+    });
+
+    // EVENT LISTENERS
+
     menuButtons.view.addEventListener('click', () => showFileModal('view'));
     menuButtons.analyze.addEventListener('click', () => showFileModal('analyze'));
     menuButtons.visualize.addEventListener('click', () => showFileModal('visualize'));
     menuButtons.download.addEventListener('click', () => showFileModal('download'));
     menuButtons.settings.addEventListener('click', () => showSettingsModal());
 
-    // Modal close event listener
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('close-modal') || event.target.classList.contains('modal')) {
             const modal = event.target.closest('.modal');
@@ -508,10 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'success') {
                 alert('Settings saved. If a session was active, it has been stopped. Please start a new session for changes to take effect.');
-
                 document.getElementById('settings-modal').style.display = 'none';
-
-                checkInitialStatus(); 
             } else {
                 alert('Error saving settings: ' + (data.error || 'Unknown error'));
             }
@@ -523,103 +643,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // UI COMPONENT PROCESSES
-
-    function handleLoggerToggle() {
-        const action = isLogging ? '/api/stop' : '/api/start';
-        logButton.disabled = true; // Disable the button to prevent double-clicks
-
-        fetch(action, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                const isNowLogging = data.status === 'started' || data.status === 'already_running';
-                updateLoggerUI(isNowLogging);
-                
-                if (isNowLogging) {
-                    startDataPolling();
-                } else {
-                    stopDataPolling();
-                    const readingsDiv = document.getElementById('latest-readings');
-                    readingsDiv.innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
-                    lastUpdate.textContent = 'Never';
-                }
-
-                if (data.status === 'error') {
-                    alert('An error occurred: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => { 
-                console.error('Error toggling logger:', error); 
-                alert('Failed to communicate with the server.'); 
-            })
-            .finally(() => {
-                logButton.disabled = false;
-            });
-    }
+    // DATA POLLING
 
     function startDataPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
+        if (dataPollingInterval) clearInterval(dataPollingInterval);
 
         fetch('/api/settings')
             .then(response => response.json())
             .then(settings => {
                 const logIntervalSeconds = settings.LOG_INTERVAL || 900;
-                const pollingIntervalMS = logIntervalSeconds * 1000;
-                console.log(`Setting UI polling interval to: ${logIntervalSeconds} seconds.`);
-                pollingInterval = setInterval(fetchLatestData, pollingIntervalMS);
-
+                const pollingIntervalMS = Math.min(logIntervalSeconds * 1000, 5000); 
+                dataPollingInterval = setInterval(fetchLatestData, pollingIntervalMS);
                 fetchLatestData();
             })
             .catch(error => {
-                console.error("Could not fetch settings to start polling.", error);
-                alert('Warning: Using default polling interval. Some settings may not be applied correctly.');
-                pollingInterval = setInterval(fetchLatestData, 5000);
+                console.error("Could not fetch settings to start data polling.", error);
+                dataPollingInterval = setInterval(fetchLatestData, 5000);
                 fetchLatestData();
             });
     }
 
     function stopDataPolling() {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
+        if (dataPollingInterval) {
+            clearInterval(dataPollingInterval);
+            dataPollingInterval = null;
         }
     }
 
     function fetchLatestData() {
         fetch('/api/latest').then(r => r.json()).then(data => {
             const readingsDiv = document.getElementById('latest-readings');
-            const lastUpdateSpan = document.getElementById('last-update');
-
             if (data && data.ts) {
-                lastUpdateSpan.textContent = new Date().toLocaleTimeString();
                 let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
 
                 const units = {
-                    voltage: 'V',
-                    current: 'A',
-                    power: 'kW',
-                    energy: 'kWh',
+                    voltage: 'V', 
+                    current: 'A', 
+                    power: 'kW', 
+                    energy: 'kWh'
                 };
                 const order = [
                     'voltage', 
                     'current', 
                     'power', 
-                    'energy',
+                    'energy'
                 ];
                 const sortedKeys = Object.keys(data).sort((a, b) => {
-                    if(a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
+                    if (a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
                     const aIndex = order.findIndex(p => a.includes(p));
                     const bIndex = order.findIndex(p => b.includes(p));
-                    if(aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
                     return a.localeCompare(b);
                 });
 
                 for (const key of sortedKeys) {
-                    if(key === 'ts') continue;
+                    if (key === 'ts') continue;
                     const value = data[key];
                     const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-                    // Determine the unit for the parameter
                     let unit = '';
                     for (const paramType in units) {
                         if (key.includes(paramType)) {
@@ -627,7 +707,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             break;
                         }
                     }
-
                     html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)} ${unit}</td></tr>`;
                 }
                 html += '</tbody></table>';
@@ -637,5 +716,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Run initial status check
-    checkInitialStatus();
+    startStatusPolling();
 });
