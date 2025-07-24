@@ -82,13 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
         statusElement.textContent = statusMap[data.status] || 'Unknown';
         statusElement.className = 'logger-status ' + data.status;
 
-        let nextEventText = 'None';
-        if (data.next_event_time) {
-            const eventDate = new Date(data.next_event_time);
-            nextEventText = `${data.next_event_type === 'start' ? 'Starts' : 'Stops'} at ${eventDate.toLocaleString()}`;
-        }
-        document.getElementById('next-event').textContent = nextEventText;
-
         const lastUpdateElement = document.getElementById('last-update');
         if (data.status === 'logging' && data.lastUpdated) {
             lastUpdateElement.textContent = new Date(data.lastUpdated).toLocaleTimeString();
@@ -173,6 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const scheduleModal = document.getElementById('schedule-modal');
     const scheduleOptions = document.getElementById('schedule-options');
     const automatedInputs = document.getElementById('automated-schedule-inputs');
+    const startTimeInput = document.getElementById('start-time');
+    const endTimeInput = document.getElementById('end-time');
+    const endTimeLabel = document.getElementById('label[for="end-time"]');
     
     scheduleModal.querySelector('[data-mode="default"]').addEventListener('click', (e) => {
         scheduleOptions.style.display = 'none';
@@ -188,34 +184,51 @@ document.addEventListener('DOMContentLoaded', function() {
         automatedInputs.style.display = 'none';
         document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
+
+        endTimeInput.required = false;
+        endTimeLabel.textContent = 'End Time';
     });
     scheduleModal.querySelector('[data-schedule-type="recurring"]').addEventListener('click', (e) => {
         automatedInputs.style.display = 'block';
         document.querySelectorAll('[data-schedule-type]').forEach(b => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
+
+        endTimeInput.required = true;
+        endTimeLabel.textContent = 'End Time';
     });
 
     document.getElementById('start-schedule-button').addEventListener('click', () => {
         const payload = {};
         const modeButton = scheduleModal.querySelector('.sg-button[data-mode].active');
-        payload.mode = modeButton.dataset.mode;
+        const selectedMode = modeButton.dataset.mode;
 
-        if (payload.mode === 'scheduled') {
+        if (selectedMode === 'default') {
+            payload.mode = 'default';
+        } else if (selectedMode === 'scheduled') {
             const typeButton = scheduleModal.querySelector('.sg-button[data-schedule-type].active');
             payload.mode = typeButton.dataset.scheduleType;
 
             payload.start_time = document.getElementById('start-time').value;
             payload.end_time = document.getElementById('end-time').value;
 
-            if (!payload.start_time || !payload.end_time) {
-                alert('Please provide both start and end time.');
+            if (!payload.start_time) {
+                alert("Please provide a start time for the schedule.");
+                return;
+            }
+
+            if (payload.mode === 'recurring' && !payload.end_time) {
+                alert("Please provide an end time for a recurring schedule.");
                 return;
             }
 
             if (payload.mode === 'recurring') {
                 payload.day_interval = document.getElementById('day-interval').value;
             }
+        } else {
+            alert("Invalid logging mode selected.");
+            return;
         }
+        console.log("Sending schedule payload:", JSON.stringify(payload));
 
         fetch('/api/schedules/set', {
             method: 'POST',
@@ -228,6 +241,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 scheduleModal.style.display = 'none';
                 fetchStatus();
             }
+        }).catch(err => {
+            console.error('Fetch error:', err);
+            alert('An unexpected error occurred while setting the schedule.');
         });
     });
 
