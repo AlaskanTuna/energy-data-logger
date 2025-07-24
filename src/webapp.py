@@ -5,6 +5,7 @@
 #       This is the main application for the data logger.
 
 import os
+import logging
 import datetime
 import apscheduler
 
@@ -21,6 +22,7 @@ from flask import Flask, request, jsonify, send_from_directory
 # CONSTANTS
 
 app = Flask(__name__, static_folder=str(config.STATIC_DIR))
+log = logging.getLogger(__name__)
 
 # HELPER FUNCTIONS
 
@@ -28,7 +30,9 @@ def start_logging_job(**kwargs):
     return logger_service.start()
 
 def stop_logging_job(**kwargs):
-    return logger_service.stop()
+    if logger_service.is_running():
+        return logger_service.stop()
+    return {"status": "not_running"}
 
 # FLASK GET ROUTES
 
@@ -75,8 +79,6 @@ def get_scheduler_status():
         "mode": "none",
         "status": "idle",
         "activeCSVFile": logger_state.get("csvFile"),
-        "nextEventTime": None,
-        "nextEventType": None,
         "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None
     }
 
@@ -93,32 +95,32 @@ def get_scheduler_status():
         if job_mode:
             response["mode"] = job_mode
 
-        if response["status"] == "logging":
-            stop_time_fields = {str(field): field.expression for field in stop_job.trigger.fields}
-            stop_dt = datetime.now().replace(
-                hour=int(stop_time_fields.get('hour', 0)),
-                minute=int(stop_time_fields.get('minute', 0)),
-                second=0, microsecond=0
-            )
+        if response["status"] == "logging" and stop_job:
+            try:
+                if isinstance(stop_job.trigger, apscheduler.triggers.cron.CronTrigger):
+                    stop_time_fields = {str(field): field.expression for field in stop_job.trigger.fields}
+                    stop_dt = datetime.now().replace(
+                        hour=int(stop_time_fields.get('hour', 0)),
+                        minute=int(stop_time_fields.get('minute', 0)),
+                        second=int(stop_time_fields.get('second', 0)),
+                        microsecond=0
+                    )
+                    if stop_dt < datetime.now():
+                        stop_dt += timedelta(days=1)
 
-            if stop_dt < datetime.now():
-                stop_dt += timedelta(days=1)
-            
-            if response["mode"] == 'once':
-                stop_dt = stop_dt.replace(
-                    year=int(stop_time_fields['year']),
-                    month=int(stop_time_fields['month']),
-                    day=int(stop_time_fields['day'])
-                )
-
-            response["nextEventTime"] = stop_dt.isoformat()
-            response["nextEventType"] = "stop"
-        elif response["status"] == "scheduled":
-            response["nextEventTime"] = start_job.next_run_time.isoformat() if start_job.next_run_time else None
-            response["nextEventType"] = "start"
-    elif response["status"] == "logging":
-        response["mode"] = "default"
-
+                    if response["mode"] == 'once':
+                        try:
+                            stop_dt = stop_dt.replace(
+                                year=int(stop_time_fields['year']),
+                                month=int(stop_time_fields['month']),
+                                day=int(stop_time_fields['day'])
+                            )
+                        except (KeyError, ValueError):
+                            pass
+                elif hasattr(stop_job.trigger, 'run_date'):
+                    stop_dt = stop_job.trigger.run_date
+            except Exception as e:
+                log.error(f"Error parsing scheduler job: {e}")
     return jsonify(response)
 
 @app.get("/api/settings")
@@ -255,67 +257,100 @@ def set_schedule():
         return jsonify(result)
 
     try:
-        start_t_str = data.get("start_time")
-        end_t_str = data.get("end_time")
+        if mode == "once":
+            start_t_str = data.get("start_time")
+            end_t_str = data.get("end_time")
 
-        if not start_t_str or not end_t_str:
-            return jsonify({"error": "Start and end times are required."}), 400
+            if not start_t_str:
+                return jsonify({"error": "Start time is required for Scheduled Logging."}), 400
 
-        start_t = time.fromisoformat(start_t_str)
-        end_t = time.fromisoformat(end_t_str)
-        now = datetime.now()
+            start_t = time.fromisoformat(start_t_str)
+            now = datetime.now()
+            start_dt = now.replace(hour=start_t.hour, minute=start_t.minute, second=start_t.second, microsecond=0)
+            if start_dt < now:
+                start_dt += timedelta(days=1)
 
-        # Calculate the next run datetime for start job
-        # NOTE: If the start time is scheduled before the start time, it will be scheduled for the next day
-        start_dt = now.replace(hour=start_t.hour, minute=start_t.minute, second=start_t.second, microsecond=0)
-        if start_dt < now:
-            start_dt += timedelta(days=1)
+            if not end_t_str:
+                end_dt = datetime(2099, 12, 31, 23, 59, 59)
+            else:
+                end_t = time.fromisoformat(end_t_str)
+                end_dt = now.replace(hour=end_t.hour, minute=end_t.minute, second=end_t.second, microsecond=0)
+                if end_dt <= start_dt:
+                    end_dt += timedelta(days=1)
+            
+            logger_service._scheduler.add_job(
+                start_logging_job, "date", run_date=start_dt, id="start_job", kwargs={'schedule_mode': 'once'}
+            )
+            logger_service._scheduler.add_job(
+                stop_logging_job, "date", run_date=end_dt, id="stop_job", kwargs={'schedule_mode': 'once'}
+            )
+            return jsonify({"status": "scheduled", "mode": "once"})
 
-        # Calculate the next run datetime for end job
-        end_dt = now.replace(hour=end_t.hour, minute=end_t.minute, second=end_t.second)
-        if end_dt <= start_dt:
-            end_dt += timedelta(days=1)
+        elif mode == "recurring":
+            start_t_str = data.get("start_time")
+            end_t_str = data.get("end_time")
+
+            if not start_t_str or not end_t_str:
+                return jsonify({"error": "Both start and end times are required for recurring schedules."}), 400
+
+            start_t = time.fromisoformat(start_t_str)
+            end_t = time.fromisoformat(end_t_str)
+
+            day_interval = int(data.get("day_interval", 0))
+            if day_interval > 0:
+                start_dt = datetime.now().replace(
+                    hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0
+                )
+                if start_dt < datetime.now():
+                    start_dt += timedelta(days=1)
+
+                logger_service._scheduler.add_job(
+                    start_logging_job, 
+                    "interval", 
+                    days=day_interval,
+                    start_date=start_dt,
+                    id="start_job", 
+                    kwargs={'schedule_mode': 'recurring'}
+                )
+
+                end_dt = datetime.now().replace(
+                    hour=end_t.hour, minute=end_t.minute, second=end_t.second, microsecond=0
+                )
+                if end_dt <= start_dt:
+                    end_dt += timedelta(days=1)
+
+                logger_service._scheduler.add_job(
+                    stop_logging_job, 
+                    "interval", 
+                    days=day_interval,
+                    start_date=end_dt,
+                    id="stop_job", 
+                    kwargs={'schedule_mode': 'recurring'}
+                )
+            else:
+                logger_service._scheduler.add_job(
+                    start_logging_job, 
+                    "cron", 
+                    hour=start_t.hour, 
+                    minute=start_t.minute,
+                    second=start_t.second,
+                    id="start_job", 
+                    kwargs={'schedule_mode': 'recurring'}
+                )
+                logger_service._scheduler.add_job(
+                    stop_logging_job, 
+                    "cron", 
+                    hour=end_t.hour, 
+                    minute=end_t.minute,
+                    second=end_t.second,
+                    id="stop_job", 
+                    kwargs={'schedule_mode': 'recurring'}
+                )
+            return jsonify({"status": "scheduled", "mode": "recurring"})
+        else:
+            return jsonify({"error": "Invalid mode specified."}), 400
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"Invalid time format: {e}"}), 400
-
-    if mode == "once":
-        logger_service._scheduler.add_job(
-            start_logging_job, "cron",
-            year=start_dt.year, month=start_dt.month, day=start_dt.day,
-            hour=start_dt.hour, minute=start_dt.minute, second=start_dt.second,
-            id="start_job",
-            kwargs={'schedule_mode': 'once'}
-        )
-        logger_service._scheduler.add_job(
-            stop_logging_job, "cron",
-            year=end_dt.year, month=end_dt.month, day=end_dt.day,
-            hour=end_dt.hour, minute=end_dt.minute, second=end_dt.second,
-            id="stop_job",
-            kwargs={'schedule_mode': 'once'}
-        )
-        return jsonify({"status": "scheduled", "mode": "once"})
-
-    if mode == "recurring":
-        day_interval = int(data.get("day_interval", 0))
-        day_of_week_str = f"*/{day_interval + 1}" if day_interval > 0 else "*"
-        
-        logger_service._scheduler.add_job(
-            start_logging_job, "cron",
-            hour=start_t.hour, minute=start_t.minute, second=start_t.second,
-            day_of_week=day_of_week_str,
-            id="start_job",
-            kwargs={'schedule_mode': 'recurring'}
-        )
-        logger_service._scheduler.add_job(
-            stop_logging_job, "cron",
-            hour=end_t.hour, minute=end_t.minute, second=end_t.second,
-            day_of_week=day_of_week_str,
-            id="stop_job",
-            kwargs={'schedule_mode': 'recurring'}
-        )
-        return jsonify({"status": "scheduled", "mode": "recurring"})
-
-    return jsonify({"error": "Invalid mode specified."}), 400
 
 @app.post("/api/schedules/clear")
 def clear_schedule():

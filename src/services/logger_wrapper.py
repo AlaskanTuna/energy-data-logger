@@ -39,11 +39,14 @@ class LoggerService:
         # Check for pre-existing state to resume logging
         logger_state = self._get_logger_state()
         if logger_state and logger_state.get("status") == "running":
-            if not self._scheduler.get_jobs():
+            jobs = self._scheduler.get_jobs()
+            if not jobs:
                 log.info("Recovery Mode: Found 'RUNNING' state and no jobs, resuming Default Logging session.")
                 self.start(from_init=True, initial_state=logger_state)
             else:
                 log.info("Recovery Mode: Found 'RUNNING' state and active jobs, resuming Scheduled Logging session.")
+                if not self._logging_thread or not self._logging_thread.is_alive():
+                    self.start(from_init=True, initial_state=logger_state)
 
     # STATE MANAGEMENT
 
@@ -201,6 +204,10 @@ class LoggerService:
         
         @return: Boolean flag indicating if logger is running
         """
+        if self._logging_thread and self._logging_thread.is_alive():
+            return True
+
+        # Check the logger state in the database
         state = self._get_logger_state()
         return state is not None and state.get("status") == "running"
 
