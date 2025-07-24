@@ -9,15 +9,15 @@ import logging
 import datetime
 import apscheduler
 
+from flask import Flask, request, jsonify, send_from_directory
 from config import config
-from components.util import list_files
 from services.database import init_db; init_db()
+from components.util import list_files
 from services.settings import settings
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES
 from datetime import datetime, time, timedelta
-from flask import Flask, request, jsonify, send_from_directory
 
 # CONSTANTS
 

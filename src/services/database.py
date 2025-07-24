@@ -46,8 +46,9 @@ def init_db():
         if not os.path.exists(config.DS_DIR):
             os.makedirs(config.DS_DIR, exist_ok=True)
         Base.metadata.create_all(bind=ENGINE)
+        log.info("Database initialized successfully.")
     except Exception as e:
-        log.error(f"{e}", exc_info=True)
+        log.error(f"Database Initialization Error: {e}", exc_info=True)
 
 def archive_csv_to_db(filepath):
     """ 
