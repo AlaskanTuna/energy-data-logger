@@ -52,7 +52,7 @@ class AnalyzerService:
             params["start"] = datetime.fromisoformat(start_time)
         if end_time:
             end_time_dt = datetime.fromisoformat(end_time)
-            stepped_end_time_dt = end_time_dt + timedelta(seconds=1)
+            stepped_end_time_dt = end_time_dt + timedelta(seconds=1) # Offset by 1s
             conditions.append("Timestamp < :end")
             params["end"] = stepped_end_time_dt
         if conditions:
