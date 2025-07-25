@@ -92,7 +92,19 @@ class DataLogger:
         Simultaneously log meter readings to CSV and InfluxDB.
         """
         try:
+            log_interval = settings.get("LOG_INTERVAL")
+            next_log_time = time.time() + log_interval
+
             while self._running:
+                # Calculate the duration until the next log
+                current_time = time.time()
+                sleep_time = max(0, next_log_time - current_time)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                elif current_time - next_log_time > 5:
+                    log.warning(f"Logger running {current_time - next_log_time:.2f}s behind schedule.")
+
+                # Get readings and perform logging
                 readings = self.reader.get_meter_readings()
                 if not readings:
                     log.warning("Could not retrieve readings. Terminating logger session.")
@@ -135,7 +147,7 @@ class DataLogger:
                     influx_status = "FAIL" if (config.INFLUXDB_URL and config.INFLUXDB_TOKEN) else "-"
 
                 log.info(f"Data logged successfully! | CSV: {csv_status} | InfluxDB: {influx_status} |")
-                time.sleep(settings.get("LOG_INTERVAL"))
+                next_log_time += log_interval
         except KeyboardInterrupt:
             log.info("Data logging stopped by user.")
         finally:
