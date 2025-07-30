@@ -78,12 +78,12 @@ class LogManager:
             self.stop_session_logging()
 
         log_filepath = os.path.join(config.LOG_DIR, f"{filename}.log")
-        log.info(f"Starting log session for: {log_filepath}")
+        log.info(f"Starting log session for: '{log_filepath}'.")
 
         try:
             os.makedirs(config.LOG_DIR, exist_ok=True)
         except OSError as e:
-            log.error(f"Fatal: Could not create log directory {config.LOG_DIR}: {e}")
+            log.error(f"Log Handler Error: Could not create log directory '{config.LOG_DIR}': {e}")
             return
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -104,38 +104,41 @@ class LogManager:
         logging.getLogger().addHandler(file_handler)
         self._log_handler = file_handler
 
-    def stop_session_logging(self, compress=True):
+    def stop_session_logging(self, compress=True, session_name=None):
         """
         Stops logging to the session file ands compresses it.
         
         @compress: Flag to compress log file after session ends
+        @session_name: Filename of the session for compression target
         """
-        if not self._log_handler:
-            log.info("No active session log handler to stop.")
+        log_filepath = None
+        
+        if self._log_handler:
+            log_filepath = self._log_handler.baseFilename
+            logging.getLogger().removeHandler(self._log_handler)
+            self._log_handler.close()
+            self._log_handler = None
+            log.info(f"Closed active log handler for '{log_filepath}'.")
+        elif session_name:
+            log_filepath = os.path.join(config.LOG_DIR, f"{session_name}.log")
+            log.info(f"Stopping session log for '{log_filepath}' via recovery.")
+        else:
+            log.info("No active session or session name provided to stop.")
             return
-
-        log_filepath = self._log_handler.baseFilename
-
-        # Remove the handler from the root logger
-        logging.getLogger().removeHandler(self._log_handler)
-        self._log_handler.close()
-        self._log_handler = None
 
         if not self._buffer_handler:
             self._buffer_handler = BufferHandler()
             logging.getLogger().addHandler(self._buffer_handler)
-            log.info(f"Stopped session logging for {log_filepath}")
 
-        # Remove the original .log file, then compress it
-        if compress and os.path.exists(log_filepath):
+        if compress and log_filepath and os.path.exists(log_filepath):
             try:
                 with open(log_filepath, 'rb') as f_in:
                     with gzip.open(f"{log_filepath}.gz", 'wb') as f_out:
                         f_out.writelines(f_in)
                 os.remove(log_filepath)
-                log.info(f"Successfully compressed log file to {log_filepath}.gz")
+                log.info(f"Successfully compressed log file to '{log_filepath}.gz'.")
             except Exception as e:
-                log.error(f"Failed to compress log file {log_filepath}: {e}", exc_info=True)
+                log.error(f"Failed to compress log file '{log_filepath}': {e}", exc_info=True)
 
 # GLOBAL INSTANCE
 

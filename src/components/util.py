@@ -103,7 +103,7 @@ def list_files(file="type"):
         directory = config.LOG_DIR
         extension = ".log.gz"
     else:
-        log.warning(f"Unknown file type: {file}.")
+        log.warning(f"Unknown file type: '{file}'.")
         return []
 
     try:
@@ -126,7 +126,7 @@ def display_csv_file(filename, directory=config.DS_DIR):
     try:
         filepath = os.path.join(directory, filename)
         if not os.path.exists(filepath):
-            print(f"File not found: {filepath}")
+            print(f"File not found: '{filepath}'.")
             return False
 
         # Read and display the file content
@@ -194,7 +194,7 @@ def analyze_data():
 
         try:
             if not os.path.exists(filepath):
-                log.error(f"File not found at {filepath}.")
+                log.error(f"File not found at '{filepath}'.")
                 input("\nPress Enter to continue...")
                 clear_screen()
                 return

@@ -39,14 +39,17 @@ class LoggerService:
         # Check for pre-existing state to resume logging
         logger_state = self._get_logger_state()
         if logger_state and logger_state.get("status") == "running":
-            jobs = self._scheduler.get_jobs()
-            if not jobs:
-                log.info("Recovery Mode: Found 'RUNNING' state and no jobs, resuming Default Logging session.")
-                self.start(from_init=True, initial_state=logger_state)
+            recovered_end_time = logger_state.get("endTime")
+            if recovered_end_time:
+                log.warning(f"Recovery Mode: Found 'RUNNING' logger state. Resuming scheduled session until {recovered_end_time.isoformat()}.")
             else:
-                log.info("Recovery Mode: Found 'RUNNING' state and active jobs, resuming Scheduled Logging session.")
-                if not self._logging_thread or not self._logging_thread.is_alive():
-                    self.start(from_init=True, initial_state=logger_state)
+                log.warning("Recovery Mode: Found 'RUNNING' logger state. Resuming logging session.")
+
+            if recovered_end_time and datetime.now() >= recovered_end_time:
+                log.warning("Recovery Mode: Scheduled end time has already passed. Stopping logging session.")
+                self.stop(csv_filepath=logger_state.get("csvFile"))
+            else:
+                self.start(from_init=True, initial_state=logger_state, end_time=recovered_end_time)
 
     # STATE MANAGEMENT
 
@@ -61,7 +64,8 @@ class LoggerService:
                 return {
                     "status": state_row.status,
                     "csvFile": state_row.csvFile,
-                    "startTime": state_row.startTime.isoformat()
+                    "startTime": state_row.startTime,
+                    "endTime": state_row.endTime,
                 }
             return None
         except SQLAlchemyError as e:
@@ -69,7 +73,7 @@ class LoggerService:
         finally:
             db.close()
 
-    def _create_logger_state(self, filepath):
+    def _create_logger_state(self, filepath, end_time=None):
         """ 
         Create a new logger state in the database.
         
@@ -83,7 +87,8 @@ class LoggerService:
                 id=1,
                 status="running",
                 csvFile=filepath,
-                startTime=datetime.now()
+                startTime=datetime.now(),
+                endTime=end_time
             )
             db.add(new_state)
             db.commit()
@@ -110,7 +115,7 @@ class LoggerService:
 
     # MAIN THREAD LOGIC
 
-    def start(self, from_init=False, initial_state=None):
+    def start(self, from_init=False, initial_state=None, end_time=None):
         """ 
         Starts the webapp data logging process.
         
@@ -122,10 +127,7 @@ class LoggerService:
             if self._logging_thread and self._logging_thread.is_alive():
                 return {"status": "already_running", "state": self._get_logger_state()}
 
-            if from_init:
-                csv_filepath = initial_state.get("csvFile")
-            else:
-                csv_filepath = util.get_current_filename("ds")
+            csv_filepath = initial_state.get("csvFile") if from_init else util.get_current_filename("ds")
 
             if not csv_filepath:
                 log.error("Could not determine CSV file path for new session.")
@@ -134,34 +136,51 @@ class LoggerService:
             session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
             log_manager.start_session_logging(session_name)
 
-            self._dl = logger.DataLogger(filename=csv_filepath)
+            self._dl = logger.DataLogger(filename=csv_filepath, end_time=end_time)
+
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
-            self._create_logger_state(csv_filepath)
+
+            if not from_init:
+                self._create_logger_state(csv_filepath, end_time)
+
             self._logging_thread.start()
-            log.info(f"Starting data logging process for {csv_filepath}.")
+
+            if end_time:
+                log.info(f"Started data logging process for '{csv_filepath}' until {end_time.isoformat()}.")
+            else:
+                log.info(f"Started data logging process for '{csv_filepath}'.")
             return {"status": "started", "state": self._get_logger_state()}
 
-    def stop(self):
+    def stop(self, csv_filepath=None):
         """ 
         Stops the webapp data logging process.
         
+        @csv_filepath: Optional path to the CSV file being logged
         @return: Dictionary with status of the stop operation
         """
         with self._lock:
-            logger_state = self._get_logger_state()
-            if logger_state:
-                csv_filepath = logger_state.get("csvFile")
-            else:
-                csv_filepath = None
+            if not csv_filepath:
+                logger_state = self._get_logger_state()
+                if logger_state:
+                    csv_filepath = logger_state.get("csvFile")
+
+            session_name = None
+            if csv_filepath:
+                session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
 
             self._clear_logger_state()
 
-            if not self._logging_thread or not self._logging_thread.is_alive():
+            if session_name:
+                log_manager.stop_session_logging(session_name=session_name)
+            else:
                 log_manager.stop_session_logging()
+
+            if not self._logging_thread or not self._logging_thread.is_alive():
+                if csv_filepath:
+                    archive_csv_to_db(csv_filepath)
                 return {"status": "already_stopped"}
 
-            log.info("Stopping data logging process.")
-            log_manager.stop_session_logging()
+            log.info("Stopping active data logging thread.")
 
             if self._dl:
                 self._dl.stop()
@@ -170,7 +189,6 @@ class LoggerService:
             self._logging_thread = None
             self._dl = None
 
-            # Insert CSV data into the database
             if csv_filepath:
                 archive_csv_to_db(csv_filepath)
 

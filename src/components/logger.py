@@ -20,13 +20,14 @@ class DataLogger:
     """
     Handles CSV and InfluxDB logging of energy meter readings.
     """
-    def __init__(self, filename):
+    def __init__(self, filename, end_time=None):
         self.ds_dir = config.DS_DIR
         if not os.path.exists(self.ds_dir):
             os.makedirs(self.ds_dir, exist_ok=True)
 
         self.ds_filename = filename
         self.ds_header = config.DS_HEADER
+        self.end_time = end_time
 
         # If the file is new or empty, write the header row; otherwise, leave it unchanged
         is_new_file = not os.path.exists(self.ds_filename) or os.path.getsize(self.ds_filename) == 0
@@ -92,7 +93,7 @@ class DataLogger:
         Simultaneously log meter readings to CSV and InfluxDB.
         """
         try:
-            while self._running:
+            while self._running and (self.end_time is None or datetime.now() < self.end_time):
                 readings = self.reader.get_meter_readings()
                 if not readings:
                     log.warning("Could not retrieve readings. Terminating logger session.")

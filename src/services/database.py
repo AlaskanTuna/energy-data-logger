@@ -35,6 +35,7 @@ class LoggerState(Base):
     status = Column(String, nullable=False)
     csvFile = Column(String, nullable=True)
     startTime = Column(DateTime, nullable=True)
+    endTime = Column(DateTime, nullable=True)
 
 # FUNCTIONS
 
@@ -57,7 +58,7 @@ def archive_csv_to_db(filepath):
     @filepath: Path to the CSV file to archive
     """
     if not os.path.exists(filepath):
-        log.error(f"DB Archive Error. CSV file not found at {filepath}.")
+        log.error(f"DB Archive Error. CSV file not found at '{filepath}'.")
         return
 
     try:
@@ -78,6 +79,6 @@ def archive_csv_to_db(filepath):
             dtype={'Timestamp': sqlalchemy.types.DateTime()}
         )
 
-        log.info(f"Archived CSV data to table '{safe_table_name}' from {filepath} successfully.")
+        log.info(f"Archived CSV data to table '{safe_table_name}' from '{filepath}' successfully.")
     except Exception as e:
         log.error(f"DB Archive Error: {e}", exc_info=True)

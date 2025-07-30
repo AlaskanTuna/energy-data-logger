@@ -209,7 +209,7 @@ class DataAnalyzer:
         filename = os.path.join(config.PL_DIR, f"{base_filename}_{safe_suffix}.png")
         plt.savefig(filename)
         plt.close()
-        log.info(f"Plot saved as: {filename}")
+        log.info(f"Plot saved as: '{filename}'.")
 
         # Create normalized version of the plot for comparison
         if len(columns) > 1:
@@ -233,4 +233,4 @@ class DataAnalyzer:
             norm_filename = os.path.join(config.PL_DIR, f"{base_filename}_{safe_suffix}_normalized.png")
             plt.savefig(norm_filename)
             plt.close()
-            log.info(f"Normalized plot saved as: {norm_filename}")
+            log.info(f"Normalized plot saved as: '{norm_filename}'.")

@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(err => {
             console.error('Fetch error:', err);
-            alert('An unexpected error occurred while setting the schedule.');
+            alert('An unexpected error occurred while starting the logger.');
         });
     });
 

@@ -41,7 +41,7 @@ class MeterReader:
                 self.instrument.mode = minimalmodbus.MODE_RTU
                 log.info("Modbus instrument initialized for real readings.")
             except Exception as e:
-                raise ConnectionError(f"Failed to initialize Modbus on port {config.MODBUS_PORT}. {e}", exc_info=True)
+                raise ConnectionError(f"Failed to initialize Modbus on port '{config.MODBUS_PORT}': {e}", exc_info=True)
 
     def meter_reading_mock(self):
         """

@@ -245,6 +245,8 @@ def set_schedule():
     
     @return: JSON object with status of the start operation
     """
+    from services.schedule_runner import start_logging_job, stop_logging_job
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "Invalid data"}), 400
@@ -253,7 +255,7 @@ def set_schedule():
     logger_service._scheduler.remove_all_jobs()
 
     if mode == "default":
-        result = logger_service.start()
+        result = logger_service.start() 
         return jsonify(result)
 
     try:
@@ -277,12 +279,20 @@ def set_schedule():
                 end_dt = now.replace(hour=end_t.hour, minute=end_t.minute, second=end_t.second, microsecond=0)
                 if end_dt <= start_dt:
                     end_dt += timedelta(days=1)
-            
+
             logger_service._scheduler.add_job(
-                start_logging_job, "date", run_date=start_dt, id="start_job", kwargs={'schedule_mode': 'once'}
+                start_logging_job, 
+                "date", 
+                run_date=start_dt, 
+                id="start_job", 
+                kwargs={'end_time': end_dt, 'schedule_mode': 'once'}
             )
             logger_service._scheduler.add_job(
-                stop_logging_job, "date", run_date=end_dt, id="stop_job", kwargs={'schedule_mode': 'once'}
+                stop_logging_job, 
+                "date", 
+                run_date=end_dt, 
+                id="stop_job", 
+                kwargs={'schedule_mode': 'once'}
             )
             return jsonify({"status": "scheduled", "mode": "once"})
 
@@ -295,12 +305,10 @@ def set_schedule():
 
             start_t = time.fromisoformat(start_t_str)
             end_t = time.fromisoformat(end_t_str)
-
             day_interval = int(data.get("day_interval", 0))
+
             if day_interval > 0:
-                start_dt = datetime.now().replace(
-                    hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0
-                )
+                start_dt = datetime.now().replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
                 if start_dt < datetime.now():
                     start_dt += timedelta(days=1)
 
@@ -313,9 +321,7 @@ def set_schedule():
                     kwargs={'schedule_mode': 'recurring'}
                 )
 
-                end_dt = datetime.now().replace(
-                    hour=end_t.hour, minute=end_t.minute, second=end_t.second, microsecond=0
-                )
+                end_dt = datetime.now().replace(hour=end_t.hour, minute=end_t.minute, second=end_t.second, microsecond=0)
                 if end_dt <= start_dt:
                     end_dt += timedelta(days=1)
 
