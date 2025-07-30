@@ -41,7 +41,7 @@ class LoggerService:
         if logger_state and logger_state.get("status") == "running":
             recovered_end_time = logger_state.get("endTime")
             if recovered_end_time:
-                log.warning(f"Recovery Mode: Found 'RUNNING' logger state. Resuming scheduled session until {recovered_end_time.isoformat()}.")
+                log.warning(f"Recovery Mode: Found 'RUNNING' logger state. Resuming scheduled session until '{recovered_end_time.isoformat()}'.")
             else:
                 log.warning("Recovery Mode: Found 'RUNNING' logger state. Resuming logging session.")
 
@@ -66,6 +66,7 @@ class LoggerService:
                     "csvFile": state_row.csvFile,
                     "startTime": state_row.startTime,
                     "endTime": state_row.endTime,
+                    "mode": state_row.mode,
                 }
             return None
         except SQLAlchemyError as e:
@@ -73,7 +74,7 @@ class LoggerService:
         finally:
             db.close()
 
-    def _create_logger_state(self, filepath, end_time=None):
+    def _create_logger_state(self, filepath, end_time=None, mode=None):
         """ 
         Create a new logger state in the database.
         
@@ -88,7 +89,8 @@ class LoggerService:
                 status="running",
                 csvFile=filepath,
                 startTime=datetime.now(),
-                endTime=end_time
+                endTime=end_time,
+                mode=mode
             )
             db.add(new_state)
             db.commit()
@@ -115,7 +117,7 @@ class LoggerService:
 
     # MAIN THREAD LOGIC
 
-    def start(self, from_init=False, initial_state=None, end_time=None):
+    def start(self, from_init=False, initial_state=None, end_time=None, mode=None):
         """ 
         Starts the webapp data logging process.
         
@@ -128,7 +130,6 @@ class LoggerService:
                 return {"status": "already_running", "state": self._get_logger_state()}
 
             csv_filepath = initial_state.get("csvFile") if from_init else util.get_current_filename("ds")
-
             if not csv_filepath:
                 log.error("Could not determine CSV file path for new session.")
                 return {"status": "error", "message": "Could not determine CSV file path."}
@@ -137,16 +138,15 @@ class LoggerService:
             log_manager.start_session_logging(session_name)
 
             self._dl = logger.DataLogger(filename=csv_filepath, end_time=end_time)
-
             self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
 
             if not from_init:
-                self._create_logger_state(csv_filepath, end_time)
+                self._create_logger_state(csv_filepath, end_time, mode if mode else "default")
 
             self._logging_thread.start()
 
             if end_time:
-                log.info(f"Started data logging process for '{csv_filepath}' until {end_time.isoformat()}.")
+                log.info(f"Started data logging process for '{csv_filepath}' until '{end_time.isoformat()}'.")
             else:
                 log.info(f"Started data logging process for '{csv_filepath}'.")
             return {"status": "started", "state": self._get_logger_state()}

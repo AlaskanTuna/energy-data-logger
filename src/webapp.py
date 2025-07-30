@@ -7,7 +7,6 @@
 import os
 import logging
 import datetime
-import apscheduler
 
 from flask import Flask, request, jsonify, send_from_directory
 from config import config
@@ -84,43 +83,12 @@ def get_scheduler_status():
 
     if logger_state.get("status") == "running":
         response["status"] = "logging"
+        response["mode"] = logger_state.get("mode", "default")
     elif jobs:
         response["status"] = "scheduled"
-
-    start_job = next((j for j in jobs if j.id == "start_job"), None)
-    stop_job = next((j for j in jobs if j.id == "stop_job"), None)
-
-    if start_job:
-        job_mode = start_job.kwargs.get('schedule_mode')
-        if job_mode:
-            response["mode"] = job_mode
-
-        if response["status"] == "logging" and stop_job:
-            try:
-                if isinstance(stop_job.trigger, apscheduler.triggers.cron.CronTrigger):
-                    stop_time_fields = {str(field): field.expression for field in stop_job.trigger.fields}
-                    stop_dt = datetime.now().replace(
-                        hour=int(stop_time_fields.get('hour', 0)),
-                        minute=int(stop_time_fields.get('minute', 0)),
-                        second=int(stop_time_fields.get('second', 0)),
-                        microsecond=0
-                    )
-                    if stop_dt < datetime.now():
-                        stop_dt += timedelta(days=1)
-
-                    if response["mode"] == 'once':
-                        try:
-                            stop_dt = stop_dt.replace(
-                                year=int(stop_time_fields['year']),
-                                month=int(stop_time_fields['month']),
-                                day=int(stop_time_fields['day'])
-                            )
-                        except (KeyError, ValueError):
-                            pass
-                elif hasattr(stop_job.trigger, 'run_date'):
-                    stop_dt = stop_job.trigger.run_date
-            except Exception as e:
-                log.error(f"Error parsing scheduler job: {e}")
+        start_job = next((j for j in jobs if j.id == "start_job"), None)
+        if start_job:
+            response["mode"] = start_job.kwargs.get('schedule_mode', 'none')
     return jsonify(response)
 
 @app.get("/api/settings")

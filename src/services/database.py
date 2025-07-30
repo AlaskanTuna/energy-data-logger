@@ -36,6 +36,7 @@ class LoggerState(Base):
     csvFile = Column(String, nullable=True)
     startTime = Column(DateTime, nullable=True)
     endTime = Column(DateTime, nullable=True)
+    mode = Column(String, nullable=True)
 
 # FUNCTIONS
 
@@ -46,6 +47,7 @@ def init_db():
     try:
         if not os.path.exists(config.DS_DIR):
             os.makedirs(config.DS_DIR, exist_ok=True)
+
         Base.metadata.create_all(bind=ENGINE)
         log.info("Database initialized successfully.")
     except Exception as e:
@@ -70,7 +72,7 @@ def archive_csv_to_db(filepath):
         table_name = os.path.splitext(os.path.basename(filepath))[0]
         safe_table_name = "".join(c for c in table_name if c.isalnum() or c == '_')
 
-        # Write to SQL with proper datetime dtype
+        # Write to SQL
         df.to_sql(
             safe_table_name, 
             con=ENGINE, 

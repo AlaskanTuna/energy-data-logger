@@ -11,6 +11,10 @@ log = logging.getLogger(__name__)
 def start_logging_job(end_time=None, schedule_mode=None, **kwargs):
     """ 
     Wrapper function to start the logging job from the scheduler.
+    
+    @end_time: End time to pass to the logger service
+    @schedule_mode: Mode to pass to the logger service
+    @kwargs: Additional keyword arguments
     """
     from services.logger_wrapper import logger_service
 
@@ -30,11 +34,13 @@ def start_logging_job(end_time=None, schedule_mode=None, **kwargs):
             end_time = None
 
     log.info(f"APScheduler: Passing control to LoggerService with End Time at '{end_time}'.")
-    return logger_service.start(end_time=end_time)
+    return logger_service.start(end_time=end_time, mode=schedule_mode)
 
 def stop_logging_job(**kwargs):
     """ 
     Wrapper function to stop the logging job from the scheduler.
+    
+    @kwargs: Additional keyword arguments
     """
     from services.logger_wrapper import logger_service
 

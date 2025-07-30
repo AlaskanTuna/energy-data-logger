@@ -35,7 +35,7 @@ class DataLogger:
             if is_new_file:
                 writer = csv.writer(file)
                 writer.writerow(self.ds_header)
-        log.info(f"Data logging initialized. CSV file: {self.ds_filename}")
+        log.info(f"Data logging initialized to CSV file '{self.ds_filename}'.")
 
         self.reader = None
 
