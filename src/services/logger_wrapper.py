@@ -115,6 +115,15 @@ class LoggerService:
         finally:
             db.close()
 
+    def _handle_logging_failure(self):
+        """ 
+        """
+        current_state = self._get_logger_state()
+        csv_to_stop = current_state.get("csvFile") if current_state else None
+
+        log.warning("LoggerService received a failure signal from DataLogger thread.")
+        self.stop(csv_filepath=csv_to_stop)
+
     # MAIN THREAD LOGIC
 
     def start(self, from_init=False, initial_state=None, end_time=None, mode=None):
@@ -137,8 +146,15 @@ class LoggerService:
             session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
             log_manager.start_session_logging(session_name)
 
-            self._dl = logger.DataLogger(filename=csv_filepath, end_time=end_time)
-            self._logging_thread = threading.Thread(target=self._dl.log, daemon=True)
+            self._dl = logger.DataLogger(
+                filename=csv_filepath, 
+                end_time=end_time,
+                on_failure_callback=self._handle_logging_failure
+            )
+            self._logging_thread = threading.Thread(
+                target=self._dl.log, 
+                daemon=True
+            )
 
             if not from_init:
                 self._create_logger_state(csv_filepath, end_time, mode if mode else "default")
