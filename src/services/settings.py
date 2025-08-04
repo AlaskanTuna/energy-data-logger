@@ -1,6 +1,7 @@
 # src/services/settings.py
 
 import logging
+import json
 
 from config import config
 from services.database import SessionLocal, Setting
@@ -45,8 +46,19 @@ class Settings:
             temp_data = {s.key: s.value for s in db_settings}
             for key, default_value in config.DEFAULT_SETTINGS.items():
                 expected_type = type(default_value)
+                value_str = temp_data.get(key)
+                if key == "ACTIVE_LOG_PARAMETERS":
+                    if value_str:
+                        try:
+                            self.data[key] = json.loads(value_str)
+                        except json.JSONDecodeError:
+                            self.data[key] = None
+                    else:
+                        self.data[key] = None
+                    continue
+
                 try:
-                    self.data[key] = expected_type(temp_data.get(key)) # Convert database string value back to original datatype
+                    self.data[key] = expected_type(value_str) if value_str is not None else default_value
                 except (ValueError, TypeError):
                     self.data[key] = default_value
         except SQLAlchemyError as e:
@@ -84,7 +96,10 @@ class Settings:
             for key, value in new_settings.items():
                 if key in config.DEFAULT_SETTINGS:
                     self.data[key] = value
-                    db.merge(Setting(key=key, value=str(value)))
+                    if isinstance(value, list):
+                        db.merge(Setting(key=key, value=json.dumps(value)))
+                    else:
+                        db.merge(Setting(key=key, value=str(value)))
             db.commit()
             return True
         except SQLAlchemyError as e:

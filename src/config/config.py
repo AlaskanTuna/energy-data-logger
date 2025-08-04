@@ -67,7 +67,8 @@ DEFAULT_SETTINGS = {
     "PARITY": 'N',
     "BYTESIZE": 8,
     "STOPBITS": 1,
-    "TIMEOUT": 2
+    "TIMEOUT": 2,
+    "ACTIVE_LOG_PARAMETERS": None,
 }
 
 # FILE SETTINGS

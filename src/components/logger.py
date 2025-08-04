@@ -26,9 +26,16 @@ class DataLogger:
             os.makedirs(self.ds_dir, exist_ok=True)
 
         self.ds_filename = filename
-        self.ds_header = config.DS_HEADER
         self.end_time = end_time
         self.on_failure_callback = on_failure_callback
+
+        # Get active parameters from settings or use default
+        self.active_params = settings.get("ACTIVE_LOG_PARAMETERS")
+        if not self.active_params:
+            self.active_params = list(config.REGISTERS.keys())
+
+        # Create dynamic CSV header
+        self.ds_header = ["Timestamp"] + [config.REGISTERS[p]["description"] for p in self.active_params if p in config.REGISTERS]
 
         # If the file is new or empty, write the header row; otherwise, leave it unchanged
         is_new_file = not os.path.exists(self.ds_filename) or os.path.getsize(self.ds_filename) == 0
@@ -38,12 +45,11 @@ class DataLogger:
                 writer.writerow(self.ds_header)
         log.info(f"Data logging initialized to CSV file '{self.ds_filename}'.")
 
-        self.reader = None
-
         # NOTE: Since the serial port on Pi is enabled, the Modbus port (/dev/serial0) is always available.
         #       Modbus could appear available even without a connection to the meter.
         #       To truly ensure Modbus availability, we attempt to test polling the meter.
 
+        self.reader = None
         try:
             self.reader = MeterReader(use_modbus_flag=config.USE_MODBUS)
             test_readings = self.reader.get_meter_readings()
@@ -95,7 +101,7 @@ class DataLogger:
         """
         try:
             while self._running and (self.end_time is None or datetime.now() < self.end_time):
-                readings = self.reader.get_meter_readings()
+                readings = self.reader.get_meter_readings(active_parameters=self.active_params)
                 if not readings:
                     log.error("Data Logger Error: Could not retrieve readings after max retries. Shutting down logger.")
                     if self.on_failure_callback:
@@ -112,7 +118,7 @@ class DataLogger:
                 # CSV WRITING
                 csv_status = "FAIL"
                 try:
-                    row_data = [timestamp_str] + [readings.get(key) for key in config.REGISTERS.keys()]
+                    row_data = [timestamp_str] + [readings.get(key) for key in self.active_params]
                     with open(self.ds_filename, 'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(row_data)

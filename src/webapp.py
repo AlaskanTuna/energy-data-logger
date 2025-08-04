@@ -178,6 +178,19 @@ def get_columns(filename):
     result = analyzer_service.get_columns(filename)
     return jsonify(result)
 
+@app.get("/api/columns/all")
+def get_all_columns():
+    """
+    Get all available columns for logging.
+    
+    @return: JSON list of all available parameters
+    """
+    all_params = [
+        {"name": name, "description": params["description"]}
+        for name, params in config.REGISTERS.items()
+    ]
+    return jsonify({"columns": all_params})
+
 @app.get("/api/visualize/<filename>/<plot_type>")
 def generate_visualization(filename, plot_type):
     """ 
@@ -360,8 +373,9 @@ def save_settings():
     if not new_settings:
         return jsonify({"error": "Invalid data"}), 400
 
-    # Stop logger before new settings
-    if logger_service.is_running():
+    # Stop logger
+    is_param_update_only = list(new_settings.keys()) == ["ACTIVE_LOG_PARAMETERS"]
+    if not is_param_update_only and logger_service.is_running():
         logger_service.stop()
 
     # Update and save new settings.
@@ -379,7 +393,7 @@ def generate_custom_visualization(filename):
     @return: JSON object with paths to generated plotss
     """
     data = request.get_json()
-    if not data or 'columns' not in data:
+    if not data or "columns" not in data:
         return jsonify({"error": "No columns specified"}), 400
 
     result = analyzer_service.visualize_file(filename, "custom", data['columns'])
