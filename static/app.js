@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (data.status === 'idle' && data.mode === 'none') {
             logButtonText.textContent = 'Log New Data';
-            logButton.onclick = () => showScheduleModal();
+            logButton.onclick = () => showParameterSelectionModal();
             logButton.classList.remove('active');
         } else {
             logButtonText.textContent = 'Stop Logging';
@@ -137,6 +137,85 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // LOG NEW DATA MODAL
 
+    function showParameterSelectionModal() {
+        const modal = document.getElementById('param-select-modal');
+        const modalBody = document.getElementById('param-select-modal-body');
+        modal.style.display = 'flex';
+        modalBody.innerHTML = '<p class="loading">Loading parameters...</p>';
+
+        Promise.all([
+            fetch('/api/columns/all'),
+            fetch('/api/settings')
+        ]).then(async ([allParamsRes, settingsRes]) => {
+            if (!allParamsRes.ok || !settingsRes.ok) {
+                throw new Error('Failed to load initial data.');
+            }
+            const allParamsData = await allParamsRes.json();
+            const settingsData = await settingsRes.json();
+
+            const allParameters = allParamsData.columns || [];
+            const activeParameters = settingsData.ACTIVE_LOG_PARAMETERS || allParameters;
+
+            let html = `
+                <div class="modal-description" style="margin-bottom: 0.5rem;">
+                    <h3>Select Log Parameters</h3>
+                </div>
+                <div class="action-buttons" style="margin-bottom: 0.5rem;">
+                    <button id="select-all-params" class="action-button secondary">Select All</button>
+                    <button id="deselect-all-params" class="action-button secondary">Deselect All</button>
+                </div>
+                <div class="column-selection">`;
+
+            allParameters.forEach(param => {
+                const isChecked = activeParameters.includes(param.name);
+                html += `
+                    <label class="column-option">
+                        <input type="checkbox" name="log-parameter" value="${param.name}" ${isChecked ? 'checked' : ''}>
+                        <span>${param.description}</span>
+                    </label>`;
+            });
+
+            html += `</div><div class="action-buttons">
+                        <button id="confirm-params-button" class="action-button">Next</button>
+                    </div>`;
+            modalBody.innerHTML = html;
+
+            document.getElementById('select-all-params').addEventListener('click', () => {
+                document.querySelectorAll('input[name="log-parameter"]').forEach(cb => cb.checked = true);
+            });
+            document.getElementById('deselect-all-params').addEventListener('click', () => {
+                document.querySelectorAll('input[name="log-parameter"]').forEach(cb => cb.checked = false);
+            });
+            document.getElementById('confirm-params-button').addEventListener('click', () => {
+                const selectedParams = Array.from(document.querySelectorAll('input[name="log-parameter"]:checked')).map(cb => cb.value);
+                if (selectedParams.length === 0) {
+                    alert('Please select at least one parameter to log.');
+                    return;
+                }
+
+                // Save the selection to settings
+                const newSettings = { ACTIVE_LOG_PARAMETERS: selectedParams };
+
+                fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSettings)
+                }).then(res => res.json()).then(data => {
+                    // Settings saved > hide parameter selection modal > show schedule modal
+                    if (data.status === 'success') { 
+                        modal.style.display = 'none';
+                        showScheduleModal();
+                    } else {
+                        alert('Error saving parameter selection: ' + (data.error || 'Unknown error'));
+                    }
+                }).catch(err => alert('Failed to save parameter selection.'));
+            });
+        }).catch(err => {
+            console.error('Error fetching data for parameter selection:', err);
+            modalBody.innerHTML = '<p class="error-message">Could not load logging parameters.</p>';
+        });
+    }
+
     function showScheduleModal() {
         const modal = document.getElementById('schedule-modal');
         modal.querySelector('[data-mode="default"]').click();
@@ -144,22 +223,21 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.querySelector('#start-time').value = '';
         modal.querySelector('#end-time').value = '';
         modal.querySelector('#day-interval').value = '0';
-        modal.style.display = 'flex';
-    }
 
-    function clearSchedule() {
-        if (!confirm('Do you want to stop the current logging session and clear all log schedules?')) {
-            return;
-        }
-        fetch('/api/schedules/clear', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'cleared'){
-                    fetchStatus();
-                } else {
-                    alert('Failed to stop logging session and clear schedules.');
-                }
+        const actionButtonsDiv = modal.querySelector('.action-buttons');
+        if (actionButtonsDiv && !document.getElementById('back-to-params-button')) {
+            const backButton = document.createElement('button');
+            backButton.id = 'back-to-params-button';
+            backButton.className = 'action-button secondary';
+            backButton.textContent = 'Back';
+            backButton.addEventListener('click', () => {
+                modal.style.display = 'none';
+                document.getElementById('param-select-modal').style.display = 'flex';
             });
+            actionButtonsDiv.appendChild(backButton);
+        }
+
+        modal.style.display = 'flex';
     }
 
     // Add event listeners for the new schedule modal
@@ -207,7 +285,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (selectedMode === 'scheduled') {
             const typeButton = scheduleModal.querySelector('.sg-button[data-schedule-type].active');
             payload.mode = typeButton.dataset.scheduleType;
-
             payload.start_time = document.getElementById('start-time').value;
             payload.end_time = document.getElementById('end-time').value;
 
@@ -246,6 +323,22 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('An unexpected error occurred while starting the logger.');
         });
     });
+
+    function clearSchedule() {
+        if (!confirm('Do you want to stop the current logging session and clear all log schedules?')) {
+            return;
+        }
+
+        fetch('/api/schedules/clear', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'cleared'){
+                    fetchStatus();
+                } else {
+                    alert('Failed to stop logging session and clear schedules.');
+                }
+            });
+    }
 
     // VIEW DATA MODAL
 
@@ -453,11 +546,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Voltage': 'zap',
                 'Current': 'activity',
                 'Active Power': 'bar-chart-2',
-                'Reactive Power': '',
-                'Apparent Power': '',
+                'Reactive Power': 'bar-chart-2',
+                'Apparent Power': 'bar-chart-2',
                 'Energy': 'battery-charging',
-                'Energy Tariff': '',
-                'Power Factor': '',
+                'Energy Tariff': 'battery-charging',
+                'Power Factor': 'activity',
                 'Custom Selection': 'edit-3',
                 'All Parameters': 'layers',
             };
@@ -478,7 +571,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span>Custom Selection</span>
                 </div>`;
 
-            html += '</div>';
+            html += `<div class="action-buttons" style="margin-top: 1.5rem;">
+                <button id="back-to-file-list" class="action-button secondary">Back</button>
+            </div>`;
+
             modalBody.innerHTML = html;
 
             document.querySelectorAll('.viz-option').forEach(item => {
@@ -490,6 +586,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         generateVisualization(el.dataset.filename, el.dataset.vizType);
                     }
                 });
+            });
+            document.getElementById('back-to-file-list').addEventListener('click', () => {
+                showFileModal('visualize');
             });
         }).catch(err => modalBody.innerHTML = '<p class="error-message">Error loading types.</p>');
     }
