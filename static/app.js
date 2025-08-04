@@ -450,12 +450,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let html = '<h3>Select Visualization Type</h3><div class="viz-options">';
             const icons = {
-                'Voltage Comparison': 'zap',
-                'Current Comparison': 'activity',
-                'Power Analysis': 'bar-chart-2',
-                'Energy Consumption': 'battery-charging',
+                'Voltage': 'zap',
+                'Current': 'activity',
+                'Active Power': 'bar-chart-2',
+                'Reactive Power': '',
+                'Apparent Power': '',
+                'Energy': 'battery-charging',
+                'Energy Tariff': '',
+                'Power Factor': '',
+                'Custom Selection': 'edit-3',
                 'All Parameters': 'layers',
-                'Custom Selection': 'edit-3'
             };
 
             types.forEach(type => {
@@ -688,22 +692,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 let html = '<h2>Latest Readings</h2><table class="readings-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
 
                 const units = {
-                    voltage: 'V', 
-                    current: 'A', 
-                    power: 'kW', 
-                    energy: 'kWh'
+                    'voltage': 'V', 
+                    'current': 'A', 
+                    'active_power': 'kW',
+                    'reactive_power': 'kvar',
+                    'apparent_power': 'kVA',
+                    'active_energy': 'kWh',
+                    'reactive_energy': 'kvarh',
+                    'power_factor': '',
                 };
                 const order = [
                     'voltage', 
                     'current', 
-                    'power', 
-                    'energy'
+                    'active_power',
+                    'reactive_power',
+                    'apparent_power',
+                    'active_energy',
+                    'reactive_energy',
+                    'power_factor',
                 ];
+
+                // Sort keys with more specific matching
                 const sortedKeys = Object.keys(data).sort((a, b) => {
                     if (a === 'ts' || b === 'ts') return a === 'ts' ? 1 : -1;
-                    const aIndex = order.findIndex(p => a.includes(p));
-                    const bIndex = order.findIndex(p => b.includes(p));
-                    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+
+                    // Find the most specific match for each key
+                    function findBestMatch(key) {
+                        let bestMatch = null;
+                        let bestLength = 0;
+                        
+                        for (const param of order) {
+                            if (key.includes(param) && param.length > bestLength) {
+                                bestMatch = param;
+                                bestLength = param.length;
+                            }
+                        }
+                        return bestMatch ? order.indexOf(bestMatch) : 999;
+                    }
+
+                    const aIndex = findBestMatch(a);
+                    const bIndex = findBestMatch(b);
+
+                    if (aIndex !== 999 && bIndex !== 999) return aIndex - bIndex;
                     return a.localeCompare(b);
                 });
 
@@ -711,15 +741,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (key === 'ts') continue;
                     const value = data[key];
                     const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                    // Find the most specific unit match
                     let unit = '';
+                    let bestMatchLength = 0;
+                    
                     for (const paramType in units) {
-                        if (key.includes(paramType)) {
+                        if (key.includes(paramType) && paramType.length > bestMatchLength) {
                             unit = units[paramType];
-                            break;
+                            bestMatchLength = paramType.length;
                         }
                     }
+                    
                     html += `<tr><td>${formattedKey}</td><td>${Number(value).toFixed(3)} ${unit}</td></tr>`;
                 }
+
                 html += '</tbody></table>';
                 readingsDiv.innerHTML = html;
             }

@@ -13,11 +13,21 @@ from datetime import datetime, timedelta
 # CONSTANTS
 
 VISUALIZATION_TYPES = {
-    '1': {'name': 'Voltage Comparison', 'filter': 'Voltage'},
-    '2': {'name': 'Current Comparison', 'filter': 'Current'},
-    '3': {'name': 'Power Analysis', 'filter': 'Power'},
-    '4': {'name': 'Energy Consumption', 'filter': 'Energy'},
-    '5': {'name': 'All Parameters', 'columns': []}
+    '1': {'name': 'Voltage', 'filter': 'Voltage'},
+    '2': {'name': 'Current', 'filter': 'Current'},
+    '3': {'name': 'Active Power', 'filter': 'Active Power'},
+    '4': {'name': 'Reactive Power', 'filter': 'Reactive Power'},
+    '5': {'name': 'Apparent Power', 'filter': 'Apparent Power'},
+    '6': {'name': 'Energy', 'filter_function': lambda cols: [c for c in cols if "Energy" in c and 
+                                                                    not ((c.startswith("T") and c[1].isdigit()) or 
+                                                                    c.startswith("Import") or 
+                                                                    c.startswith("Export"))]},
+    '7': {'name': 'Energy Tariff', 'filter_function': lambda cols: [c for c in cols if "Energy" in c and 
+                                                                        ((c.startswith("T") and c[1].isdigit()) or 
+                                                                        c.startswith("Import") or 
+                                                                        c.startswith("Export"))]},
+    '8': {'name': 'Power Factor', 'filter': 'Power Factor'},
+    '9': {'name': 'All Parameters', 'columns': []},
 }
 log = logging.getLogger(__name__)
 
@@ -121,7 +131,7 @@ class AnalyzerService:
             df = pd.read_csv(filepath)
             if 'Timestamp' in df.columns:
                 df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-            
+
             available_cols = [col for col in df.columns if col != 'Timestamp']
             columns_to_plot = []
             title = "Untitled"
@@ -132,11 +142,15 @@ class AnalyzerService:
             elif plot_type in VISUALIZATION_TYPES:
                 viz_config = VISUALIZATION_TYPES[plot_type]
                 title = viz_config['name']
-                
+
                 if 'filter' in viz_config:
                     columns_to_plot = [col for col in available_cols if viz_config['filter'] in col]
-                else:
+                elif 'filter_function' in viz_config:
+                    columns_to_plot = viz_config['filter_function'](available_cols)
+                elif 'columns' in viz_config:
                     columns_to_plot = available_cols
+                else:
+                    return {"error": "Invalid visualization configuration"}
             else:
                 return {"error": "Invalid visualization type"}
 
@@ -144,7 +158,7 @@ class AnalyzerService:
                 return {"error": f"No data available for the '{title}' plot in this file."}
 
             self._analyzer._generate_plot(df, title, columns_to_plot, filepath)
-            
+
             csv_base_name = os.path.splitext(filename)[0]
             safe_suffix = title.replace(' ', '_').lower()
             regular_filename = f"{csv_base_name}_{safe_suffix}.png"

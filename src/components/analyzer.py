@@ -33,10 +33,20 @@ class DataAnalyzer:
         try:
             # Find all columns that contain the keywords
             param_groups = {
-                "Voltage Parameters": [col for col in df.columns if "voltage" in col.lower()],
-                "Current Parameters": [col for col in df.columns if "current" in col.lower()],
-                "Power Parameters":   [col for col in df.columns if "power" in col.lower()],
-                "Energy Parameters":  [col for col in df.columns if "energy" in col.lower()],
+                "Voltage Parameters": [col for col in df.columns if "Voltage" in col],
+                "Current Parameters": [col for col in df.columns if "Current" in col],
+                "Active Power Parameters": [col for col in df.columns if "Active Power" in col],
+                "Reactive Power Parameters": [col for col in df.columns if "Reactive Power" in col],
+                "Apparent Power Parameters": [col for col in df.columns if "Apparent Power" in col],
+                "Energy Parameters": [col for col in df.columns if "Energy" in col and 
+                                    not ((col.startswith("T") and col[1].isdigit()) or 
+                                        col.startswith("Import") or 
+                                        col.startswith("Export"))],
+                "Energy Tariff Parameters": [col for col in df.columns if "Energy" in col and 
+                                            ((col.startswith("T") and col[1].isdigit()) or 
+                                            col.startswith("Import") or 
+                                            col.startswith("Export"))],
+                "Power Factor Parameters": [col for col in df.columns if "Power Factor" in col],
             }
 
             print("\n===== Power Meter Statistics =====")
@@ -131,26 +141,36 @@ class DataAnalyzer:
         available_cols = [col for col in df.columns if col != 'Timestamp']
 
         categories = {
-            '1': {'name': 'Voltage Comparison', 'columns': [c for c in available_cols if 'Voltage' in c]},
-            '2': {'name': 'Current Comparison', 'columns': [c for c in available_cols if 'Current' in c]},
-            '3': {'name': 'Power Analysis', 'columns': [c for c in available_cols if 'Power' in c]},
-            '4': {'name': 'Energy Consumption', 'columns': [c for c in available_cols if 'Energy' in c]},
-            '5': {'name': 'Custom Selection', 'columns': []},
-            '6': {'name': 'All Parameters', 'columns': available_cols},
-            '0': {'name': 'Exit', 'columns': []}
+            '0': {'name': 'Exit', 'columns': []},
+            '1': {'name': 'Voltage', 'columns': [c for c in available_cols if 'Voltage' in c]},
+            '2': {'name': 'Current', 'columns': [c for c in available_cols if 'Current' in c]},
+            '3': {'name': 'Active Power', 'columns': [c for c in available_cols if 'Active Power' in c]},
+            '4': {'name': 'Reactive Power', 'columns': [c for c in available_cols if 'Reactive Power' in c]},
+            '5': {'name': 'Apparent Power', 'columns': [c for c in available_cols if 'Apparent Power' in c]},
+            '6': {'name': 'Energy', 'columns': [c for c in available_cols if "Energy" in c and 
+                                                not ((c.startswith("T") and c[1].isdigit()) or 
+                                                    c.startswith("Import") or 
+                                                    c.startswith("Export"))]},
+            '7': {'name': 'Energy Tariff', 'columns': [c for c in available_cols if "Energy" in c and 
+                                                    ((c.startswith("T") and c[1].isdigit()) or 
+                                                    c.startswith("Import") or 
+                                                    c.startswith("Export"))]},
+            '8': {'name': 'Power Factor', 'columns': [c for c in available_cols if 'Power Factor' in c]},
+            '9': {'name': 'Custom Selection', 'columns': []},
+            '10': {'name': 'All Parameters', 'columns': available_cols},
         }
 
         while True:
             print("\nSelect visualization to generate:")
             for key, value in categories.items():
-                if value.get('columns') or key in ['5', '0']:
+                if value.get('columns') or key in ['0', '10']:
                     print(f"{key}. {value['name']}")
             choice = input("\nEnter your choice: ").strip()
 
             if choice == '0':
                 print("Exiting visualization menu.")
                 return
-            elif choice == '5':
+            elif choice == '9':
                 all_columns = [col for col in df.columns if col != 'Timestamp']
                 print("\nAvailable parameters:")
                 for i, col in enumerate(all_columns, 1):

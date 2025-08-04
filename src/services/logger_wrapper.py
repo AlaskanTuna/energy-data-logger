@@ -117,6 +117,7 @@ class LoggerService:
 
     def _handle_logging_failure(self):
         """ 
+        Handles internal logging failures.
         """
         current_state = self._get_logger_state()
         csv_to_stop = current_state.get("csvFile") if current_state else None

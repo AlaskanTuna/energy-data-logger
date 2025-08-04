@@ -621,3 +621,37 @@ If you wish to enable InfluxDB/Grafana logging instead of CSV-only, create a `.e
    sudo systemctl start grafana-server
    sudo systemctl status grafana-server --no-pager -l
    ```
+
+### Configuring Grafana OSS Dashboard Viewing
+
+1. Locate and open the Grafana configuration file at `/etc/grafana/grafana.ini`.
+
+2. Modify the following fields in `grafana.ini`:
+
+   ```bash
+   [security]
+   cookie_samesite = none
+   allow_embedding = true
+
+   [auth.anonymous]
+   enabled = true
+   org_name = Main Org.
+   org_role = Viewer
+   hide_version = false
+
+   [auth]
+   disable_signout_menu = true
+   disable_login_form = true
+   ```
+
+3. Save the file and restart Grafana service:
+
+   ```bash
+   # Restart the service
+   sudo systemctl restart grafana-server.service
+
+   # Check the status of the service
+   sudo systemctl status grafana-server.service --no-pager -l
+   ```
+
+4. On a browser, access the webapp at `http://energylogger.local/` and the Metrics Panel should be displayed accordingly.

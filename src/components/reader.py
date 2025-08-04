@@ -52,27 +52,54 @@ class MeterReader:
         readings = {}
         voltage_base = random.uniform(235, 245)
         current_base = random.uniform(2.0, 15.0)
-        power_base = voltage_base * current_base / 1000
-        energy_base = random.uniform(100, 200)
+        active_power_base = voltage_base * current_base * 0.9 / 1000
+        power_factor_base = random.uniform(0.85, 0.98)
+        apparent_power_base = active_power_base / power_factor_base
+        reactive_power_base = (apparent_power_base**2 - active_power_base**2)**0.5
+        energy_base = random.uniform(1000, 5000)
 
+        # Generate values for each register type
         for name in config.REGISTERS.keys():
             if 'voltage' in name:
-                readings[name] = round(voltage_base * random.uniform(0.99, 1.01), 2)
+                readings[name] = round(voltage_base * random.uniform(0.98, 1.02), 2)
             elif 'current' in name:
-                readings[name] = round(current_base * random.uniform(0.8, 1.2), 2)
-            elif 'power' in name and 'total' not in name:
-                readings[name] = round(power_base * random.uniform(0.9, 1.1), 3)
-            elif name == 'total_power':
-                readings[name] = round(power_base * 3 * random.uniform(0.95, 1.05), 3)
-            elif 'energy' in name:
-                if '_t' in name:
-                    readings[name] = round(energy_base * 0.3 * random.uniform(0.95, 1.05), 3)
-                elif '_l' in name:
-                     readings[name] = round(energy_base / 3 * random.uniform(0.95, 1.05), 3)
+                readings[name] = round(current_base * random.uniform(0.7, 1.3), 2)
+            elif 'active_power' in name:
+                if 'total' in name:
+                    readings[name] = round(active_power_base * 3 * random.uniform(0.95, 1.05), 3)
                 else:
-                    readings[name] = round(energy_base * random.uniform(0.98, 1.02), 3)
-            else:
-                readings[name] = round(random.uniform(0, 1), 3)
+                    readings[name] = round(active_power_base * random.uniform(0.8, 1.2), 3)
+            elif 'reactive_power' in name:
+                if 'total' in name:
+                    readings[name] = round(reactive_power_base * 3 * random.uniform(0.95, 1.05), 3)
+                else:
+                    readings[name] = round(reactive_power_base * random.uniform(0.8, 1.2), 3)
+            elif 'apparent_power' in name:
+                if 'total' in name:
+                    readings[name] = round(apparent_power_base * 3 * random.uniform(0.95, 1.05), 3)
+                else:
+                    readings[name] = round(apparent_power_base * random.uniform(0.8, 1.2), 3)
+            elif 'energy' in name:
+                if 'active' in name:
+                    if '_t' in name:
+                        tariff_num = int(name.split('_t')[1][0])
+                        portion = 0.4 if tariff_num == 1 else 0.3 if tariff_num == 2 else 0.2 if tariff_num == 3 else 0.1
+                        readings[name] = round(energy_base * portion * random.uniform(0.95, 1.05), 3)
+                    elif '_l' in name:
+                        readings[name] = round(energy_base / 3 * random.uniform(0.9, 1.1), 3)
+                    elif 'import' in name:
+                        readings[name] = round(energy_base * 0.95 * random.uniform(0.98, 1.02), 3)
+                    elif 'export' in name:
+                        readings[name] = round(energy_base * 0.05 * random.uniform(0.9, 1.1), 3)
+                    else:
+                        readings[name] = round(energy_base * random.uniform(0.98, 1.02), 3)
+                elif 'reactive' in name:
+                    readings[name] = round(energy_base * 0.4 * random.uniform(0.95, 1.05), 3)
+            elif 'power_factor' in name:
+                if 'l1' in name or 'l2' in name or 'l3' in name:
+                    readings[name] = round(power_factor_base * random.uniform(0.97, 1.03), 3)
+                else:
+                    readings[name] = round(power_factor_base, 3)
         return readings
 
     def meter_reading_modbus(self):

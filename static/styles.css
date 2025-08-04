@@ -511,6 +511,19 @@ body.dark-mode .sg-button.active {
     filter: invert(65%) sepia(98%) saturate(3755%) hue-rotate(265deg) brightness(101%) contrast(101%);
 }
 
+/*
+.grafana-container {
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+    margin-top: 10px;
+}
+
+#grafana-metrics iframe {
+    background-color: var(--card-bg);
+}
+*/
+
 /* ===== SETTINGS FORM ===== */
 
 .form-group {

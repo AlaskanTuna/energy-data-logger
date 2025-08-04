@@ -73,7 +73,7 @@ class DataLogger:
                 org=config.INFLUXDB_ORG,
                 timeout=config.INFLUXDB_TIMEOUT
             )
-            
+
             # Verify connection with ping
             if self.client.ping():
                 self.write_api = self.client.write_api(
@@ -98,7 +98,6 @@ class DataLogger:
                 readings = self.reader.get_meter_readings()
                 if not readings:
                     log.error("Data Logger Error: Could not retrieve readings after max retries. Shutting down logger.")
-
                     if self.on_failure_callback:
                         self.on_failure_callback()
 
