@@ -47,6 +47,10 @@ class Settings:
             for key, default_value in config.DEFAULT_SETTINGS.items():
                 expected_type = type(default_value)
                 value_str = temp_data.get(key)
+                if key == "LIVE_METRICS":
+                    self.data[key] = value_str.lower() == "true" if value_str is not None else default_value
+                    continue
+
                 if key == "ACTIVE_LOG_PARAMETERS":
                     if value_str:
                         try:
@@ -98,6 +102,8 @@ class Settings:
                     self.data[key] = value
                     if isinstance(value, list):
                         db.merge(Setting(key=key, value=json.dumps(value)))
+                    elif isinstance(value, bool):
+                        db.merge(Setting(key=key, value=str(value)))
                     else:
                         db.merge(Setting(key=key, value=str(value)))
             db.commit()

@@ -78,7 +78,8 @@ def get_scheduler_status():
         "mode": "none",
         "status": "idle",
         "activeCSVFile": logger_state.get("csvFile"),
-        "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None
+        "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None,
+        "liveMetricsEnabled": settings.get("LIVE_METRICS"),
     }
 
     if logger_state.get("status") == "running":

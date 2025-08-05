@@ -69,6 +69,7 @@ DEFAULT_SETTINGS = {
     "STOPBITS": 1,
     "TIMEOUT": 2,
     "ACTIVE_LOG_PARAMETERS": None,
+    "LIVE_METRICS": False,
 }
 
 # FILE SETTINGS
