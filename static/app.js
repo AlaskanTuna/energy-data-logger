@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             if (dataPollingInterval) stopDataPolling();
             // Logger state inactive
-            document.querySelector('latest-readings').innerHTML = '<p>No data available. Start logging to see real-time measurements.</p>';
+            document.getElementById('latest-readings').innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
         }
 
         const grafanaContainer = document.querySelector('#grafana-metrics .grafana-container');
