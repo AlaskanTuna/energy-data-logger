@@ -37,11 +37,22 @@ document.addEventListener('DOMContentLoaded', function() {
         download: document.getElementById('download-logs-button'),
         settings: document.getElementById('settings-button')
     };
+    const grafanaPanels = [
+        { id: 1, title: 'Voltage' },
+        { id: 3, title: 'Power' },
+        { id: 2, title: 'Current' },
+        { id: 7, title: 'Reactive Power' },
+        { id: 4, title: 'Apparent Power' },
+        { id: 6, title: 'Energy' },
+        { id: 8, title: 'Energy Tariff' },
+        { id: 9, title: 'Power Factor' }
+    ];
 
     // GLOBAL VARIABLES
 
     let dataPollingInterval = null;
     let statusPollingInterval = null;
+    let currentGrafanaState = null;
 
     // STATUS POLLING AND RENDERING
 
@@ -59,8 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error fetching status:', error);
-                document.getElementById('logger-status').textContent = 'Error';
-                document.getElementById('logger-status').className = 'error';
+                const statusElement = document.getElementById('logger-status');
+                statusElement.textContent = 'Error';
+                statusElement.className = 'logger-status error';
             });
     }
 
@@ -76,13 +88,13 @@ document.addEventListener('DOMContentLoaded', function() {
             'scheduled': 'Scheduled',
             'logging': 'Logging'
         };
+        const statusElement = document.getElementById('logger-status');
+        const lastUpdateElement = document.getElementById('last-update');
 
         document.getElementById('logger-mode').textContent = modeMap[data.mode] || 'Unknown';
-        const statusElement = document.getElementById('logger-status');
         statusElement.textContent = statusMap[data.status] || 'Unknown';
         statusElement.className = 'logger-status ' + data.status;
 
-        const lastUpdateElement = document.getElementById('last-update');
         if (data.status === 'logging' && data.lastUpdated) {
             lastUpdateElement.textContent = new Date(data.lastUpdated).toLocaleTimeString();
         } else {
@@ -103,7 +115,48 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!dataPollingInterval) startDataPolling();
         } else {
             if (dataPollingInterval) stopDataPolling();
-            document.getElementById('latest-readings').innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
+            // Logger state inactive
+            document.querySelector('latest-readings').innerHTML = '<p>No data available. Start logging to see real-time measurements.</p>';
+        }
+
+        const grafanaContainer = document.querySelector('#grafana-metrics .grafana-container');
+        const isLogging = data.status === 'logging';
+        const liveMetricsEnabled = data.liveMetricsEnabled;
+
+        let targetGrafanaState;
+        if (liveMetricsEnabled && isLogging) {
+            targetGrafanaState = 'panels_visible';
+        } else if (liveMetricsEnabled && !isLogging) {
+            targetGrafanaState = 'prompt_to_log';
+        } else {
+            targetGrafanaState = 'prompt_to_enable';
+        }
+
+        if (targetGrafanaState !== currentGrafanaState) {
+            console.log(`Grafana UI state changing from: ${currentGrafanaState} -> to: ${targetGrafanaState}`);
+
+            switch (targetGrafanaState) {
+                case 'panels_visible':
+                    let panelsHTML = '';
+                    grafanaPanels.forEach(panel => {
+                        panelsHTML += `
+                            <iframe 
+                                src="http://energylogger.local:3000/d-solo/b94f1466-8eff-4d0b-a679-dc598d214b81/energy-logger-metrics?orgId=1&timezone=browser&refresh=5s&panelId=${panel.id}&__feature.dashboardSceneSolo" 
+                                width="100%" 
+                                height="200" 
+                                frameborder="0">
+                            </iframe>`;
+                    });
+                    grafanaContainer.innerHTML = panelsHTML;
+                    break;
+                case 'prompt_to_log':
+                    grafanaContainer.innerHTML = '<p>No data available. Start logging to see real-time measurements.</p>';
+                    break;
+                case 'prompt_to_enable':
+                    grafanaContainer.innerHTML = "<p>Turn on 'Live Metrics' in Settings to view graph readings.</p>";
+                    break;
+            }
+            currentGrafanaState = targetGrafanaState;
         }
     }
 
@@ -657,14 +710,24 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 body.innerHTML = `
                     <form id="settings-form">
+                        <div class="toggle-switch">
+                            <label for="live_metrics">Live Metrics</label>
+                            <label class="switch">
+                                <input type="checkbox" id="live_metrics" name="live_metrics" ${data.LIVE_METRICS ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
                         <div class="form-group">
                             <label for="log_interval">Logging Interval (Seconds)</label>
                             <input type="number" id="log_interval" name="log_interval" value="${data.LOG_INTERVAL}" min="1" required>
                         </div>
+
                         <div class="form-group">
                             <label for="modbus_slave_id">Modbus Slave ID</label>
                             <input type="number" id="modbus_slave_id" name="modbus_slave_id" value="${data.MODBUS_SLAVE_ID}" min="1" max="247" required>
                         </div>
+
                         <div class="form-group">
                             <label for="baudrate">Baud Rate</label>
                             <select id="baudrate" name="baudrate">
@@ -678,6 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="115200" ${data.BAUDRATE === 115200 ? 'selected' : ''}>115200</option>
                             </select>
                         </div>
+
                         <div class="form-group">
                             <label for="parity">Parity</label>
                             <select id="parity" name="parity">
@@ -686,6 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value='O' ${data.PARITY === 'O' ? 'selected' : ''}>Odd</option>
                             </select>
                         </div>
+
                         <div class="form-group">
                             <label for="bytesize">Byte Size</label>
                             <select id="bytesize" name="bytesize">
@@ -695,6 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="8" ${data.BYTESIZE === 8 ? 'selected' : ''}>8 (Standard)</option>
                             </select>
                         </div>
+
                         <div class="form-group">
                             <label for="stopbits">Stop Bits</label>
                             <select id="stopbits" name="stopbits">
@@ -702,16 +768,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="2" ${data.STOPBITS === 2 ? 'selected' : ''}>2</option>
                             </select>
                         </div>
+
                         <div class="form-group">
                             <label for="timeout">Timeout (Seconds)</label>
                             <input type="number" id="timeout" name="timeout" value="${data.TIMEOUT}" min="1" required>
                         </div>
+
                         <div class="action-buttons">
                             <button type="submit" class="action-button">Save Settings</button>
                         </div>
                     </form>
                 `;
-
                 document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
             })
             .catch(error => {
@@ -727,6 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.disabled = true;
 
         const newSettings = {
+            LIVE_METRICS: form.live_metrics.checked,
             LOG_INTERVAL: parseInt(form.log_interval.value, 10),
             MODBUS_SLAVE_ID: parseInt(form.modbus_slave_id.value, 10),
             BAUDRATE: parseInt(form.baudrate.value, 10),
