@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     const grafanaPanels = [
         { id: 1, title: 'Voltage' },
-        { id: 3, title: 'Power' },
         { id: 2, title: 'Current' },
+        { id: 3, title: 'Active Power' },
         { id: 7, title: 'Reactive Power' },
         { id: 4, title: 'Apparent Power' },
         { id: 6, title: 'Energy' },
