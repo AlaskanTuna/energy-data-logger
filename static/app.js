@@ -134,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (targetGrafanaState !== currentGrafanaState) {
             console.log(`Grafana UI state changing from: ${currentGrafanaState} -> to: ${targetGrafanaState}`);
-
             switch (targetGrafanaState) {
                 case 'panels_visible':
                     let panelsHTML = '';
@@ -221,10 +220,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
             allParameters.forEach(param => {
                 const isChecked = activeParameters.includes(param.name);
+                const uniqueId = `log-param-${param.name}`; // Create a unique ID
+
                 html += `
-                    <label class="column-option">
-                        <input type="checkbox" name="log-parameter" value="${param.name}" ${isChecked ? 'checked' : ''}>
-                        <span>${param.description}</span>
+                    <label for="${uniqueId}" class="column-option">
+                        <input class="custom-checkbox-input" id="${uniqueId}" type="checkbox" name="log-parameter" value="${param.name}" ${isChecked ? 'checked' : ''}>
+                        <div class="custom-checkbox-label">
+                            <span class="checkbox-box">
+                                <svg width="12px" height="10px"><use xlink:href="#custom-check"></use></svg>
+                            </span>
+                            <span class="checkbox-text">${param.description}</span>
+                        </div>
                     </label>`;
             });
 
@@ -653,16 +659,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch(`/api/columns/${filename}`).then(r => r.json()).then(data => {
             if (data.error) { modalBody.innerHTML = `<p class="error-message">${data.error}</p>`; return; }
-            let html = `<h3>Select Parameters</h3><div class="column-selection">`;
+
+            let html = `
+                <div class="modal-description" style="margin-bottom: 0.5rem;">
+                    <h3>Select Log Parameters</h3>
+                </div>
+                <div class="action-buttons" style="margin-bottom: 0.5rem;">
+                    <button id="select-all-viz-params" class="action-button secondary">Select All</button>
+                    <button id="deselect-all-viz-params" class="action-button secondary">Deselect All</button>
+                </div>
+                <div class="column-selection">`;
+
             data.columns.forEach(column => {
-                html += `<label class="column-option"><input type="checkbox" name="column" value="${column}"><span>${column}</span></label>`;
+                const uniqueId = `viz-param-${column.replace(/\s/g, '-')}`;
+                html += `
+                    <label for="${uniqueId}" class="column-option">
+                        <input class="custom-checkbox-input" id="${uniqueId}" type="checkbox" name="column" value="${column}">
+                        <div class="custom-checkbox-label">
+                            <span class="checkbox-box">
+                                <svg width="12px" height="10px"><use xlink:href="#custom-check"></use></svg>
+                            </span>
+                            <span class="checkbox-text">${column}</span>
+                        </div>
+                    </label>`;
             });
+
             html += `</div><div class="action-buttons">
                 <button id="generate-custom-viz" class="action-button">Generate</button>
                 <button id="back-to-viz-options" class="action-button secondary">Back</button>
                 </div>`;
             modalBody.innerHTML = html;
 
+            document.getElementById('select-all-viz-params').addEventListener('click', () => {
+                document.querySelectorAll('input[name="column"]').forEach(cb => cb.checked = true);
+            });
+            document.getElementById('deselect-all-viz-params').addEventListener('click', () => {
+                document.querySelectorAll('input[name="column"]').forEach(cb => cb.checked = false);
+            });
             document.getElementById('generate-custom-viz').addEventListener('click', () => {
                 const selected = Array.from(document.querySelectorAll('input[name="column"]:checked')).map(cb => cb.value);
                 if (selected.length > 0) generateVisualization(filename, 'custom', selected);
