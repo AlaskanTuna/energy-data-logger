@@ -86,8 +86,6 @@ class DataAnalyzer:
         """
         try:
             consumption_results = {}
-
-            # Find all columns that contain the keywords
             columns = [col for col in df.columns if "total" in col.lower()]
             if not columns:
                 log.warning("No cumulative columns found for consumption calculation.")
@@ -106,7 +104,13 @@ class DataAnalyzer:
 
                 first_val = series.iloc[0]
                 last_val = series.iloc[-1]
-                consumption = last_val - first_val
+
+                if last_val < first_val:
+                    # Meter rollover calculation
+                    consumption = (config.MAX_METER_VALUE - first_val) + last_val
+                else:
+                    # Normal calculation
+                    consumption = last_val - first_val
 
                 # Extract the unit from the column name
                 unit = ""
@@ -117,7 +121,7 @@ class DataAnalyzer:
 
             return consumption_results
         except Exception as e:
-            log.error(f"Session Consumption Analysis Error: {e}", exc_info=True)
+            log.error(f"Consumption Analysis Error: {e}", exc_info=True)
             return None
 
     # TIME SERIES PLOTTING

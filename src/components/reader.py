@@ -60,7 +60,7 @@ class MeterReader:
         power_factor_base = random.uniform(0.85, 0.98)
         apparent_power_base = active_power_base / power_factor_base
         reactive_power_base = (apparent_power_base**2 - active_power_base**2)**0.5
-        energy_base = random.uniform(1000, 5000)
+        energy_base = random.uniform(200, 1000)
 
         # Generate values for each register type
         for name in params_to_log:
