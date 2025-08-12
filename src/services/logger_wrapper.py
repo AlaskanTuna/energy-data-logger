@@ -4,9 +4,10 @@ import threading
 import os
 import logging
 
-from components import util, logger
+from config import config
+from components import logger
 from services.app_logger import log_manager
-from services.database import ENGINE, SessionLocal, LoggerState, archive_csv_to_db
+from services.database import ENGINE, SessionLocal, LoggerState, create_log_table
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -64,6 +65,7 @@ class LoggerService:
                 return {
                     "status": state_row.status,
                     "csvFile": state_row.csvFile,
+                    "tableName": state_row.tableName,
                     "startTime": state_row.startTime,
                     "endTime": state_row.endTime,
                     "mode": state_row.mode,
@@ -74,7 +76,7 @@ class LoggerService:
         finally:
             db.close()
 
-    def _create_logger_state(self, filepath, end_time=None, mode=None):
+    def _create_logger_state(self, filepath, table, end_time=None, mode=None):
         """ 
         Create a new logger state in the database.
         
@@ -88,6 +90,7 @@ class LoggerService:
                 id=1,
                 status="running",
                 csvFile=filepath,
+                tableName=table,
                 startTime=datetime.now(),
                 endTime=end_time,
                 mode=mode
@@ -139,16 +142,30 @@ class LoggerService:
             if self._logging_thread and self._logging_thread.is_alive():
                 return {"status": "already_running", "state": self._get_logger_state()}
 
-            csv_filepath = initial_state.get("csvFile") if from_init else util.get_current_filename("ds")
-            if not csv_filepath:
-                log.error("Could not determine CSV file path for new session.")
-                return {"status": "error", "message": "Could not determine CSV file path."}
+            # Determine file and table names
+            if from_init and initial_state:
+                csv_filepath = initial_state.get("csvFile")
+                table_name = initial_state.get("tableName")
+            else:
+                session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+                csv_filepath = os.path.join(config.DS_DIR, f"{session_name}.csv")
+                table_name = session_name
+            
+            if not csv_filepath or not table_name:
+                log.error("Could not determine filepath or table for new log session.")
+                return {"status": "error", "message": "Could not determine filepath or table."}
 
-            session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
-            log_manager.start_session_logging(session_name)
+            # Create the dynamic table before starting the logger
+            if not create_log_table(table_name):
+                log.error(f"Aborting logger start due to failure in creating table '{table_name}'.")
+                return {"status": "error", "message": f"Failed to create database table for session."}
+
+            session_name_for_log = os.path.splitext(os.path.basename(csv_filepath))[0]
+            log_manager.start_session_logging(session_name_for_log)
 
             self._dl = logger.DataLogger(
                 filename=csv_filepath, 
+                table_name=table_name,
                 end_time=end_time,
                 on_failure_callback=self._handle_logging_failure
             )
@@ -158,23 +175,17 @@ class LoggerService:
             )
 
             if not from_init:
-                self._create_logger_state(csv_filepath, end_time, mode if mode else "default")
+                self._create_logger_state(csv_filepath, table_name, end_time, mode if mode else "default")
 
             self._logging_thread.start()
 
             if end_time:
-                log.info(f"Started data logging process for '{csv_filepath}' until '{end_time.isoformat()}'.")
+                log.info(f"Started data logging process for until '{end_time.isoformat()}'.")
             else:
-                log.info(f"Started data logging process for '{csv_filepath}'.")
+                log.info(f"Started data logging process.")
             return {"status": "started", "state": self._get_logger_state()}
 
     def stop(self, csv_filepath=None):
-        """ 
-        Stops the webapp data logging process.
-        
-        @csv_filepath: Optional path to the CSV file being logged
-        @return: Dictionary with status of the stop operation
-        """
         with self._lock:
             if not csv_filepath:
                 logger_state = self._get_logger_state()
@@ -193,8 +204,6 @@ class LoggerService:
                 log_manager.stop_session_logging()
 
             if not self._logging_thread or not self._logging_thread.is_alive():
-                if csv_filepath:
-                    archive_csv_to_db(csv_filepath)
                 return {"status": "already_stopped"}
 
             log.info("Stopping active data logging thread.")
@@ -205,9 +214,6 @@ class LoggerService:
             self._logging_thread.join(timeout=5)
             self._logging_thread = None
             self._dl = None
-
-            if csv_filepath:
-                archive_csv_to_db(csv_filepath)
 
             log.info("Data logging session stopped successfully.")
             return {"status": "stopped"}

@@ -8,7 +8,6 @@ from config import config
 from components.logger import DataLogger
 from components.analyzer import DataAnalyzer
 from services.settings import settings
-from services.database import archive_csv_to_db
 from datetime import datetime
 
 # CONSTANTS
@@ -32,10 +31,8 @@ def main_menu():
 
         if choice == '1':
             clear_screen()
-            csv_filepath = get_current_filename("ds")
             logger = DataLogger(filename=get_current_filename("ds"))
             logger.start()
-            archive_csv_to_db(csv_filepath)
         elif choice == '2':
             clear_screen()
             view_data()

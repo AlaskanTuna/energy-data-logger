@@ -6,7 +6,7 @@ import sqlalchemy
 import pandas as pd
 
 from config import config
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Table, MetaData, Column, Integer, Float, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # CONSTANTS
@@ -34,6 +34,7 @@ class LoggerState(Base):
     id = Column(Integer, primary_key=True, default=1)
     status = Column(String, nullable=False)
     csvFile = Column(String, nullable=True)
+    tableName = Column(String, nullable=True)
     startTime = Column(DateTime, nullable=True)
     endTime = Column(DateTime, nullable=True)
     mode = Column(String, nullable=True)
@@ -53,34 +54,31 @@ def init_db():
     except Exception as e:
         log.error(f"Database Initialization Error: {e}", exc_info=True)
 
-def archive_csv_to_db(filepath):
+def create_log_table(table_name):
     """ 
-    Archives CSV data to the database with proper timestamp objects.
-    
-    @filepath: Path to the CSV file to archive
+    Creates a data log table in the database.
+
+    @table_name: The name of the table
     """
-    if not os.path.exists(filepath):
-        log.error(f"DB Archive Error. CSV file not found at '{filepath}'.")
-        return
-
     try:
-        # Read CSV and parse dates
-        df = pd.read_csv(filepath, parse_dates=['Timestamp'])
-        df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.floor('s')
+        metadata = MetaData()
+        columns = [
+            Column('id', Integer, primary_key=True, autoincrement=True),
+            Column('Timestamp', DateTime, nullable=False),
+        ]
 
-        # Create table name
-        table_name = os.path.splitext(os.path.basename(filepath))[0]
-        safe_table_name = "".join(c for c in table_name if c.isalnum() or c == '_')
+        # Iterate parameters to create SQL columns
+        for param_name, params in config.REGISTERS.items():
+            col_name = params["description"].replace(' ', '_').replace('(', '').replace(')', '')
+            columns.append(Column(col_name, Float, nullable=True))
 
-        # Write to SQL
-        df.to_sql(
-            safe_table_name, 
-            con=ENGINE, 
-            if_exists='replace', 
-            index=False,
-            dtype={'Timestamp': sqlalchemy.types.DateTime()}
-        )
+        # Add sync status column
+        columns.append(Column('sync_status', String, nullable=False, default='pending'))
+        log_table = Table(table_name, metadata, *columns)
 
-        log.info(f"Archived CSV data to table '{safe_table_name}' from '{filepath}' successfully.")
+        metadata.create_all(ENGINE)
+        log.info(f"Successfully created log table '{table_name}' in database.")
+        return True
     except Exception as e:
-        log.error(f"DB Archive Error: {e}", exc_info=True)
+        log.error(f"SQL Creation Error: Failed to create log table '{table_name}' in database: {e}", exc_info=True)
+        return False

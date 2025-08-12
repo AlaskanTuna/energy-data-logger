@@ -16,6 +16,7 @@ minimalmodbus==2.1.1
 # DB
 SQLAlchemy==2.0.41
 influxdb-client==1.49.0
+psycopg2-binary==2.9.10
 
 # Utilities
 python-dotenv==1.1.0

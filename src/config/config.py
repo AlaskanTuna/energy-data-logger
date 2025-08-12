@@ -99,3 +99,13 @@ INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_ORG = "energy-logger"
 INFLUXDB_BUCKET = "energy-logger"
 INFLUXDB_TIMEOUT = 30
+
+# REMOTE DATABASE SETTINGS
+
+REMOTE_DB_ENABLED = os.getenv("REMOTE_DB_ENABLED")
+REMOTE_DB_CONFIG = {
+    "host": os.getenv("HOST"),
+    "username": os.getenv("DB_USERNAME"),
+    "password": os.getenv("DB_PASSWORD"),
+}
+REMOTE_DB_TABLE = os.getenv("DB_TARGET_TABLE", "energy_logger")
