@@ -100,14 +100,16 @@ INFLUXDB_ORG = "energy-logger"
 INFLUXDB_BUCKET = "energy-logger"
 INFLUXDB_TIMEOUT = 30
 
-# REMOTE DATABASE SETTINGS
+# REMOTE SYNC SETTINGS
 
 REMOTE_DB_ENABLED = False
 REMOTE_DB_CONFIG = {
     "database": os.getenv("DB"),
-    "username": os.getenv("DB_USERNAME"),
+    "user": os.getenv("DB_USERNAME"),
     "password": os.getenv("DB_PASSWORD"),
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
 }
 REMOTE_DB_TABLE = os.getenv("DB_TARGET_TABLE")
+SYNC_INTERVAL = 60
+SYNC_BATCH_SIZE = 100

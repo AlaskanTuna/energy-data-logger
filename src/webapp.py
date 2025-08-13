@@ -7,6 +7,7 @@
 import os
 import logging
 import datetime
+import atexit
 
 from flask import Flask, request, jsonify, send_from_directory
 from config import config
@@ -19,10 +20,19 @@ from services.analyzer_wrapper import VISUALIZATION_TYPES
 from services.remote_syncer import remote_syncer_service
 from datetime import datetime, time, timedelta
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 app = Flask(__name__, static_folder=str(config.STATIC_DIR))
 log = logging.getLogger(__name__)
+
+# REMOTE SYNCER SERVICE
+
+if config.REMOTE_DB_ENABLED:
+    log.info(f"Remote DB is enabled. Sync service will run every {config.SYNC_INTERVAL}s.")
+    remote_syncer_service.start()
+    atexit.register(remote_syncer_service.stop)
+else:
+    log.info("Remote DB is disabled. Sync service will not run.")
 
 # HELPER FUNCTIONS
 
