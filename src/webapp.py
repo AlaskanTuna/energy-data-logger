@@ -16,6 +16,7 @@ from services.settings import settings
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES
+from services.remote_syncer import remote_syncer_service
 from datetime import datetime, time, timedelta
 
 # CONSTANTS
@@ -85,10 +86,10 @@ def get_scheduler_status():
     if logger_state.get("status") == "running":
         response["status"] = "logging"
         response["mode"] = logger_state.get("mode", "default")
-    elif jobs:
-        response["status"] = "scheduled"
+    else:
         start_job = next((j for j in jobs if j.id == "start_job"), None)
         if start_job:
+            response["status"] = "scheduled"
             response["mode"] = start_job.kwargs.get('schedule_mode', 'none')
     return jsonify(response)
 
@@ -403,5 +404,4 @@ def generate_custom_visualization(filename):
 # RUN FLASK
 
 if __name__ == "__main__":
-    # NOTE: To manually run the webapp, do `cd src/ && python webapp.py`
     app.run(host="0.0.0.0", port=8000, debug=True)

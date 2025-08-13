@@ -75,8 +75,6 @@ class AnalyzerService:
             log.error(f"DB Query Error: {e}", exc_info=True)
             return None
 
-    # PUBLIC API
-
     def analyze_file(self, filename, start_time=None, end_time=None):
         """
         Analyze a file and return the statistics for a given time range.

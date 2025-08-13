@@ -218,8 +218,6 @@ class LoggerService:
             log.info("Data logging session stopped successfully.")
             return {"status": "stopped"}
 
-    # PUBLIC API
-
     def get_status(self):
         """ 
         Get the current status of the logger.
