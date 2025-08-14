@@ -81,9 +81,13 @@ def get_scheduler_status():
     
     @return: JSON object with scheduler status
     """
+    # Indicators
     logger_state = logger_service.get_status()
     jobs = logger_service._scheduler.get_jobs()
     latest_data = logger_service.latest()
+    sync_status = "inactive"
+    if config.REMOTE_DB_ENABLED and remote_syncer_service._check_internet():
+        sync_status = "active"
 
     response = {
         "mode": "none",
@@ -91,6 +95,7 @@ def get_scheduler_status():
         "activeCSVFile": logger_state.get("csvFile"),
         "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None,
         "liveMetricsEnabled": settings.get("LIVE_METRICS"),
+        "syncStatus": sync_status,
     }
 
     if logger_state.get("status") == "running":

@@ -81,19 +81,25 @@ document.addEventListener('DOMContentLoaded', function() {
             'none': 'None',
             'default': 'Default',
             'once': 'Scheduled (Once)',
-            'recurring': 'Scheduled (Recurring)'
+            'recurring': 'Scheduled (Recurring)',
         };
         const statusMap = {
             'idle': 'Idle',
             'scheduled': 'Scheduled',
-            'logging': 'Logging'
+            'logging': 'Logging',
         };
         const statusElement = document.getElementById('logger-status');
+        const syncElement = document.getElementById('logger-sync');
         const lastUpdateElement = document.getElementById('last-update');
 
         document.getElementById('logger-mode').textContent = modeMap[data.mode] || 'Unknown';
         statusElement.textContent = statusMap[data.status] || 'Unknown';
         statusElement.className = 'logger-status ' + data.status;
+
+        if (syncElement) {
+            syncElement.textContent = data.syncStatus === 'active' ? 'Active' : 'Inactive';
+            syncElement.className = data.syncStatus;
+        }
 
         if (data.status === 'logging' && data.lastUpdated) {
             lastUpdateElement.textContent = new Date(data.lastUpdated).toLocaleTimeString();

@@ -154,6 +154,11 @@ body.dark-mode .theme-switcher:hover {
     margin-top: 0.5rem;
 }
 
+.logger-status.idle {
+    color: #ff9800;
+    font-weight: bold;
+}
+
 .logger-status.logging {
     color: #4caf50;
     font-weight: bold;
@@ -165,6 +170,16 @@ body.dark-mode .theme-switcher:hover {
 }
 
 .logger-status.error {
+    color: #f44336;
+    font-weight: bold;
+}
+
+#logger-sync.active {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+#logger-sync.inactive {
     color: #f44336;
     font-weight: bold;
 }
