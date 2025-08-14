@@ -77,25 +77,114 @@ h2 {
     color: var(--text-color);
 }
 
-/* ===== STRUCTURAL COMPONENTS ===== */
+/* ===== HEADER & FOOTER ===== */
 
 header {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 1.5rem 1rem;
+    padding: 1rem 1rem 1.2rem 1rem;
     border-bottom: 1px solid var(--border-color);
     background: linear-gradient(180deg, var(--panel-bg) 0%, var(--bg-color) 100%);
+    flex-direction: column;
+    gap: 0.35rem;
 }
-
 header h1 {
     margin: 0;
     text-align: left;
 }
 
+.profile-selector {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.4rem 0.8rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.profile-button:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.profile-button .icon {
+    width: 16px;
+    height: 16px;
+    filter: var(--icon-filter);
+    transition: transform 0.2s ease;
+}
+
+.profile-selector.active .profile-button .icon {
+    transform: rotate(180deg);
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    padding: 0.5rem;
+    z-index: 1001;
+    width: max-content;
+    min-width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.profile-selector.active .profile-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+}
+
+.profile-dropdown-item {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.profile-dropdown-item:hover {
+    background-color: var(--bg-color);
+}
+
+.profile-dropdown-item.active {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.footer-logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 0.75rem;
+    transition: filter 0.3s ease;
+}
+
 footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin-top: 0rem;
-    padding: 1.5rem 1rem;
+    padding: 1.3rem 1rem;
     text-align: center;
     color: var(--text-muted);
     border-top: 1px solid var(--border-color);
@@ -150,6 +239,33 @@ body.dark-mode .theme-switcher:hover {
 }
 .status-panel-header h2 {
     margin-bottom: 0;
+}
+
+.status-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.status-header-icon {
+    width: 24px;
+    height: 24px;
+    filter: var(--icon-filter);
+}
+
+.wifi-status-wrapper {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.wifi-status-wrapper .status-header-icon {
+    width: 18px;
+    height: 18px;
 }
 
 .status-panel .status-content {
@@ -208,8 +324,8 @@ body.dark-mode .theme-switcher:hover {
     font-weight: bold;
 }
 
-#logger-sync.inactive {
-    color: #f44336;
+#logger-sync.idle {
+    color: #ff9800;
     font-weight: bold;
 }
 
@@ -296,8 +412,15 @@ body.dark-mode .theme-switcher:hover {
 
 .readings-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border-left: 5px solid var(--primary-color);
+}
+.readings-table tbody {
+    background-color: var(--bg-color);
 }
 .readings-table th,
 .readings-table td {
@@ -768,7 +891,7 @@ input:checked + .slider:before {
     .container {
         padding-top: 0rem;
         padding-right: 1rem;
-        padding-bottom: 1.5rem;
+        padding-bottom: 1rem;
         padding-left: 1rem;
     }
 

@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const setTheme = (isDark) => {
         document.body.classList.toggle('dark-mode', isDark);
         themeIcon.src = isDark ? sunIcon : moonIcon;
+
+        const footerLogo = document.getElementById('footer-logo');
+        if (footerLogo) {
+            footerLogo.src = isDark ? "/static/icons/emitsolar_white.png" : "/static/icons/emitsolar_black.png";
+        }
+
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
     };
 
@@ -23,6 +29,25 @@ document.addEventListener('DOMContentLoaded', function() {
     themeSwitcher.addEventListener('click', () => {
         setTheme(!document.body.classList.contains('dark-mode'));
     });
+
+    // PROFILE DROPDOWN
+
+    const profileSelector = document.querySelector('.profile-selector');
+    const profileButton = document.getElementById('profile-button');
+    const profileDropdown = document.getElementById('profile-dropdown');
+
+    if (profileButton && profileDropdown) {
+        profileButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            profileSelector.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!profileSelector.contains(event.target)) {
+                profileSelector.classList.remove('active');
+            }
+        });
+    }
 
     // UI ELEMENTS
 
@@ -59,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function startStatusPolling() {
         if (statusPollingInterval) clearInterval(statusPollingInterval);
         fetchStatus();
-        statusPollingInterval = setInterval(fetchStatus, 5000);
+        statusPollingInterval = setInterval(fetchStatus, 3000);
     }
 
     function fetchStatus() {
@@ -93,20 +118,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const syncContainer = document.getElementById('logger-sync-container');
         const syncIcon = document.getElementById('sync-icon');
         const syncText = document.getElementById('logger-sync');
+        const wifiIcon = document.getElementById('wifi-status-icon');
 
         document.getElementById('logger-mode').textContent = modeMap[data.mode] || 'Unknown';
         statusElement.textContent = statusMap[data.status] || 'Unknown';
         statusElement.className = 'logger-status ' + data.status;
+
+        if (wifiIcon) {
+            wifiIcon.src = data.internetStatus ? '/static/icons/wifi-on.svg' : '/static/icons/wifi-off.svg';
+        }
 
         if (syncContainer && syncIcon && syncText) {
             if (data.syncStatus === 'active') {
                 syncText.textContent = 'Active';
                 syncText.className = 'active'; 
                 syncIcon.classList.add('spin');
+                syncIcon.style.display = 'inline';
             } else {
-                syncText.textContent = 'Inactive';
-                syncText.className = 'inactive';
+                syncText.textContent = 'Idle';
+                syncText.className = 'idle';
                 syncIcon.classList.remove('spin');
+                syncIcon.style.display = 'none';
             }
         }
 

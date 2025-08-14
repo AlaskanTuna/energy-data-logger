@@ -11,14 +11,28 @@
 <body>
     <header>
         <h1>Energy Data Logger</h1>
+        <div class="profile-selector">
+            <button id="profile-button" class="profile-button">
+                <span>WAGO 879</span>
+                <img src="/static/icons/chevron-down.svg" class="icon" alt="Dropdown">
+            </button>
+            <div id="profile-dropdown" class="profile-dropdown-menu">
+                <a href="#" class="profile-dropdown-item active">WAGO 879</a>
+            </div>
+        </div>
     </header>
     <div class="container">
         <main>
             <div class="card status-panel">
                 <div class="status-panel-header"> 
                     <h2>System Status</h2>
-                    <div class="theme-switcher">
-                        <img src="/static/icons/sun.svg" id="theme-icon" alt="Theme Toggle">
+                    <div class="status-header-controls">
+                        <div class="wifi-status-wrapper">
+                            <img src="/static/icons/wifi-on.svg" id="wifi-status-icon" class="status-header-icon" alt="WiFi Status">
+                        </div>
+                        <div class="theme-switcher">
+                            <img src="/static/icons/sun.svg" id="theme-icon" alt="Theme Toggle">
+                        </div>
                     </div>
                 </div>
 
@@ -191,6 +205,7 @@
     </svg>
 
     <footer>
+        <img id="footer-logo" src="/static/icons/emitsolar_white.png" alt="Emit Solar Logo" class="footer-logo">
         <p>Energy Data Logger by Hee Zi Jie © 2025</p>
     </footer>
 
