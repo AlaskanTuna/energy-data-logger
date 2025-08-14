@@ -11,14 +11,17 @@
 <body>
     <header>
         <h1>Energy Data Logger</h1>
-        <div class="theme-switcher">
-            <img src="/static/icons/sun.svg" id="theme-icon" alt="Theme Toggle">
-        </div>
     </header>
     <div class="container">
         <main>
             <div class="card status-panel">
-                <h2>System Status</h2>
+                <div class="status-panel-header"> 
+                    <h2>System Status</h2>
+                    <div class="theme-switcher">
+                        <img src="/static/icons/sun.svg" id="theme-icon" alt="Theme Toggle">
+                    </div>
+                </div>
+
                 <div class="status-content">
                     <div class="status-item">
                         <span>Mode:</span>
@@ -30,7 +33,10 @@
                     </div>
                     <div class="status-item">
                         <span>Sync:</span>
-                        <strong id="logger-sync" class="inactive">Loading...</strong>
+                        <div id="logger-sync-container" class="status-value-container">
+                            <img src="static/icons/refresh-cw.svg" id="sync-icon" class="status-icon" alt="Sync Icon">
+                            <strong id="logger-sync" class="inactive">Loading...</strong>
+                        </div>
                     </div>
                     <div class="status-item">
                         <span>Last Updated:</span>

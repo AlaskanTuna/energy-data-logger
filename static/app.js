@@ -89,16 +89,25 @@ document.addEventListener('DOMContentLoaded', function() {
             'logging': 'Logging',
         };
         const statusElement = document.getElementById('logger-status');
-        const syncElement = document.getElementById('logger-sync');
         const lastUpdateElement = document.getElementById('last-update');
+        const syncContainer = document.getElementById('logger-sync-container');
+        const syncIcon = document.getElementById('sync-icon');
+        const syncText = document.getElementById('logger-sync');
 
         document.getElementById('logger-mode').textContent = modeMap[data.mode] || 'Unknown';
         statusElement.textContent = statusMap[data.status] || 'Unknown';
         statusElement.className = 'logger-status ' + data.status;
 
-        if (syncElement) {
-            syncElement.textContent = data.syncStatus === 'active' ? 'Active' : 'Inactive';
-            syncElement.className = data.syncStatus;
+        if (syncContainer && syncIcon && syncText) {
+            if (data.syncStatus === 'active') {
+                syncText.textContent = 'Active';
+                syncText.className = 'active'; 
+                syncIcon.classList.add('spin');
+            } else {
+                syncText.textContent = 'Inactive';
+                syncText.className = 'inactive';
+                syncIcon.classList.remove('spin');
+            }
         }
 
         if (data.status === 'logging' && data.lastUpdated) {
