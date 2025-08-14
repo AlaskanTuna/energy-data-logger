@@ -26,6 +26,7 @@ class RemoteDBSyncer:
         self.remote_table_name = config.REMOTE_DB_TABLE
         self.batch_size = config.SYNC_BATCH_SIZE
         self._thread = None
+        self._status = "idle"
         self._stop_event = threading.Event()
 
     def _run(self):
@@ -96,6 +97,9 @@ class RemoteDBSyncer:
         log.info("No pending work found in any table to sync.")
         return None
 
+    def _get_status(self):
+        return self._status
+
     def run_sync_cycle(self):
         """
         Executes a single synchronization cycle.
@@ -103,12 +107,16 @@ class RemoteDBSyncer:
         if not config.REMOTE_DB_ENABLED:
             return
 
-        if not self._check_internet():
+        if self._check_internet():
+            self._status = "active"
+        else:
             log.info("Internet connection not detected. Skipping sync cycle.")
+            self._status = "idle"
             return
 
         target_table = self._get_target_table()
         if not target_table:
+            self._status = "idle"
             return
 
         rows_to_sync = []
@@ -162,6 +170,7 @@ class RemoteDBSyncer:
         finally:
             if remote_conn:
                 remote_conn.close()
+            self._status = "idle"
 
         if successful_ids:
             try:

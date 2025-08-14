@@ -85,9 +85,8 @@ def get_scheduler_status():
     logger_state = logger_service.get_status()
     jobs = logger_service._scheduler.get_jobs()
     latest_data = logger_service.latest()
-    sync_status = "inactive"
-    if config.REMOTE_DB_ENABLED and remote_syncer_service._check_internet():
-        sync_status = "active"
+    sync_status = remote_syncer_service._get_status()
+    internet_connected = remote_syncer_service._check_internet()
 
     response = {
         "mode": "none",
@@ -96,6 +95,7 @@ def get_scheduler_status():
         "lastUpdated": latest_data.get("ts").isoformat() if latest_data and latest_data.get("ts") else None,
         "liveMetricsEnabled": settings.get("LIVE_METRICS"),
         "syncStatus": sync_status,
+        "internetStatus": internet_connected,
     }
 
     if logger_state.get("status") == "running":
