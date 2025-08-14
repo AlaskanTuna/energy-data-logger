@@ -92,7 +92,7 @@
    sudo apt-get upgrade
    ```
 
-### Cloning Repository and Setting Up the Environment
+### Cloning Repository and Setting Up the Logger Environment
 
 1. With Git installed, clone the project and navigate into it:
 
@@ -114,12 +114,82 @@
    pip install -r requirements.txt
    ```
 
-4. Before running either scripts, locate to the `src/` directory first.
+4. Create a `.env` file with the following format:
+
+   ```bash
+   # INFLUXDB
+
+   INFLUXDB_URL = ""
+   INFLUXDB_TOKEN = ""
+
+   # GRAFANA
+
+   GRAFANA_URL = ""
+
+   # REMOTE DATABASE CREDENTIALS
+
+   DB = ""
+   DB_HOST = ""
+   DB_PORT = ""
+   DB_USERNAME = ""
+   DB_PASSWORD = ""
+   DB_SCHEMA = ""
+   DB_TARGET_TABLE = ""
+   ```
+
+5. Create the following table in the remote database (optional, for online data sync):
+
+   ```sql
+   CREATE TABLE "energy_logger" (
+      "id" BIGSERIAL PRIMARY KEY,
+      "Timestamp" TIMESTAMP NOT NULL,
+      "L1_Voltage_V" REAL NULL,
+      "L2_Voltage_V" REAL NULL,
+      "L3_Voltage_V" REAL NULL,
+      "L1_Current_A" REAL NULL,
+      "L2_Current_A" REAL NULL,
+      "L3_Current_A" REAL NULL,
+      "L1_Active_Power_kW" REAL NULL,
+      "L2_Active_Power_kW" REAL NULL,
+      "L3_Active_Power_kW" REAL NULL,
+      "Total_Active_Power_kW" REAL NULL,
+      "L1_Reactive_Power_kvar" REAL NULL,
+      "L2_Reactive_Power_kvar" REAL NULL,
+      "L3_Reactive_Power_kvar" REAL NULL,
+      "Total_Reactive_Power_kvar" REAL NULL,
+      "L1_Apparent_Power_kVA" REAL NULL,
+      "L2_Apparent_Power_kVA" REAL NULL,
+      "L3_Apparent_Power_kVA" REAL NULL,
+      "Total_Apparent_Power_kVA" REAL NULL,
+      "Total_Active_Energy_kWh" REAL NULL,
+      "L1_Total_Active_Energy_kWh" REAL NULL,
+      "L2_Total_Active_Energy_kWh" REAL NULL,
+      "L3_Total_Active_Energy_kWh" REAL NULL,
+      "Total_Reactive_Energy_kvarh" REAL NULL,
+      "T1_Total_Active_Energy_kWh" REAL NULL,
+      "T2_Total_Active_Energy_kWh" REAL NULL,
+      "T3_Total_Active_Energy_kWh" REAL NULL,
+      "T4_Total_Active_Energy_kWh" REAL NULL,
+      "Import_Active_Energy_kWh" REAL NULL,
+      "Export_Active_Energy_kWh" REAL NULL,
+      "L1_Power_Factor" REAL NULL,
+      "L2_Power_Factor" REAL NULL,
+      "L3_Power_Factor" REAL NULL,
+      "Power_Factor" REAL NULL,
+      CONSTRAINT timestamp_unique UNIQUE ("Timestamp")
+   );
+   ```
+   > **Note:** Ensure that the remote database credentials have been filled in correctly in the `.env` file and `REMOTE_DB_ENABLED` is set to `True` in `src/config/config.py`.
+
+5. To run the energy logger webapp manually, navigate to `src/` and run `webapp.py`: 
 
    ```bash
    cd src/
+   python webapp.py
    ```
-   > **Note:** Check the parameters `USE_MODBUS` and `DEVELOPER_MODE` in config.py before running either scripts. For development purposes, set `USE_MODBUS` to False and `DEVELOPER_MODE` to True, this will allow access to main.py's CLI implementation and mock data generation; for actual logging purposes, set `USE_MODBUS` to True and `DEVELOPER_MODE` to False, this will allow reading directly from the Modbus RTU protocol.
+   > **Note:** To use generated mock data, set `USE_MODBUS = False` and `DEVELOPER_MODE = True` in `src/config/config.py`. Conversely, for actual MODBUS readings (when wired with RS-485), set `USE_MODBUS = True` and `DEVELOPER_MODE = False`.
+
+6. To have the webapp always running and accessible anytime, please refer to [Setting Up systemd for Gunicorn WSGI (For Webapp)](#setting-up-systemd-for-gunicorn-wsgi-for-webapp).
 
 ### Retrieving Data from the Pi
 
@@ -571,18 +641,6 @@
 ---
 
 ## Logger Extension: InfluxData
-
-### Environment Variables for InfluxDB/Grafana
->**Note:** The program will attempt to connect to InfluxDB/Grafana. If it fails (e.g. unconfigured or invalid credentials), the program will continue logging to CSV only.
-
-If you wish to enable InfluxDB/Grafana logging instead of CSV-only, create a `.env` file at the project root with:
-
-   ```bash
-   INFLUXDB_URL=<your-influxdb-url>
-   INFLUXDB_TOKEN=<your-influxdb-token>
-   GRAFANA_URL=<your-grafana-url>
-   GRAFANA_VIEW_TOKEN=<your-influxdb-token>
-   ```
 
 ### Installing InfluxDB 2.x OSS (Ubuntu & Debian ARM 64-bit) on the Pi
 
