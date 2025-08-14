@@ -9,6 +9,7 @@ import time
 from config import config
 from services.database import ENGINE
 from sqlalchemy import text, bindparam
+from datetime import datetime
 
 # GLOBAL VARIABLES
 
@@ -18,7 +19,7 @@ log = logging.getLogger(__name__)
 
 class RemoteDBSyncer:
     """
-    Handles synchronization of local database tables with a remote PostgreSQL database.
+    Handles synchronization of local database tables with a remote database.
     """
     def __init__(self):
         self.remote_db_config = config.REMOTE_DB_CONFIG
@@ -31,21 +32,21 @@ class RemoteDBSyncer:
         """ 
         The main loop for the background thread. 
         """
-        log.info("Remote DB Syncer thread has started successfully.")
+        log.info("RemoteDBSyncer thread has started.")
         while not self._stop_event.is_set():
             try:
                 self.run_sync_cycle()
             except Exception as e:
-                log.error(f"Remote Sync Error: {e}", exc_info=True)
+                log.error(f"RemoteDBSyncer Thread Error: {e}", exc_info=True)
             self._stop_event.wait(config.SYNC_INTERVAL)
-        log.info("Remote DB Syncer thread has stopped successfully.")
+        log.info("RemoteDBSyncer thread has stopped.")
 
     def start(self):
         """ 
         Starts the background thread. 
         """
         if self._thread is not None and self._thread.is_alive():
-            log.warning("Remote DB Syncer thread is already running.")
+            log.warning("RemoteDBSyncer thread is already running.")
             return
 
         self._stop_event.clear()
@@ -57,13 +58,13 @@ class RemoteDBSyncer:
         Signals the background thread to stop. 
         """
         if self._thread is None or not self._thread.is_alive():
-            log.info("Remote DB Syncer thread is not running.")
+            log.info("RemoteDBSyncer thread is not running.")
             return
 
         self._stop_event.set()
         self._thread.join(timeout=5)
         if self._thread.is_alive():
-            log.warning("Remote DB Syncer thread did not stop in time.")
+            log.warning("RemoteDBSyncer thread did not stop in time.")
         self._thread = None
 
     def _check_internet(self):
@@ -114,7 +115,7 @@ class RemoteDBSyncer:
         with ENGINE.connect() as local_conn:
             select_statement = text(f'SELECT * FROM "{target_table}" WHERE sync_status = :status ORDER BY id ASC LIMIT :limit')
             rows_to_sync = local_conn.execute(select_statement, {"status": "pending", "limit": self.batch_size}).mappings().all()
-        
+
         if not rows_to_sync:
             return
         log.info(f"Attempting to sync {len(rows_to_sync)} rows from local table '{target_table}'.")
@@ -123,33 +124,41 @@ class RemoteDBSyncer:
         remote_conn = None
         try:
             remote_conn = psycopg2.connect(**self.remote_db_config)
-            cursor = remote_conn.cursor()
-
             for row in rows_to_sync:
-                row_data = dict(row)
-                row_id = row_data.pop('id')
-                row_data.pop('sync_status', None)
-                columns_to_insert = row_data.keys()
-                values_to_insert = [row_data[col] for col in columns_to_insert]
-                column_names_str = ", ".join(f'"{c}"' for c in columns_to_insert)
-                value_placeholders_str = ", ".join(["%s"] * len(values_to_insert))
-                insert_stmt = f'INSERT INTO "{self.remote_table_name}" ({column_names_str}) VALUES ({value_placeholders_str})'
+                with remote_conn.cursor() as cursor:
+                    # Prepare the row data for insertion
+                    row_data = dict(row)
+                    row_id = row_data.pop('id')
+                    row_data.pop('sync_status', None)
 
-                try:
-                    cursor.execute(insert_stmt, values_to_insert)
-                    successful_ids.append(row_id)
-                except Exception as e:
-                    log.error(f"Remote Sync Error: Failed to insert row ID {row_id} from '{target_table}': {e}")
-                    remote_conn.rollback() 
+                    # Prepare the columns and values for insertion
+                    columns_to_insert = row_data.keys()
+                    values_to_insert = []
+                    for col in columns_to_insert:
+                        val = row_data[col]
+                        if isinstance(val, datetime):
+                            values_to_insert.append(val.strftime('%Y-%m-%d %H:%M:%S.%f'))
+                        else:
+                            values_to_insert.append(val)
 
-            # Commit the entire batch of successful inserts
-            remote_conn.commit()
-            cursor.close()
+                    # Construct the SQL insert statement
+                    column_names_str = ", ".join(f'"{c}"' for c in columns_to_insert)
+                    value_placeholders_str = ", ".join(["%s"] * len(values_to_insert))
+                    insert_statement = (
+                        f'INSERT INTO "{self.remote_table_name}" ({column_names_str}) '
+                        f'VALUES ({value_placeholders_str}) '
+                        f'ON CONFLICT ("Timestamp") DO NOTHING'
+                    )
 
+                    try:
+                        cursor.execute(insert_statement, values_to_insert)
+                        remote_conn.commit()
+                        successful_ids.append(row_id)
+                    except Exception as e:
+                        log.error(f"Remote Sync Error: Failed to insert row ID {row_id} from '{target_table}'. Skipping row. Error: {e}")
+                        remote_conn.rollback()
         except Exception as e:
             log.error(f"Remote Sync Connection Error: {e}", exc_info=True)
-            if remote_conn:
-                remote_conn.rollback()
         finally:
             if remote_conn:
                 remote_conn.close()

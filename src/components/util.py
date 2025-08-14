@@ -10,7 +10,7 @@ from components.analyzer import DataAnalyzer
 from services.settings import settings
 from datetime import datetime
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 

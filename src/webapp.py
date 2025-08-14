@@ -25,7 +25,7 @@ from datetime import datetime, time, timedelta
 app = Flask(__name__, static_folder=str(config.STATIC_DIR))
 log = logging.getLogger(__name__)
 
-# REMOTE SYNCER SERVICE
+# REMOTE DB SYNCER SERVICE
 
 if config.REMOTE_DB_ENABLED:
     log.info(f"Remote DB is enabled. Sync service will run every {config.SYNC_INTERVAL}s.")

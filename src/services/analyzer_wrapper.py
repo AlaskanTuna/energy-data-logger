@@ -10,8 +10,9 @@ from services.database import ENGINE
 from io import StringIO
 from datetime import datetime, timedelta
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
+log = logging.getLogger(__name__)
 VISUALIZATION_TYPES = {
     '1': {'name': 'Voltage', 'filter': 'Voltage'},
     '2': {'name': 'Current', 'filter': 'Current'},
@@ -29,7 +30,6 @@ VISUALIZATION_TYPES = {
     '8': {'name': 'Power Factor', 'filter': 'Power Factor'},
     '9': {'name': 'All Parameters', 'columns': []},
 }
-log = logging.getLogger(__name__)
 
 # SERVICES
 

@@ -14,7 +14,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from sqlalchemy import text
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 

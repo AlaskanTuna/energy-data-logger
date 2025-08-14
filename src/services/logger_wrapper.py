@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 jobstores = {

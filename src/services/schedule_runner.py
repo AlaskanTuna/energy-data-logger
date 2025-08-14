@@ -2,7 +2,7 @@
 
 import logging
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 

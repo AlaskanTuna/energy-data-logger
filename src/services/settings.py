@@ -7,7 +7,7 @@ from config import config
 from services.database import SessionLocal, Setting
 from sqlalchemy.exc import SQLAlchemyError
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 

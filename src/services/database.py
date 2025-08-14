@@ -9,7 +9,7 @@ from config import config
 from sqlalchemy import create_engine, Table, MetaData, Column, Integer, Float, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 ENGINE = create_engine(f"sqlite:///{config.DB_FILE}", echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=ENGINE)

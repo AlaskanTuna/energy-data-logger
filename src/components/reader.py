@@ -8,14 +8,14 @@ import logging
 from config import config
 from services.settings import settings
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
+log = logging.getLogger(__name__)
 PARITY_MAP = {
     'N': minimalmodbus.serial.PARITY_NONE,
     'E': minimalmodbus.serial.PARITY_EVEN,
     'O': minimalmodbus.serial.PARITY_ODD,
 }
-log = logging.getLogger(__name__)
 
 class MeterReader:
     """

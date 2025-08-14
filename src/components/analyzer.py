@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 
 from config import config
 
-# CONSTANTS
+# GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
 
