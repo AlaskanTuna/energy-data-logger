@@ -6,8 +6,8 @@ import time
 import logging
 
 from config import config
-from services.settings import settings
-from services.database import ENGINE
+from components.settings import settings
+from components.database import ENGINE
 from components.reader import MeterReader
 from datetime import datetime, timezone
 from influxdb_client import InfluxDBClient, Point, WritePrecision

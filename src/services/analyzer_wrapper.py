@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 
 from components.analyzer import DataAnalyzer
-from services.database import ENGINE
+from components.database import ENGINE
 from io import StringIO
 from datetime import datetime, timedelta
 
@@ -187,12 +187,11 @@ class AnalyzerService:
             # Extract columns from the CSV file
             df = pd.read_csv(filepath, nrows=1)
             columns = [col for col in df.columns if col != 'Timestamp']
-            
+
             return {
                 "filename": filename,
                 "columns": columns
             }
-            
         except Exception as e:
             return {"error": "An internal error occurred during visualization."}
 

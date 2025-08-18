@@ -1,10 +1,10 @@
-# src/services/settings.py
+# src/components/settings.py
 
 import logging
 import json
 
 from config import config
-from services.database import SessionLocal, Setting
+from components.database import SessionLocal, Setting
 from sqlalchemy.exc import SQLAlchemyError
 
 # GLOBAL VARIABLES

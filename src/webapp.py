@@ -11,9 +11,9 @@ import atexit
 
 from flask import Flask, request, jsonify, send_from_directory
 from config import config
-from services.database import init_db; init_db()
+from components.database import init_db; init_db()
 from components.util import list_files
-from services.settings import settings
+from components.settings import settings
 from services.logger_wrapper import logger_service
 from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES

@@ -6,7 +6,7 @@ import minimalmodbus
 import logging
 
 from config import config
-from services.settings import settings
+from components.settings import settings
 
 # GLOBAL VARIABLES
 

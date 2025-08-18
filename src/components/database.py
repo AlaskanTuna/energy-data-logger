@@ -1,4 +1,4 @@
-# src/services/database.py
+# src/components/database.py
 
 import os
 import logging

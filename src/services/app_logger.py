@@ -18,10 +18,10 @@ class BufferHandler(logging.Handler):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.buffer = []
+        self._buffer = []
 
     def emit(self, record):
-        self.buffer.append(record)
+        self._buffer.append(record)
 
 class LogManager:
     """ 

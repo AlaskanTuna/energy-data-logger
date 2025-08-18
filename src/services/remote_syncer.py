@@ -7,7 +7,7 @@ import threading
 import time
 
 from config import config
-from services.database import ENGINE
+from components.database import ENGINE
 from sqlalchemy import text, bindparam
 from datetime import datetime
 

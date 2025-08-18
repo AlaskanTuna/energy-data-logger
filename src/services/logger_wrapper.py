@@ -1,13 +1,14 @@
 # src/services/logger_wrapper.py
 
-import threading
 import os
+import time
+import threading
 import logging
 
 from config import config
 from components import logger
 from services.app_logger import log_manager
-from services.database import ENGINE, SessionLocal, LoggerState, create_log_table
+from components.database import ENGINE, SessionLocal, LoggerState, create_log_table
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,6 +29,7 @@ class LoggerService:
     Exposes helpers for the web layer.
     """
     def __init__(self):
+        self._recovery_buffer = 20
         self._lock = threading.Lock()
         self._logging_thread = None
         self._dl = None
@@ -42,14 +44,17 @@ class LoggerService:
         if logger_state and logger_state.get("status") == "running":
             recovered_end_time = logger_state.get("endTime")
             if recovered_end_time:
-                log.warning(f"Recovery Mode: Found 'RUNNING' logger state. Resuming scheduled session until '{recovered_end_time.isoformat()}'.")
+                log.warning(f"Found 'RUNNING' logger state until '{recovered_end_time.isoformat()}'!")
+                log.info(f"Resuming scheduled logging session in {self._recovery_buffer}s.")
             else:
-                log.warning("Recovery Mode: Found 'RUNNING' logger state. Resuming logging session.")
+                log.warning("Found 'RUNNING' logger state!")
+                log.info(f"Resuming default logging session in {self._recovery_buffer}s.")
 
             if recovered_end_time and datetime.now() >= recovered_end_time:
-                log.warning("Recovery Mode: Scheduled end time has already passed. Stopping logging session.")
+                log.warning(f"Scheduled End Time has already passed at '{recovered_end_time.isoformat()}'. Stopping scheduled logging session.")
                 self.stop(csv_filepath=logger_state.get("csvFile"))
             else:
+                time.sleep(self._recovery_buffer)
                 self.start(from_init=True, initial_state=logger_state, end_time=recovered_end_time)
 
     # STATE MANAGEMENT
