@@ -127,10 +127,6 @@ header h1 {
     transition: transform 0.2s ease;
 }
 
-.profile-selector.active .profile-button .icon {
-    transform: rotate(180deg);
-}
-
 .profile-dropdown-menu {
     position: absolute;
     top: calc(100% + 5px);
@@ -149,9 +145,19 @@ header h1 {
     transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
+.profile-selector.active .profile-button .icon {
+    transform: rotate(180deg);
+}
+
 .profile-selector.active .profile-dropdown-menu {
     opacity: 1;
     visibility: visible;
+}
+
+.profile-selector.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .profile-dropdown-item {

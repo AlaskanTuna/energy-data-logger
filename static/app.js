@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // DARK-LIGHT THEME SWITCHER
+    // THEME SWITCHER
 
     const themeSwitcher = document.querySelector('.theme-switcher');
     const themeIcon = document.getElementById('theme-icon');
@@ -34,14 +34,102 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const profileSelector = document.querySelector('.profile-selector');
     const profileButton = document.getElementById('profile-button');
+    const profileButtonText = profileButton.querySelector('span');
     const profileDropdown = document.getElementById('profile-dropdown');
 
+    function initializeMeterSelector() {
+        Promise.all([
+            fetch('/api/meters').then(res => res.json()),
+            fetch('/api/settings').then(res => res.json())
+        ]).then(([meters, currentSettings]) => {
+            profileDropdown.innerHTML = '';
+
+            // Populate the dropdown menu options
+            meters.forEach(meter => {
+                const a = document.createElement('a');
+                a.href = "#";
+                a.className = 'profile-dropdown-item';
+                a.dataset.id = meter.id;
+                a.textContent = meter.name;
+                profileDropdown.appendChild(a);
+            });
+
+            // Set the currently active meter in the UI
+            const activeModelId = currentSettings.ACTIVE_METER_MODEL;
+            setActiveMeterUI(activeModelId, meters);
+            profileDropdown.addEventListener('click', handleMeterSelection);
+        }).catch(error => {
+            console.error("Failed to initialize meter selector:", error);
+            profileButtonText.textContent = "Error";
+        });
+    }
+
+    function handleMeterSelection(event) {
+        event.preventDefault();
+        const target = event.target.closest('.profile-dropdown-item');
+        if (!target) return;
+
+        const newModelId = target.dataset.id;
+        const currentActiveElement = profileDropdown.querySelector('.active');
+        const currentActiveId = currentActiveElement ? currentActiveElement.dataset.id : null;
+
+        // Only update if the selected meter is different
+        if (newModelId !== currentActiveId) {
+            updateActiveMeter(newModelId);
+        }
+        profileSelector.classList.remove('active');
+    }
+
+    async function updateActiveMeter(newModelId) {
+        // Update the active meter model in settings
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ACTIVE_METER_MODEL: newModelId })
+        }).then(res => res.json()).then(data => {
+            if (data.status === 'success') {
+                fetch('/api/meters').then(r => r.json()).then(meters => {
+                    setActiveMeterUI(newModelId, meters);
+                });
+                alert(`Active meter profile changed to ${newModelId.replace('_', ' ').title()}.`);
+                fetchStatus();
+            } else {
+                alert('Error updating meter model profile: ' + (data.error || 'Unknown error'));
+            }
+        }).catch(error => console.error("Failed to update meter setting:", error));
+    }
+
+    function setActiveMeterUI(activeModelId, allMeters) {
+        let activeMeter = allMeters.find(m => m.id === activeModelId);
+
+        // If no active meter is found, default to the first one
+        if (!activeMeter && allMeters.length > 0) {
+            activeMeter = allMeters[0];
+            console.log(`No active meter profile was set. Defaulting to ${activeMeter.id}.`);
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ACTIVE_METER_MODEL: activeMeter.id })
+            });
+        }
+
+        // Update the UI for the active meter
+        if (activeMeter) {
+            profileButtonText.textContent = activeMeter.name;
+            document.querySelectorAll('.profile-dropdown-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.id === activeMeter.id);
+            });
+        } else {
+            profileButtonText.textContent = "No Profiles Found";
+        }
+    }
+
+    // Dropdown toggle behavior
     if (profileButton && profileDropdown) {
         profileButton.addEventListener('click', (event) => {
             event.stopPropagation();
             profileSelector.classList.toggle('active');
         });
-
         document.addEventListener('click', (event) => {
             if (!profileSelector.contains(event.target)) {
                 profileSelector.classList.remove('active');
@@ -148,6 +236,16 @@ document.addEventListener('DOMContentLoaded', function() {
             lastUpdateElement.textContent = 'None';
         }
 
+        const isSessionActive = (data.status === 'logging' || data.status === 'scheduled');
+
+        if (isSessionActive) {
+            profileSelector.classList.add('disabled');
+            profileSelector.setAttribute('title', 'Meter profile cannot be changed during an active logging session.');
+        } else {
+            profileSelector.classList.remove('disabled');
+            profileSelector.removeAttribute('title');
+        }
+
         if (data.status === 'idle' && data.mode === 'none') {
             logButtonText.textContent = 'Log New Data';
             logButton.onclick = () => showParameterSelectionModal();
@@ -162,15 +260,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!dataPollingInterval) startDataPolling();
         } else {
             if (dataPollingInterval) stopDataPolling();
-            // Logger state inactive
             document.getElementById('latest-readings').innerHTML = '<h2>Latest Readings</h2><p>No data available. Start logging to see real-time measurements.</p>';
         }
 
         const grafanaContainer = document.querySelector('#grafana-metrics .grafana-container');
         const isLogging = data.status === 'logging';
         const liveMetricsEnabled = data.liveMetricsEnabled;
-
         let targetGrafanaState;
+
         if (liveMetricsEnabled && isLogging) {
             targetGrafanaState = 'panels_visible';
         } else if (liveMetricsEnabled && !isLogging) {
@@ -1009,6 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).catch(err => console.error('Error fetching data:', err));
     }
 
-    // Run initial status check
+    // Webapp initialization
     startStatusPolling();
+    initializeMeterSelector();
 });
