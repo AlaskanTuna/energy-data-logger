@@ -5,6 +5,7 @@
 *Setup and dashboard UI may subject to change in future updates*
 
 ## Flashing OS to the Raspberry Pi
+> **Note:** Skip to [Appendices](#appendices) for flash-ready image files.
 
 1. Insert the MicroSD card into your laptop and launch the [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
 
@@ -679,8 +680,8 @@
 
 ### Flash-Ready Image Files
 
-1. [2025-07-07](https://1drv.ms/u/c/c536a9f1a72a816d/EbrYZQe6M19IiKvtnehkVMYBp6eiodfHt28DsZQF3B7ELQ?e=Kewj5n)
-2. [2025-08-06](https://1drv.ms/u/c/c536a9f1a72a816d/ERHutIjcsBRGuWgLiOIo_NsBeuDoTaLwWunE_JSkVjywJw?e=vEKFy1)
+1. [2025-07-07]()
+2. [2025-08-06]()
 3. [2025-08-18]()
 
 ---
