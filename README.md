@@ -137,48 +137,7 @@
    DB_TARGET_TABLE = ""
    ```
 
-5. Create the following table in the remote database (optional, for online data sync):
-
-   ```sql
-   CREATE TABLE "energy_logger" (
-      "id" BIGSERIAL PRIMARY KEY,
-      "Timestamp" TIMESTAMP NOT NULL,
-      "L1_Voltage_V" REAL NULL,
-      "L2_Voltage_V" REAL NULL,
-      "L3_Voltage_V" REAL NULL,
-      "L1_Current_A" REAL NULL,
-      "L2_Current_A" REAL NULL,
-      "L3_Current_A" REAL NULL,
-      "L1_Active_Power_kW" REAL NULL,
-      "L2_Active_Power_kW" REAL NULL,
-      "L3_Active_Power_kW" REAL NULL,
-      "Total_Active_Power_kW" REAL NULL,
-      "L1_Reactive_Power_kvar" REAL NULL,
-      "L2_Reactive_Power_kvar" REAL NULL,
-      "L3_Reactive_Power_kvar" REAL NULL,
-      "Total_Reactive_Power_kvar" REAL NULL,
-      "L1_Apparent_Power_kVA" REAL NULL,
-      "L2_Apparent_Power_kVA" REAL NULL,
-      "L3_Apparent_Power_kVA" REAL NULL,
-      "Total_Apparent_Power_kVA" REAL NULL,
-      "Total_Active_Energy_kWh" REAL NULL,
-      "L1_Total_Active_Energy_kWh" REAL NULL,
-      "L2_Total_Active_Energy_kWh" REAL NULL,
-      "L3_Total_Active_Energy_kWh" REAL NULL,
-      "Total_Reactive_Energy_kvarh" REAL NULL,
-      "T1_Total_Active_Energy_kWh" REAL NULL,
-      "T2_Total_Active_Energy_kWh" REAL NULL,
-      "T3_Total_Active_Energy_kWh" REAL NULL,
-      "T4_Total_Active_Energy_kWh" REAL NULL,
-      "Import_Active_Energy_kWh" REAL NULL,
-      "Export_Active_Energy_kWh" REAL NULL,
-      "L1_Power_Factor" REAL NULL,
-      "L2_Power_Factor" REAL NULL,
-      "L3_Power_Factor" REAL NULL,
-      "Power_Factor" REAL NULL,
-      CONSTRAINT timestamp_unique UNIQUE ("Timestamp")
-   );
-   ```
+5. Create a [table](https://files.catbox.moe/z2yuxa.txt) in the remote database (optional, for online data sync):
    > **Note:** Ensure that the remote database credentials have been filled in correctly in the `.env` file and `REMOTE_DB_ENABLED` is set to `True` in `src/config/config.py`.
 
 5. To run the energy logger webapp manually, navigate to `src/` and run `webapp.py`: 
@@ -459,7 +418,7 @@
    ifconfig
    ```
 
-10. Try testing the Internet connection on the Pi from `wlan1`:
+10. Connect to a [Wi-FI](https://github.com/AlaskanTuna/wifi-hub) and test the Internet connection on the Pi from `wlan1`:
 
       ```bash
       ping -c 4 8.8.8.8
@@ -713,3 +672,15 @@
    ```
 
 4. On a browser, access the webapp at `http://energylogger.local/` and the Metrics Panel should be displayed accordingly.
+
+---
+
+## Appendices
+
+### Flash-Ready Image Files
+
+1. [2025-07-07](https://1drv.ms/u/c/c536a9f1a72a816d/EbrYZQe6M19IiKvtnehkVMYBp6eiodfHt28DsZQF3B7ELQ?e=Kewj5n)
+2. [2025-08-06](https://1drv.ms/u/c/c536a9f1a72a816d/ERHutIjcsBRGuWgLiOIo_NsBeuDoTaLwWunE_JSkVjywJw?e=vEKFy1)
+3. [2025-08-18]()
+
+---
