@@ -76,6 +76,7 @@ class RemoteDBSyncer:
             socket.create_connection(("8.8.8.8", 53), timeout=3)
             return True
         except OSError:
+            log.info("Internet disconnected. Skipping sync cycle.")
             return False
 
     def _get_target_table(self):
@@ -110,7 +111,6 @@ class RemoteDBSyncer:
         if self._check_internet():
             self._status = "active"
         else:
-            log.info("Internet connection not detected. Skipping sync cycle.")
             self._status = "idle"
             return
 
@@ -180,7 +180,7 @@ class RemoteDBSyncer:
                             bindparam('ids', expanding=True)
                         )
                         local_conn.execute(update_statement, {"status": "synced", "ids": tuple(successful_ids)})
-                log.info(f"Successfully synced and updated {len(successful_ids)} rows from table '{target_table}'.")
+                log.info(f"Synced and updated {len(successful_ids)} rows from table '{target_table}' successfully.")
             except Exception as e:
                 log.error(f"Failed to update local sync status for table '{target_table}': {e}", exc_info=True)
 

@@ -1,0 +1,233 @@
+{
+    "voltage_l1": {
+        "address": 20482,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Voltage (V)",
+        "group": "Voltage"
+    },
+    "voltage_l2": {
+        "address": 20484,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Voltage (V)",
+        "group": "Voltage"
+    },
+    "voltage_l3": {
+        "address": 20486,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Voltage (V)",
+        "group": "Voltage"
+    },
+    "current_l1": {
+        "address": 20492,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Current (A)",
+        "group": "Current"
+    },
+    "current_l2": {
+        "address": 20494,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Current (A)",
+        "group": "Current"
+    },
+    "current_l3": {
+        "address": 20496,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Current (A)",
+        "group": "Current"
+    },
+    "active_power_l1": {
+        "address": 20500,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Active Power (kW)",
+        "group": "Active Power"
+    },
+    "active_power_l2": {
+        "address": 20502,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Active Power (kW)",
+        "group": "Active Power"
+    },
+    "active_power_l3": {
+        "address": 20504,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Active Power (kW)",
+        "group": "Active Power"
+    },
+    "total_active_power": {
+        "address": 20498,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Total Active Power (kW)",
+        "group": "Active Power"
+    },
+    "reactive_power_l1": {
+        "address": 20508,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Reactive Power (kvar)",
+        "group": "Reactive Power"
+    },
+    "reactive_power_l2": {
+        "address": 20510,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Reactive Power (kvar)",
+        "group": "Reactive Power"
+    },
+    "reactive_power_l3": {
+        "address": 20512,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Reactive Power (kvar)",
+        "group": "Reactive Power"
+    },
+    "total_reactive_power": {
+        "address": 20506,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Total Reactive Power (kvar)",
+        "group": "Reactive Power"
+    },
+    "apparent_power_l1": {
+        "address": 20516,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Apparent Power (kVA)",
+        "group": "Apparent Power"
+    },
+    "apparent_power_l2": {
+        "address": 20518,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Apparent Power (kVA)",
+        "group": "Apparent Power"
+    },
+    "apparent_power_l3": {
+        "address": 20520,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Apparent Power (kVA)",
+        "group": "Apparent Power"
+    },
+    "total_apparent_power": {
+        "address": 20514,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Total Apparent Power (kVA)",
+        "group": "Apparent Power"
+    },
+    "total_active_energy": {
+        "address": 24576,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Total Active Energy (kWh)",
+        "group": "Energy"
+    },
+    "total_active_energy_l1": {
+        "address": 24582,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Total Active Energy (kWh)",
+        "group": "Energy"
+    },
+    "total_active_energy_l2": {
+        "address": 24584,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Total Active Energy (kWh)",
+        "group": "Energy"
+    },
+    "total_active_energy_l3": {
+        "address": 24586,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Total Active Energy (kWh)",
+        "group": "Energy"
+    },
+    "total_reactive_energy": {
+        "address": 24612,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Total Reactive Energy (kvarh)",
+        "group": "Energy"
+    },
+    "total_active_energy_t1": {
+        "address": 24578,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "T1 Total Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "total_active_energy_t2": {
+        "address": 24580,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "T2 Total Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "total_active_energy_t3": {
+        "address": 24651,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "T3 Total Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "total_active_energy_t4": {
+        "address": 24653,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "T4 Total Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "import_active_energy": {
+        "address": 24588,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Import Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "export_active_energy": {
+        "address": 24600,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Export Active Energy (kWh)",
+        "group": "Energy Tariff"
+    },
+    "power_factor_l1": {
+        "address": 20524,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L1 Power Factor",
+        "group": "Power Factor"
+    },
+    "power_factor_l2": {
+        "address": 20526,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L2 Power Factor",
+        "group": "Power Factor"
+    },
+    "power_factor_l3": {
+        "address": 20528,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "L3 Power Factor",
+        "group": "Power Factor"
+    },
+    "power_factor": {
+        "address": 20522,
+        "number_of_registers": 2,
+        "functioncode": 3,
+        "description": "Power Factor",
+        "group": "Power Factor"
+    }
+}

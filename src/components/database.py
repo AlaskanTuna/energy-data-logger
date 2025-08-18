@@ -54,11 +54,12 @@ def init_db():
     except Exception as e:
         log.error(f"Database Initialization Error: {e}", exc_info=True)
 
-def create_log_table(table_name):
+def create_log_table(table_name, register_map):
     """ 
     Creates a data log table in the database.
 
     @table_name: The name of the table
+    @register_map: The register map for the meter model
     """
     try:
         metadata = MetaData()
@@ -68,7 +69,7 @@ def create_log_table(table_name):
         ]
 
         # Iterate parameters to create SQL columns
-        for param_name, params in config.REGISTERS.items():
+        for param_name, params in register_map.items():
             col_name = params["description"].replace(' ', '_').replace('(', '').replace(')', '')
             columns.append(Column(col_name, Float, nullable=True))
 
@@ -77,7 +78,7 @@ def create_log_table(table_name):
         log_table = Table(table_name, metadata, *columns)
 
         metadata.create_all(ENGINE)
-        log.info(f"Successfully created log table '{table_name}' in database.")
+        log.info(f"Created log table '{table_name}' in database successfully.")
         return True
     except Exception as e:
         log.error(f"SQL Creation Error: Failed to create log table '{table_name}' in database: {e}", exc_info=True)

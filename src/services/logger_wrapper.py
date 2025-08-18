@@ -6,8 +6,10 @@ import threading
 import logging
 
 from config import config
+from config.loader import load_meter_config
 from components import logger
 from services.app_logger import log_manager
+from components.settings import settings
 from components.database import ENGINE, SessionLocal, LoggerState, create_log_table
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
@@ -147,6 +149,15 @@ class LoggerService:
             if self._logging_thread and self._logging_thread.is_alive():
                 return {"status": "already_running", "state": self._get_logger_state()}
 
+            try:
+                active_model = settings.get("ACTIVE_METER_MODEL")
+                if not active_model:
+                    raise ValueError("ACTIVE_METER_MODEL setting is not defined.")
+                register_map = load_meter_config(active_model)
+            except ValueError as e:
+                log.error(f"Aborting logger start: {e}")
+                return {"status": "error", "message": str(e)}
+
             # Determine file and table names
             if from_init and initial_state:
                 csv_filepath = initial_state.get("csvFile")
@@ -155,25 +166,32 @@ class LoggerService:
                 session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
                 csv_filepath = os.path.join(config.DS_DIR, f"{session_name}.csv")
                 table_name = session_name
-            
+
             if not csv_filepath or not table_name:
                 log.error("Could not determine filepath or table for new log session.")
                 return {"status": "error", "message": "Could not determine filepath or table."}
 
             # Create the dynamic table before starting the logger
-            if not create_log_table(table_name):
+            if not create_log_table(table_name, register_map):
                 log.error(f"Aborting logger start due to failure in creating table '{table_name}'.")
                 return {"status": "error", "message": f"Failed to create database table for session."}
 
             session_name_for_log = os.path.splitext(os.path.basename(csv_filepath))[0]
             log_manager.start_session_logging(session_name_for_log)
 
-            self._dl = logger.DataLogger(
-                filename=csv_filepath, 
-                table_name=table_name,
-                end_time=end_time,
-                on_failure_callback=self._handle_logging_failure
-            )
+            try:
+                self._dl = logger.DataLogger(
+                    filename=csv_filepath,
+                    table_name=table_name,
+                    register_map=register_map,
+                    end_time=end_time,
+                    on_failure_callback=self._handle_logging_failure
+                )
+            except (ConnectionError, ValueError) as e:
+                log.error(f"DataLogger Initialization Error: {e}")
+                log_manager.stop_session_logging(session_name=session_name_for_log)
+                return {"status": "error", "message": f"Meter connection failed: {e}"}
+
             self._logging_thread = threading.Thread(
                 target=self._dl.log, 
                 daemon=True
@@ -185,9 +203,9 @@ class LoggerService:
             self._logging_thread.start()
 
             if end_time:
-                log.info(f"Started data logging process for until '{end_time.isoformat()}'.")
+                log.info(f"Started scheduled data logging process for '{table_name}' until '{end_time.isoformat()}' successfully.")
             else:
-                log.info(f"Started data logging process.")
+                log.info(f"Started default data logging process for '{table_name}' successfully.")
             return {"status": "started", "state": self._get_logger_state()}
 
     def stop(self, csv_filepath=None):
@@ -202,7 +220,6 @@ class LoggerService:
                 session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
 
             self._clear_logger_state()
-
             if session_name:
                 log_manager.stop_session_logging(session_name=session_name)
             else:
@@ -211,7 +228,7 @@ class LoggerService:
             if not self._logging_thread or not self._logging_thread.is_alive():
                 return {"status": "already_stopped"}
 
-            log.info("Stopping active data logging thread.")
+            log.info("Stopping data logging thread...")
 
             if self._dl:
                 self._dl.stop()
@@ -220,7 +237,7 @@ class LoggerService:
             self._logging_thread = None
             self._dl = None
 
-            log.info("Data logging session stopped successfully.")
+            log.info("Stopped data logging thread successfully.")
             return {"status": "stopped"}
 
     def get_status(self):

@@ -21,12 +21,15 @@ class MeterReader:
     """
     Encapsulates the logic for reading from a power meter.
     """
-    def __init__(self, use_modbus_flag=config.USE_MODBUS):
+    def __init__(self, use_modbus_flag=config.USE_MODBUS, register_map=None):
         self.instrument = None
         self.use_mock = config.DEVELOPER_MODE
         self.use_modbus = use_modbus_flag
+        self.register_map = register_map
 
         if self.use_modbus:
+            if not self.register_map:
+                raise ValueError("Unable to find register map for Modbus communication.")
             try:
                 self.instrument = minimalmodbus.Instrument(
                     port=config.MODBUS_PORT,
@@ -39,7 +42,7 @@ class MeterReader:
                 self.instrument.serial.stopbits = settings.get("STOPBITS")
                 self.instrument.serial.timeout = settings.get("TIMEOUT")
                 self.instrument.mode = minimalmodbus.MODE_RTU
-                log.info("Modbus instrument initialized for real readings.")
+                log.info("Modbus instrument initialized for meter readings.")
             except Exception as e:
                 raise ConnectionError(f"Failed to initialize Modbus on port '{config.MODBUS_PORT}': {e}", exc_info=True)
 
@@ -51,7 +54,7 @@ class MeterReader:
         @return: Dictionary with mock readings
         """
         readings = {}
-        params_to_log = active_parameters if active_parameters else config.REGISTERS.keys()
+        params_to_log = active_parameters if active_parameters else self.register_map.keys()
 
         # Base simulation values
         voltage_base = random.uniform(235, 245)
@@ -115,10 +118,10 @@ class MeterReader:
         """
         readings = {}
         try:
-            params_to_log = active_parameters if active_parameters else config.REGISTERS.keys()
+            params_to_log = active_parameters if active_parameters else self.register_map.keys()
             for name in params_to_log:
-                if name in config.REGISTERS:
-                    params = config.REGISTERS[name]
+                if name in self.register_map:
+                    params = self.register_map[name]
                     value = self.instrument.read_float(
                         registeraddress=params["address"],
                         functioncode=params["functioncode"],

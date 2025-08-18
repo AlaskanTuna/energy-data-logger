@@ -5,8 +5,10 @@ import sys
 import logging
 import pandas as pd
 
+from components.settings import settings
 from components.analyzer import DataAnalyzer
 from components.database import ENGINE
+from config.loader import load_meter_config
 from io import StringIO
 from datetime import datetime, timedelta
 
@@ -90,11 +92,18 @@ class AnalyzerService:
             return {"error": "Unable to retrieve data from database."}
 
         try:
+            active_model = settings.get("ACTIVE_METER_MODEL")
+            register_map = load_meter_config(active_model)
+            description_to_group_map = {
+                params["description"]: params.get("group", "Other")
+                for params in register_map.values()
+            }
+
             old_stdout = sys.stdout
             captured_output = StringIO()
             sys.stdout = captured_output
 
-            self._analyzer.calculate_statistics(df)
+            self._analyzer.calculate_statistics(df, description_to_group_map)
             self._analyzer.calculate_session_consumption(df)
 
             # Capture the output

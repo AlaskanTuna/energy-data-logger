@@ -22,7 +22,7 @@ class DataLogger:
     """
     Handles CSV and InfluxDB logging of energy meter readings.
     """
-    def __init__(self, filename, table_name, end_time=None, on_failure_callback=None):
+    def __init__(self, filename, table_name, register_map, end_time=None, on_failure_callback=None):
         self.ds_dir = config.DS_DIR
         if not os.path.exists(self.ds_dir):
             os.makedirs(self.ds_dir, exist_ok=True)
@@ -35,15 +35,15 @@ class DataLogger:
         # Get active parameters from settings or use default
         self.active_params = settings.get("ACTIVE_LOG_PARAMETERS")
         if not self.active_params:
-            self.active_params = list(config.REGISTERS.keys())
+            self.active_params = list(register_map.keys())
 
         # Create dynamic CSV header
         self.ds_header = ["Timestamp"]
         self.sql_columns = ["Timestamp"]
         
         for p in self.active_params:
-            if p in config.REGISTERS:
-                desc = config.REGISTERS[p]["description"]
+            if p in register_map:
+                desc = register_map[p]["description"]
                 self.ds_header.append(desc)
                 col_name = f'"{desc.replace(" ", "_").replace("(", "").replace(")", "")}"'
                 self.sql_columns.append(col_name)
@@ -56,22 +56,17 @@ class DataLogger:
             if is_new_file:
                 writer = csv.writer(file)
                 writer.writerow(self.ds_header)
-        log.info(f"Data logging initialized to CSV file '{self.ds_filename}'.")
-        log.info(f"SQL logging initialized to database table '{self.tb_name}'.")
+        log.info(f"CSV logging initialized to data log file '{self.ds_filename}' successfully.")
+        log.info(f"SQLite logging initialized to database table '{self.tb_name}' successfully.")
 
         # NOTE: Since the serial port on Pi is enabled, the Modbus port (/dev/serial0) is always available.
         #       Modbus could appear available even without a connection to the meter.
         #       To truly ensure Modbus availability, we attempt to test polling the meter.
 
-        self.reader = None
-        try:
-            self.reader = MeterReader(use_modbus_flag=config.USE_MODBUS)
-            test_readings = self.reader.get_meter_readings()
-
-            if not test_readings:
-                raise ConnectionError
-        except ConnectionError:
-            self.reader = MeterReader(use_modbus_flag=False)
+        self.reader = MeterReader(use_modbus_flag=config.USE_MODBUS, register_map=register_map)
+        test_readings = self.reader.get_meter_readings()
+        if not test_readings:
+            raise ConnectionError("Failed to read from the meter after multiple retries.")
 
         self._initialize_influxdb()
         self._running = True
@@ -101,9 +96,9 @@ class DataLogger:
                     timeout=config.INFLUXDB_TIMEOUT
                 )
                 self.influx_enabled = True
-                log.info(f"InfluxDB ping successful. Ready to log.")
+                log.info(f"InfluxDB ping successful and is online.")
             else:
-                log.error("InfluxDB ping failed. Please check token and organization settings.")
+                log.warning("InfluxDB ping failed. URL and token may be invalid.")
         except Exception as e:
             log.error(f"InfluxDB Connection Error: {e}", exc_info=True)
             log.warning("Could not connect to InfluxDB. Continuing with CSV logging only.")
@@ -139,7 +134,6 @@ class DataLogger:
                     log.error(f"CSV Write Error: {e}", exc_info=True)
 
                 # INFLUXDB WRITING
-                influx_status = "FAIL" if (config.INFLUXDB_URL and config.INFLUXDB_TOKEN) else "-"
                 if self.influx_enabled:
                     try:
                         point = Point("meter_measurements").tag("source", "wago_meter")
@@ -152,13 +146,15 @@ class DataLogger:
                     except Exception as e:
                         log.error(f"InfluxDB Write Error: {e}", exc_info=True)
                         influx_status = "FAIL"
+                else:
+                    influx_status = "-"
 
                 # SQLITE WRITING
                 sqlite_status = "FAIL"
                 try:
                     sql_values = [timestamp] + [readings.get(key) for key in self.active_params]
                     sql_values.append('pending')
-                    
+
                     # Construct SQL statement
                     columns_str = ", ".join(self.sql_columns)
                     placeholders = ", ".join([f":param_{i}" for i in range(len(sql_values))])
@@ -168,7 +164,11 @@ class DataLogger:
                     with ENGINE.connect() as connection:
                         with connection.begin():
                             connection.execute(stmt, params_dict)
-                    sqlite_status = "OK"
+
+                    if config.REMOTE_DB_ENABLED:
+                        sqlite_status = "OK"
+                    else:
+                        sqlite_status = "-"
                 except Exception as e:
                     log.error(f"SQLite Write Error: {e}", exc_info=True)
 

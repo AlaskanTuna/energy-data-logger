@@ -12,6 +12,7 @@ from config import config
 # GLOBAL VARIABLES
 
 log = logging.getLogger(__name__)
+EXCLUDE_COLUMNS = ["id", "sync_status"]
 
 class DataAnalyzer:
     """
@@ -23,31 +24,24 @@ class DataAnalyzer:
 
     # DATA ANALYSIS
 
-    def calculate_statistics(self, df):
+    def calculate_statistics(self, df, description_to_group_map):
         """
         Compute statistics for the given DataFrame.
         
         @df: DataFrame to analyze
+        @description_to_group_map: Dictionary mapping column names to relevant groups
         @return: DataFrame with statistics or None if error
         """
         try:
-            # Find all columns that contain the keywords
-            param_groups = {
-                "Voltage Parameters": [col for col in df.columns if "Voltage" in col],
-                "Current Parameters": [col for col in df.columns if "Current" in col],
-                "Active Power Parameters": [col for col in df.columns if "Active Power" in col],
-                "Reactive Power Parameters": [col for col in df.columns if "Reactive Power" in col],
-                "Apparent Power Parameters": [col for col in df.columns if "Apparent Power" in col],
-                "Energy Parameters": [col for col in df.columns if "Energy" in col and 
-                                    not ((col.startswith("T") and col[1].isdigit()) or 
-                                        col.startswith("Import") or 
-                                        col.startswith("Export"))],
-                "Energy Tariff Parameters": [col for col in df.columns if "Energy" in col and 
-                                            ((col.startswith("T") and col[1].isdigit()) or 
-                                            col.startswith("Import") or 
-                                            col.startswith("Export"))],
-                "Power Factor Parameters": [col for col in df.columns if "Power Factor" in col],
-            }
+            param_groups = {}
+            analysis_columns = [col for col in df.columns if col not in EXCLUDE_COLUMNS + ["Timestamp"]]
+            for column in analysis_columns:
+                if column == "Timestamp":
+                    continue
+                group = description_to_group_map.get(column, "Parameter Readings Summary")
+                if group not in param_groups:
+                    param_groups[group] = []
+                param_groups[group].append(column)
 
             print("\n===== Power Meter Statistics =====")
             if df.empty:
@@ -142,7 +136,7 @@ class DataAnalyzer:
             return
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
         
-        available_cols = [col for col in df.columns if col != 'Timestamp']
+        available_cols = [col for col in df.columns if col not in EXCLUDE_COLUMNS + ["Timestamp"]]
 
         categories = {
             '0': {'name': 'Exit', 'columns': []},

@@ -7,7 +7,7 @@ import pandas as pd
 from config import config
 from components.logger import DataLogger
 from components.analyzer import DataAnalyzer
-from services.settings import settings
+from components.settings import settings
 from datetime import datetime
 
 # GLOBAL VARIABLES

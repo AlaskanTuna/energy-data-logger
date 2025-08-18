@@ -18,10 +18,10 @@ class BufferHandler(logging.Handler):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._buffer = []
+        self.buffer = []
 
     def emit(self, record):
-        self._buffer.append(record)
+        self.buffer.append(record)
 
 class LogManager:
     """ 
@@ -78,7 +78,7 @@ class LogManager:
             self.stop_session_logging()
 
         log_filepath = os.path.join(config.LOG_DIR, f"{filename}.log")
-        log.info(f"Starting log session for: '{log_filepath}'.")
+        log.info(f"Starting application log session at '{log_filepath}'.")
 
         try:
             os.makedirs(config.LOG_DIR, exist_ok=True)
@@ -118,12 +118,12 @@ class LogManager:
             logging.getLogger().removeHandler(self._log_handler)
             self._log_handler.close()
             self._log_handler = None
-            log.info(f"Closed active log handler for '{log_filepath}'.")
+            log.info(f"Stopped application log session at '{log_filepath}' successfully.")
         elif session_name:
             log_filepath = os.path.join(config.LOG_DIR, f"{session_name}.log")
-            log.info(f"Stopping session log for '{log_filepath}' via recovery.")
+            log.info(f"Stopping application log session at '{log_filepath}' via recovery.")
         else:
-            log.info("No active session or session name provided to stop.")
+            log.info("No active application log session or session name provided to stop.")
             return
 
         if not self._buffer_handler:
@@ -136,7 +136,7 @@ class LogManager:
                     with gzip.open(f"{log_filepath}.gz", 'wb') as f_out:
                         f_out.writelines(f_in)
                 os.remove(log_filepath)
-                log.info(f"Successfully compressed log file to '{log_filepath}.gz'.")
+                log.info(f"Compressed log file to '{log_filepath}.gz' successfully.")
             except Exception as e:
                 log.error(f"Failed to compress log file '{log_filepath}': {e}", exc_info=True)
 

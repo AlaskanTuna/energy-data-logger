@@ -11,6 +11,7 @@ import atexit
 
 from flask import Flask, request, jsonify, send_from_directory
 from config import config
+from config.loader import load_meter_config
 from components.database import init_db; init_db()
 from components.util import list_files
 from components.settings import settings
@@ -202,11 +203,36 @@ def get_all_columns():
     
     @return: JSON list of all available parameters
     """
-    all_params = [
-        {"name": name, "description": params["description"]}
-        for name, params in config.REGISTERS.items()
-    ]
-    return jsonify({"columns": all_params})
+    try:
+        active_model = settings.get("ACTIVE_METER_MODEL")
+        register_map = load_meter_config(active_model)
+        all_params = [
+            {"name": name, "description": params["description"]}
+            for name, params in register_map.items()
+        ]
+        return jsonify({"columns": all_params})
+    except ValueError as e:
+        log.error(f"API Error at /api/columns/all: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.get("/api/meters")
+def get_meter_models():
+    """
+    Lists available meter models from the JSON configuration directory.
+    
+    @return: JSON list of available meter models
+    """
+    try:
+        available_meters = []
+        for filename in os.listdir(config.METERS_DIR):
+            if filename.endswith(".json"):
+                model_id = filename[:-5]
+                model_name = model_id.replace('_', ' ').upper() # Construct safe meter model name
+                available_meters.append({"id": model_id, "name": model_name})
+        return jsonify(available_meters)
+    except Exception as e:
+        log.error(f"API Error at /api/meters: {e}", exc_info=True)
+        return jsonify({"error": "Could not retrieve meter models."}), 500
 
 @app.get("/api/visualize/<filename>/<plot_type>")
 def generate_visualization(filename, plot_type):
