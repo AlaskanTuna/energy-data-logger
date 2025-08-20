@@ -1,6 +1,7 @@
 {
     "voltage_l1": {
         "address": 20482,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Voltage (V)",
@@ -8,6 +9,7 @@
     },
     "voltage_l2": {
         "address": 20484,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Voltage (V)",
@@ -15,6 +17,7 @@
     },
     "voltage_l3": {
         "address": 20486,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Voltage (V)",
@@ -22,6 +25,7 @@
     },
     "current_l1": {
         "address": 20492,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Current (A)",
@@ -29,6 +33,7 @@
     },
     "current_l2": {
         "address": 20494,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Current (A)",
@@ -36,6 +41,7 @@
     },
     "current_l3": {
         "address": 20496,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Current (A)",
@@ -43,6 +49,7 @@
     },
     "active_power_l1": {
         "address": 20500,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Active Power (kW)",
@@ -50,6 +57,7 @@
     },
     "active_power_l2": {
         "address": 20502,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Active Power (kW)",
@@ -57,6 +65,7 @@
     },
     "active_power_l3": {
         "address": 20504,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Active Power (kW)",
@@ -64,6 +73,7 @@
     },
     "total_active_power": {
         "address": 20498,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Total Active Power (kW)",
@@ -71,6 +81,7 @@
     },
     "reactive_power_l1": {
         "address": 20508,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Reactive Power (kvar)",
@@ -78,6 +89,7 @@
     },
     "reactive_power_l2": {
         "address": 20510,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Reactive Power (kvar)",
@@ -85,6 +97,7 @@
     },
     "reactive_power_l3": {
         "address": 20512,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Reactive Power (kvar)",
@@ -92,6 +105,7 @@
     },
     "total_reactive_power": {
         "address": 20506,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Total Reactive Power (kvar)",
@@ -99,6 +113,7 @@
     },
     "apparent_power_l1": {
         "address": 20516,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Apparent Power (kVA)",
@@ -106,6 +121,7 @@
     },
     "apparent_power_l2": {
         "address": 20518,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Apparent Power (kVA)",
@@ -113,6 +129,7 @@
     },
     "apparent_power_l3": {
         "address": 20520,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Apparent Power (kVA)",
@@ -120,6 +137,7 @@
     },
     "total_apparent_power": {
         "address": 20514,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Total Apparent Power (kVA)",
@@ -127,6 +145,7 @@
     },
     "total_active_energy": {
         "address": 24576,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Total Active Energy (kWh)",
@@ -134,6 +153,7 @@
     },
     "total_active_energy_l1": {
         "address": 24582,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Total Active Energy (kWh)",
@@ -141,6 +161,7 @@
     },
     "total_active_energy_l2": {
         "address": 24584,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Total Active Energy (kWh)",
@@ -148,6 +169,7 @@
     },
     "total_active_energy_l3": {
         "address": 24586,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Total Active Energy (kWh)",
@@ -155,6 +177,7 @@
     },
     "total_reactive_energy": {
         "address": 24612,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Total Reactive Energy (kvarh)",
@@ -162,6 +185,7 @@
     },
     "total_active_energy_t1": {
         "address": 24578,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "T1 Total Active Energy (kWh)",
@@ -169,6 +193,7 @@
     },
     "total_active_energy_t2": {
         "address": 24580,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "T2 Total Active Energy (kWh)",
@@ -176,6 +201,7 @@
     },
     "total_active_energy_t3": {
         "address": 24651,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "T3 Total Active Energy (kWh)",
@@ -183,6 +209,7 @@
     },
     "total_active_energy_t4": {
         "address": 24653,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "T4 Total Active Energy (kWh)",
@@ -190,6 +217,7 @@
     },
     "import_active_energy": {
         "address": 24588,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Import Active Energy (kWh)",
@@ -197,6 +225,7 @@
     },
     "export_active_energy": {
         "address": 24600,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Export Active Energy (kWh)",
@@ -204,6 +233,7 @@
     },
     "power_factor_l1": {
         "address": 20524,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L1 Power Factor",
@@ -211,6 +241,7 @@
     },
     "power_factor_l2": {
         "address": 20526,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L2 Power Factor",
@@ -218,6 +249,7 @@
     },
     "power_factor_l3": {
         "address": 20528,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "L3 Power Factor",
@@ -225,6 +257,7 @@
     },
     "power_factor": {
         "address": 20522,
+        "data_type": "float",
         "number_of_registers": 2,
         "functioncode": 3,
         "description": "Power Factor",
