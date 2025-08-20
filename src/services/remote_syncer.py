@@ -145,7 +145,7 @@ class RemoteDBSyncer:
                     for col in columns_to_insert:
                         val = row_data[col]
                         if isinstance(val, datetime):
-                            values_to_insert.append(val.strftime('%Y-%m-%d %H:%M:%S.%f'))
+                            values_to_insert.append(val.strftime('%Y-%m-%d %H:%M:%S'))
                         else:
                             values_to_insert.append(val)
 

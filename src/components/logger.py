@@ -118,7 +118,10 @@ class DataLogger:
                     self.stop()
                     return
 
+                # Prepare current timestamp for logging
                 timestamp = datetime.now()
+                timestamp = timestamp.replace(microsecond=0)
+
                 self.latest = {"ts": timestamp, **readings}
                 timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
