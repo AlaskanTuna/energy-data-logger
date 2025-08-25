@@ -19,8 +19,7 @@ class DataAnalyzer:
     Computes statistics and generates plots for the logged CSV data.
     """
     def __init__(self):
-        self.plot_dir = config.PL_DIR
-        os.makedirs(self.plot_dir, exist_ok=True)
+        self.pl_dir = config.PL_DIR
 
     # DATA ANALYSIS
 

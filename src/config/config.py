@@ -37,8 +37,8 @@ DB_FILE = DS_DIR / "database.sqlite"
 
 # READING & LOGGING SETTINGS
 
-USE_MODBUS = True
-DEVELOPER_MODE = False
+USE_MODBUS = False
+DEVELOPER_MODE = True
 RETRY_INTERVAL = 60
 MAX_RETRIES = 10
 MAX_METER_VALUE = 1000000
@@ -53,14 +53,6 @@ INFLUXDB_TIMEOUT = 30
 
 # REMOTE SYNC SETTINGS
 
-REMOTE_DB_ENABLED = False
-REMOTE_DB_CONFIG = {
-    "database": os.getenv("DB"),
-    "user": os.getenv("DB_USERNAME"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT"),
-}
-REMOTE_DB_TABLE = os.getenv("DB_TARGET_TABLE")
+REMOTE_DB_ENABLED = True
 SYNC_INTERVAL = 30
 SYNC_BATCH_SIZE = 100

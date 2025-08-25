@@ -24,9 +24,6 @@ class DataLogger:
     """
     def __init__(self, filename, table_name, register_map, end_time=None, on_failure_callback=None):
         self.ds_dir = config.DS_DIR
-        if not os.path.exists(self.ds_dir):
-            os.makedirs(self.ds_dir, exist_ok=True)
-
         self.ds_filename = filename
         self.tb_name = table_name
         self.end_time = end_time

@@ -31,13 +31,13 @@ class LoggerState(Base):
     Represents the state of the logger in the database.
     """
     __tablename__ = "logger_state"
-    id = Column(Integer, primary_key=True, default=1)
-    status = Column(String, nullable=False)
+    tableName = Column(String, primary_key=True)
+    status = Column(String, nullable=False, index=True)
     csvFile = Column(String, nullable=True)
-    tableName = Column(String, nullable=True)
     startTime = Column(DateTime, nullable=True)
     endTime = Column(DateTime, nullable=True)
     mode = Column(String, nullable=True)
+    meterModel = Column(String, nullable=False, index=True)
 
 # FUNCTIONS
 
@@ -46,9 +46,6 @@ def init_db():
     Initializes the database and creates relevant tables.
     """
     try:
-        if not os.path.exists(config.DS_DIR):
-            os.makedirs(config.DS_DIR, exist_ok=True)
-
         Base.metadata.create_all(bind=ENGINE)
         log.info("Database initialized successfully.")
     except Exception as e:
