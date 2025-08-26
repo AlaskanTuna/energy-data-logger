@@ -5,6 +5,7 @@
 #       This is the main application for the data logger.
 
 import os
+import json
 import logging
 import datetime
 import atexit
@@ -20,6 +21,7 @@ from services.analyzer_wrapper import analyzer_service
 from services.analyzer_wrapper import VISUALIZATION_TYPES
 from services.remote_syncer import remote_syncer_service
 from datetime import datetime, time, timedelta
+from werkzeug.utils import secure_filename
 
 # GLOBAL VARIABLES
 
@@ -404,6 +406,64 @@ def analyze_file(filename):
     end_time = data.get("end_time")
     result = analyzer_service.analyze_file(filename, start_time, end_time)
     return jsonify(result if result else {"error": "Analysis failed"})
+
+@app.post("/api/meters/upload")
+def upload_meter_profile():
+    """ 
+    Handles JSON meter profile uploads from webapp.
+    """
+    if "files[]" not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    files = request.files.getlist("files[]")
+    if not files or files[0].filename == "":
+        return jsonify({"error": "No files selected for uploading"}), 400
+
+    success_files = []
+    error_files = []
+
+    for file in files:
+        # Validate filename and extension
+        if not file.filename.lower().endswith('.json'):
+            error_files.append({"filename": file.filename, "error": "Invalid file type. Only JSON files are allowed."})
+            continue
+
+        # Sanitize the filename
+        filename = secure_filename(file.filename)
+        target_path = os.path.join(config.METERS_DIR, filename)
+
+        try:
+            # 3. Validate the file content
+            content = file.read().decode('utf-8')
+            if not content:
+                raise ValueError("Uploaded file is empty.")
+
+            # Validate the file schema
+            data = json.loads(content)
+            if 'registers' not in data or not isinstance(data['registers'], dict):
+                raise ValueError("JSON file is missing a 'registers' object.")
+            if 'remote_database' in data and not isinstance(data['remote_database'], dict):
+                raise ValueError("JSON file 'remote_database' must be an object.")
+
+            # Save the file
+            with open(target_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+
+            success_files.append(filename)
+            log.info(f"Saved new meter profile '{filename}' successfully.")
+        except json.JSONDecodeError:
+            error_files.append({"filename": file.filename, "error": "Invalid JSON format."})
+        except ValueError as e:
+            error_files.append({"filename": file.filename, "error": str(e)})
+        except Exception as e:
+            log.error(f"Profile Upload Error: An unexpected error occured: {e}", exc_info=True)
+            error_files.append({"filename": file.filename, "error": "An internal server error occured."})
+
+    return jsonify({
+        "status": "completed",
+        "successful_uploads": success_files,
+        "failed_uploads": error_files
+    })
 
 @app.post("/api/settings")
 def save_settings():

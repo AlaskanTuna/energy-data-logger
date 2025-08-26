@@ -161,8 +161,10 @@ header h1 {
 }
 
 .profile-dropdown-item {
-    display: block;
-    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 1rem;
     color: var(--text-color);
     text-decoration: none;
     border-radius: 6px;
@@ -176,6 +178,36 @@ header h1 {
 .profile-dropdown-item.active {
     font-weight: 600;
     color: var(--primary-color);
+}
+
+.profile-dropdown-menu .separator {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 0.5rem 0;
+}
+
+.profile-upload-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profile-upload-item .icon {
+    width: 16px;
+    height: 16px;
+    filter: var(--icon-filter);
+}
+
+.profile-upload-item:hover {
+    background-color: var(--bg-color);
 }
 
 .footer-logo {

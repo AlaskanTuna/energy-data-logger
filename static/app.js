@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileButton = document.getElementById('profile-button');
     const profileButtonText = profileButton.querySelector('span');
     const profileDropdown = document.getElementById('profile-dropdown');
+    const uploadInput = document.getElementById('meter-upload-input');
 
     function initializeMeterSelector() {
         Promise.all([
@@ -54,6 +55,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 profileDropdown.appendChild(a);
             });
 
+            const uploadLink = document.createElement('a');
+            uploadLink.href = "#";
+            uploadLink.className = 'profile-upload-item';
+            uploadLink.dataset.id = 'upload-profile';
+            uploadLink.innerHTML = `
+                <img src="/static/icons/plus-circle.svg" class="icon" alt="Upload">
+                <span>UPLOAD</span>
+            `;
+            profileDropdown.appendChild(uploadLink);
+
             // Set the currently active meter in the UI
             const activeModelId = currentSettings.ACTIVE_METER_MODEL;
             setActiveMeterUI(activeModelId, meters);
@@ -66,8 +77,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleMeterSelection(event) {
         event.preventDefault();
-        const target = event.target.closest('.profile-dropdown-item');
+        const target = event.target.closest('.profile-dropdown-item, .profile-upload-item');
         if (!target) return;
+
+        if (target.dataset.id === 'upload-profile') {
+            profileSelector.classList.remove('active');
+            uploadInput.click();
+            return;
+        }
 
         const newModelId = target.dataset.id;
         const currentActiveElement = profileDropdown.querySelector('.active');
@@ -120,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 item.classList.toggle('active', item.dataset.id === activeMeter.id);
             });
         } else {
-            profileButtonText.textContent = "No Profiles Found";
+            profileButtonText.textContent = "NONE";
         }
     }
 
@@ -136,6 +153,51 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    function handleFileUpload(event) {
+        // Handle file selection
+        const files = event.target.files;
+        if (!files.length) {
+            return;
+        }
+
+        // Prepare form data for upload
+        const formData = new FormData();
+        for (const file of files) {
+            formData.append('files[]', file);
+        }
+
+        profileButtonText.textContent = "UPLOADING";
+
+        fetch('/api/meters/upload', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(res => res.json())
+        .then(data => {
+            let alertMessage = "";
+            if (data.successful_uploads && data.successful_uploads.length > 0) {
+                alertMessage += `Successfully uploaded meter profile: ${data.successful_uploads.join(', ')}\n`;
+            }
+            if (data.failed_uploads && data.failed_uploads.length > 0) {
+                const failed = data.failed_uploads.map(f => `${f.filename} (${f.error})`).join('\n');
+                alertMessage += `\nFailed to upload meter profile: ${failed}`;
+            }
+            alert(alertMessage || "Upload process completed, but no files were processed.");
+            initializeMeterSelector();
+        })
+        .catch(error => {
+            console.error("File upload failed:", error);
+            alert("A network or server error occurred during uploading the meter profile.");
+            initializeMeterSelector();
+        })
+        .finally(() => {
+            event.target.value = null;
+        });
+    }
+
+    // Event listener for hidden file input and handling file input
+    uploadInput.addEventListener('change', handleFileUpload);
 
     // UI ELEMENTS
 
@@ -415,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }).catch(err => {
             console.error('Error fetching data for parameter selection:', err);
-            modalBody.innerHTML = '<p class="error-message">Could not load logging parameters.</p>';
+            modalBody.innerHTML = '<p class="error-message">Logging parameters are unavailable.</p>';
         });
     }
 
@@ -1106,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).catch(err => console.error('Error fetching data:', err));
     }
 
-    // Webapp initialization
+    // Initialize the webapp
     startStatusPolling();
     initializeMeterSelector();
 });
