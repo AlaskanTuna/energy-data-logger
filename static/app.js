@@ -958,6 +958,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
 
                         <div class="form-group">
+                            <label for="customer_id">Customer ID</label>
+                            <input type="text" id="customer_id" name="customer_id" value="${data.CUSTOMER_ID || ''}">
+                        </div>
+
+                        <div class="form-group">
                             <label for="log_interval">Logging Interval (Seconds)</label>
                             <input type="number" id="log_interval" name="log_interval" value="${data.LOG_INTERVAL}" min="1" required>
                         </div>
@@ -1034,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const newSettings = {
             LIVE_METRICS: form.live_metrics.checked,
+            CUSTOMER_ID: form.customer_id.value.trim(),
             LOG_INTERVAL: parseInt(form.log_interval.value, 10),
             MODBUS_SLAVE_ID: parseInt(form.modbus_slave_id.value, 10),
             BAUDRATE: parseInt(form.baudrate.value, 10),
