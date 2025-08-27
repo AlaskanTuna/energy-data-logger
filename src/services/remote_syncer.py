@@ -174,8 +174,15 @@ class RemoteDBSyncer:
                 with remote_conn.cursor() as cursor:
                     # Prepare the row data for insertion
                     row_data = dict(row)
-                    row_id = row_data.pop('id')
-                    row_data.pop('sync_status', None)
+                    row_id = row_data.pop("id")
+                    row_data.pop("sync_status", None)
+
+                    # Get the Customer ID if available
+                    customer_id = settings.get("CUSTOMER_ID")
+                    if customer_id and customer_id.strip():
+                        row_data['customer_id'] = customer_id.strip()
+                    else:
+                        row_data['customer_id'] = None 
 
                     # Prepare the columns and values for insertion
                     columns_to_insert = row_data.keys()

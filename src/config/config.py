@@ -11,6 +11,7 @@ load_dotenv()
 
 MODBUS_PORT = "/dev/serial0"
 DEFAULT_SETTINGS = {
+    "CUSTOMER_ID": "",
     "ACTIVE_METER_MODEL": "wago_879",
     "LOG_INTERVAL": 900,
     "MODBUS_SLAVE_ID": 1,
