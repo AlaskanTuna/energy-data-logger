@@ -65,15 +65,38 @@ class RemoteDBSyncer:
                 check_statement = text(f'SELECT id FROM "{table_name}" WHERE sync_status = :status LIMIT 1')
                 if connection.execute(check_statement, {"status": "pending"}).first():
                     db = SessionLocal()
+                    session_record = None
+
+                    # Check for session record
                     try:
                         session_record = db.query(LoggerState).filter_by(tableName=table_name).first()
-                        if session_record and session_record.meterModel:
-                            log.info(f"Found pending work in table '{table_name}' created by model '{session_record.meterModel}'.")
-                            return table_name, session_record.meterModel
-                        else:
-                            log.warning(f"Found pending work in table '{table_name}' without corresponding session record. Skipping this table.")
                     finally:
                         db.close()
+
+                    # Skip if no session record or meter model is found
+                    if not (session_record and session_record.meterModel):
+                        continue
+
+                    try:
+                        meter_model = session_record.meterModel
+                        meter_config = load_meter_config(meter_model, full_config=True)
+                        db_info = meter_config.get("remote_database")
+
+                        # Skip if any required field is missing
+                        if not all([
+                            db_info.get("database"),
+                            db_info.get("user"),
+                            db_info.get("password"),
+                            db_info.get("host"),
+                            db_info.get("port"),
+                            db_info.get("target_table")
+                        ]):
+                            continue
+                        log.info(f"Found pending work in table '{table_name}' created by model '{meter_model}'.")
+                        return table_name, meter_model
+                    except (ValueError, KeyError) as e:
+                        log.error(f"Get Batch Error: {e}", exc_info=True)
+                        continue
 
         log.info("No pending work found in any table to sync.")
         return None, None
@@ -111,6 +134,8 @@ class RemoteDBSyncer:
         """
         Executes a single synchronization cycle.
         """
+        settings.load_settings()
+
         # Check mode
         if not config.REMOTE_DB_ENABLED:
             return
@@ -200,7 +225,7 @@ class RemoteDBSyncer:
                     insert_statement = (
                         f'INSERT INTO "{remote_table_name}" ({column_names_str}) '
                         f'VALUES ({value_placeholders_str}) '
-                        f'ON CONFLICT ("Timestamp") DO NOTHING'
+                        f'ON CONFLICT ("Timestamp", "customer_id") DO NOTHING'
                     )
 
                     # Execute the insert statement

@@ -433,17 +433,19 @@ def upload_meter_profile():
         target_path = os.path.join(config.METERS_DIR, filename)
 
         try:
-            # 3. Validate the file content
+            # Validate the file content
             content = file.read().decode('utf-8')
             if not content:
                 raise ValueError("Uploaded file is empty.")
 
             # Validate the file schema
             data = json.loads(content)
-            if 'registers' not in data or not isinstance(data['registers'], dict):
-                raise ValueError("JSON file is missing a 'registers' object.")
-            if 'remote_database' in data and not isinstance(data['remote_database'], dict):
+            if "remote_database" not in data or not isinstance(data["remote_database"], dict):
+                raise ValueError("JSON file is missing a 'remote_database' object.")
+            if "remote_database" in data and not isinstance(data["remote_database"], dict):
                 raise ValueError("JSON file 'remote_database' must be an object.")
+            if "registers" not in data or not isinstance(data["registers"], dict):
+                raise ValueError("JSON file is missing a 'registers' object.")
 
             # Save the file
             with open(target_path, 'w', encoding='utf-8') as f:
