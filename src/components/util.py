@@ -10,6 +10,26 @@ from config import config
 
 log = logging.getLogger(__name__)
 
+def initialize_directories():
+    """ 
+    Initialize necessary directories for the logger.
+    """
+    dirs = [
+        config.DS_DIR,
+        config.PL_DIR,
+        config.LOG_DIR,
+        config.METERS_DIR
+    ]
+
+    # Initialize directories
+    try:
+        for dir in dirs:
+            if not os.path.exists(dir):
+                os.makedirs(dir, exist_ok=True)
+                log.info(f"Initialized directory at '{dir}' successfully.")
+    except Exception as e:
+        log.error(f"Directory Initialization Error: {e}", exc_info=True)
+
 def clear_screen():
     """
     Clear the terminal screen.
@@ -36,10 +56,6 @@ def list_files(file="type"):
         return []
 
     try:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            return []
-
         files = [f for f in os.listdir(directory) if f.endswith(extension)]
         return sorted(files)
     except Exception as e:

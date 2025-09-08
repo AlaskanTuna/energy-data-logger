@@ -41,9 +41,6 @@ class LogManager:
         """ 
         Sets up the base logger for the application.
         """
-        if not os.path.exists(config.LOG_DIR):
-            os.makedirs(config.LOG_DIR)
-
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO) # Log verbosity level
 
@@ -79,12 +76,6 @@ class LogManager:
 
         log_filepath = os.path.join(config.LOG_DIR, f"{filename}.log")
         log.info(f"Starting application log session at '{log_filepath}'.")
-
-        try:
-            os.makedirs(config.LOG_DIR, exist_ok=True)
-        except OSError as e:
-            log.error(f"Log Handler Error: Could not create log directory '{config.LOG_DIR}': {e}")
-            return
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 

@@ -11,6 +11,7 @@ load_dotenv()
 
 MODBUS_PORT = "/dev/serial0"
 DEFAULT_SETTINGS = {
+    "CUSTOMER_ID": "",
     "ACTIVE_METER_MODEL": "wago_879",
     "LOG_INTERVAL": 900,
     "MODBUS_SLAVE_ID": 1,
@@ -53,14 +54,6 @@ INFLUXDB_TIMEOUT = 30
 
 # REMOTE SYNC SETTINGS
 
-REMOTE_DB_ENABLED = False
-REMOTE_DB_CONFIG = {
-    "database": os.getenv("DB"),
-    "user": os.getenv("DB_USERNAME"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT"),
-}
-REMOTE_DB_TABLE = os.getenv("DB_TARGET_TABLE")
+REMOTE_DB_ENABLED = True
 SYNC_INTERVAL = 30
 SYNC_BATCH_SIZE = 100

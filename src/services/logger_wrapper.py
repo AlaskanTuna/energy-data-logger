@@ -46,10 +46,10 @@ class LoggerService:
         if logger_state and logger_state.get("status") == "running":
             recovered_end_time = logger_state.get("endTime")
             if recovered_end_time:
-                log.warning(f"Found 'RUNNING' logger state until '{recovered_end_time.isoformat()}'!")
+                log.warning(f"Found 'RUNNING' logger state until '{recovered_end_time.isoformat()}' in '{logger_state.get('tableName')}'!")
                 log.info(f"Resuming scheduled logging session in {self._recovery_buffer}s.")
             else:
-                log.warning("Found 'RUNNING' logger state!")
+                log.warning(f"Found 'RUNNING' logger state in '{logger_state.get('tableName')}'!")
                 log.info(f"Resuming default logging session in {self._recovery_buffer}s.")
 
             if recovered_end_time and datetime.now() >= recovered_end_time:
@@ -67,15 +67,16 @@ class LoggerService:
         """
         db = SessionLocal()
         try:
-            state_row = db.query(LoggerState).filter(LoggerState.id == 1).first()
+            state_row = db.query(LoggerState).filter(LoggerState.status == "running").first()
             if state_row:
                 return {
+                    "tableName": state_row.tableName,
                     "status": state_row.status,
                     "csvFile": state_row.csvFile,
-                    "tableName": state_row.tableName,
                     "startTime": state_row.startTime,
                     "endTime": state_row.endTime,
                     "mode": state_row.mode,
+                    "meterModel": state_row.meterModel
                 }
             return None
         except SQLAlchemyError as e:
@@ -83,24 +84,26 @@ class LoggerService:
         finally:
             db.close()
 
-    def _create_logger_state(self, filepath, table, end_time=None, mode=None):
+    def _create_logger_state(self, filepath, table_name, active_model, end_time=None, mode=None):
         """ 
         Create a new logger state in the database.
         
         @filepath: Path to the CSV file being logged
+        @table_name: Name of the database table being logged to
+        @active_mode: The energy meter model being logged
+        @end_time: The end time for the logging session if available
+        @mode: The mode of the logging session
         """
         db = SessionLocal()
         try:
-            # Clear old state first
-            db.query(LoggerState).delete()
             new_state = LoggerState(
-                id=1,
+                tableName=table_name,
                 status="running",
                 csvFile=filepath,
-                tableName=table,
                 startTime=datetime.now(),
                 endTime=end_time,
-                mode=mode
+                mode=mode,
+                meterModel=active_model
             )
             db.add(new_state)
             db.commit()
@@ -110,17 +113,21 @@ class LoggerService:
         finally:
             db.close()
 
-    def _clear_logger_state(self):
-        """ 
-        Clear the logger state from the database.
+    def _update_logger_state_on_stop(self, table_name):
+        """
+        Updates a session's state in the historical log.
+
+        @table_name: Name of the database table being logged to
         """
         db = SessionLocal()
         try:
-            db.query(LoggerState).delete()
-            db.commit()
-            log.info("Logger state cleared successfully.")
+            session = db.query(LoggerState).filter_by(tableName=table_name).first()
+            if session:
+                session.status = "stopped"
+                db.commit()
+                log.info(f"Stopped logger state session '{table_name}' successfully.")
         except SQLAlchemyError as e:
-            log.error(f"State Clear Error: {e}", exc_info=True)
+            log.error(f"State Update Error: {e}", exc_info=True)
             db.rollback()
         finally:
             db.close()
@@ -155,7 +162,7 @@ class LoggerService:
                     raise ValueError("ACTIVE_METER_MODEL setting is not defined.")
                 register_map = load_meter_config(active_model)
             except ValueError as e:
-                log.error(f"Aborting logger start: {e}")
+                log.error(f"Logger Service Error: {e}")
                 return {"status": "error", "message": str(e)}
 
             # Determine file and table names
@@ -168,12 +175,12 @@ class LoggerService:
                 table_name = session_name
 
             if not csv_filepath or not table_name:
-                log.error("Could not determine filepath or table for new log session.")
+                log.error("Logger Service Error: Could not determine filepath or table.")
                 return {"status": "error", "message": "Could not determine filepath or table."}
 
             # Create the dynamic table before starting the logger
             if not create_log_table(table_name, register_map):
-                log.error(f"Aborting logger start due to failure in creating table '{table_name}'.")
+                log.error(f"Logger Service Error: Failure in creating table '{table_name}'.")
                 return {"status": "error", "message": f"Failed to create database table for session."}
 
             session_name_for_log = os.path.splitext(os.path.basename(csv_filepath))[0]
@@ -198,7 +205,7 @@ class LoggerService:
             )
 
             if not from_init:
-                self._create_logger_state(csv_filepath, table_name, end_time, mode if mode else "default")
+                self._create_logger_state(csv_filepath, table_name, active_model, end_time, mode if mode else "default")
 
             self._logging_thread.start()
 
@@ -210,25 +217,29 @@ class LoggerService:
 
     def stop(self, csv_filepath=None):
         with self._lock:
-            if not csv_filepath:
-                logger_state = self._get_logger_state()
-                if logger_state:
-                    csv_filepath = logger_state.get("csvFile")
+            db = SessionLocal()
+            running_state = db.query(LoggerState).filter_by(status="running").first()
+            db.close()
 
-            session_name = None
-            if csv_filepath:
-                session_name = os.path.splitext(os.path.basename(csv_filepath))[0]
+            table_to_stop = None
+            session_name_to_stop = None
 
-            self._clear_logger_state()
-            if session_name:
-                log_manager.stop_session_logging(session_name=session_name)
+            if running_state:
+                table_to_stop = running_state.tableName
+                session_name_to_stop = os.path.splitext(os.path.basename(running_state.csvFile))[0]
+                self._update_logger_state_on_stop(table_to_stop)
+            elif csv_filepath:
+                session_name_to_stop = os.path.splitext(os.path.basename(csv_filepath))[0]
+
+            if session_name_to_stop:
+                log_manager.stop_session_logging(session_name=session_name_to_stop)
             else:
-                log_manager.stop_session_logging()
+                log.warning("Stop called but no running session found to stop its log file.")
 
             if not self._logging_thread or not self._logging_thread.is_alive():
+                if running_state:
+                    log.warning(f"Thread was not running. State for '{running_state.tableName}' was running. Updating state to 'stopped'.")
                 return {"status": "already_stopped"}
-
-            log.info("Stopping data logging thread...")
 
             if self._dl:
                 self._dl.stop()
