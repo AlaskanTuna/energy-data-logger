@@ -106,6 +106,11 @@ class DataLogger:
         Simultaneously log meter readings to CSV and InfluxDB.
         """
         try:
+            log_interval = settings.get("LOG_INTERVAL")
+            flush_interval = 900
+            writes_per_flush = int(flush_interval / log_interval)
+            write_counter = 0
+
             while self._running and (self.end_time is None or datetime.now() < self.end_time):
                 readings = self.reader.get_meter_readings(active_parameters=self.active_params)
                 if not readings:
@@ -129,6 +134,14 @@ class DataLogger:
                     with open(self.ds_filename, 'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerow(row_data)
+
+                        # Update write counter and flush
+                        write_counter += 1
+                        if write_counter >= writes_per_flush:
+                            file.flush()
+                            os.fsync(file.fileno())
+                            write_counter = 0
+                            log.info("Memory buffer flushed to disk successfully.")
                     csv_status = "OK"
                 except Exception as e:
                     log.error(f"CSV Write Error: {e}", exc_info=True)

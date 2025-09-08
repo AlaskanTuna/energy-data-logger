@@ -950,7 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body.innerHTML = `
                     <form id="settings-form">
                         <div class="toggle-switch">
-                            <label for="live_metrics">Live Metrics</label>
+                            <label for="live_metrics">Live Metrics (Experimental)</label>
                             <label class="switch">
                                 <input type="checkbox" id="live_metrics" name="live_metrics" ${data.LIVE_METRICS ? 'checked' : ''}>
                                 <span class="slider"></span>
@@ -1039,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const newSettings = {
             LIVE_METRICS: form.live_metrics.checked,
-            CUSTOMER_ID: form.customer_id.value.trim(),
+            CUSTOMER_ID: form.customer_id.value.trim().replace(/\s+/g, '').toUpperCase(),
             LOG_INTERVAL: parseInt(form.log_interval.value, 10),
             MODBUS_SLAVE_ID: parseInt(form.modbus_slave_id.value, 10),
             BAUDRATE: parseInt(form.baudrate.value, 10),
