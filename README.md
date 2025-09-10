@@ -120,22 +120,16 @@
    ```bash
    # INFLUXDB
 
-   INFLUXDB_URL = ""
+   INFLUXDB_URL = "http://localhost:8086"
    INFLUXDB_TOKEN = ""
 
    # GRAFANA
 
-   GRAFANA_URL = ""
+   GRAFANA_URL = "http://localhost:3000"
 
-   # REMOTE DATABASE CREDENTIALS
+   # GCP
 
-   DB = ""
-   DB_HOST = ""
-   DB_PORT = ""
-   DB_USERNAME = ""
-   DB_PASSWORD = ""
-   DB_SCHEMA = ""
-   DB_TARGET_TABLE = ""
+   GCP_SERVER_URL = "http://GCP_SERVER_URL:8000"
    ```
 
 5. Create a [table](https://files.catbox.moe/z2yuxa.txt) in the remote database (optional, for online data sync):
