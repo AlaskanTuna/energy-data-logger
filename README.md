@@ -130,6 +130,10 @@
    # GCP
 
    GCP_SERVER_URL = "http://GCP_SERVER_URL:8000"
+
+   # SBMS
+
+   SBMS_SECRET_KEY = ""
    ```
 
 5. Create a [table](https://files.catbox.moe/z2yuxa.txt) in the remote database (optional, for online data sync):
