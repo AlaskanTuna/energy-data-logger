@@ -196,8 +196,74 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event listener for hidden file input and handling file input
     uploadInput.addEventListener('change', handleFileUpload);
+
+    // CUSTOMER SELECTION MODAL
+
+    const customerModal = document.getElementById('customer-select-modal');
+    const customerListContainer = document.getElementById('customer-list-container');
+    const customerSearchInput = document.getElementById('customer-search-input');
+    const confirmCustomerBtn = document.getElementById('confirm-customer-btn');
+
+    function renderCustomerList(customers) {
+        customerListContainer.innerHTML = '';
+        if (!customers || customers.length === 0) {
+            customerListContainer.innerHTML = '<div class="list-status-message">No customers found on the server.</div>';
+            return;
+        }
+
+        // Populate the customer list
+        customers.forEach(customer => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.dataset.id = customer.id;
+            item.dataset.code = customer.code;
+            item.innerHTML = `<div><strong>${customer.name}</strong><div class="file-item-date">${customer.code}</div></div>`;
+
+            item.addEventListener('click', () => {
+                const currentActive = customerListContainer.querySelector('.active');
+                if (currentActive) {
+                    currentActive.classList.remove('active');
+                }
+                item.classList.add('active');
+            });
+            customerListContainer.appendChild(item);
+        });
+    }
+
+    // Search input for filtering customers
+    if (customerSearchInput) {
+        customerSearchInput.addEventListener('input', () => {
+            const searchTerm = customerSearchInput.value.toLowerCase();
+            const items = customerListContainer.querySelectorAll('.file-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+
+    if (confirmCustomerBtn) {
+        confirmCustomerBtn.addEventListener('click', () => {
+            const activeItem = customerListContainer.querySelector('.file-item.active');
+
+            if (activeItem) {
+                selectedCustomer = {
+                    id: activeItem.dataset.id,
+                    code: activeItem.dataset.code
+                };
+            } else {
+                selectedCustomer = { id: "", code: "" };
+            }
+
+            // Update the button text
+            const selectCustomerBtn = document.getElementById('select-customer-btn');
+            if(selectCustomerBtn) {
+                selectCustomerBtn.textContent = selectedCustomer.code || 'None';
+            }
+            customerModal.style.display = 'none';
+        });
+    }
 
     // UI ELEMENTS
 
@@ -228,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let dataPollingInterval = null;
     let statusPollingInterval = null;
     let currentGrafanaState = null;
+    let selectedCustomer = { id: null, code: null };
 
     // STATUS POLLING AND RENDERING
 
@@ -958,8 +1025,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
 
                         <div class="form-group">
-                            <label for="customer_id">Customer ID</label>
-                            <input type="text" id="customer_id" name="customer_id" value="${data.CUSTOMER_ID || ''}">
+                            <label>Selected Customer</label>
+                            <button type="button" id="select-customer-btn" class="control-button">None</button>
                         </div>
 
                         <div class="form-group">
@@ -1023,6 +1090,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </form>
                 `;
+
+                // Select customer button
+                const selectCustomerBtn = document.getElementById('select-customer-btn');
+
+                selectCustomerBtn.textContent = data.LEE_NO || 'None';
+                selectedCustomer = { id: data.CUSTOMER_FK_ID, code: data.LEE_NO };
+
+                selectCustomerBtn.addEventListener('click', async () => {
+                    const customerModal = document.getElementById('customer-select-modal');
+                    const customerListContainer = document.getElementById('customer-list-container');
+
+                    customerModal.style.display = 'flex';
+                    customerListContainer.innerHTML = `<div class="list-status-message"><div class="loading-spinner"></div>Loading customers...</div>`;
+
+                    try {
+                        // Fetch the customer list from GCP server
+                        const response = await fetch(`/api/customers`);
+                        if (!response.ok) throw new Error('Server is currently unavailable.');
+
+                        const customers = await response.json();
+                        renderCustomerList(customers);
+                    } catch (error) {
+                        console.error("Failed to fetch customers:", error);
+                        customerListContainer.innerHTML = `<div class="list-status-message">Could not connect to the server.</div>`;
+                    }
+                });
+
+                // Form submission handler
                 document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
             })
             .catch(error => {
@@ -1039,7 +1134,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const newSettings = {
             LIVE_METRICS: form.live_metrics.checked,
-            CUSTOMER_ID: form.customer_id.value.trim().replace(/\s+/g, '').toUpperCase(),
+            CUSTOMER_FK_ID: selectedCustomer.id,
+            LEE_NO: selectedCustomer.code,
             LOG_INTERVAL: parseInt(form.log_interval.value, 10),
             MODBUS_SLAVE_ID: parseInt(form.modbus_slave_id.value, 10),
             BAUDRATE: parseInt(form.baudrate.value, 10),
