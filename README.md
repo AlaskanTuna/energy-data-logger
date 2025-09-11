@@ -98,7 +98,7 @@
 1. With Git installed, clone the project and navigate into it:
 
    ```bash
-   git clone https://github.com/AlaskanTuna/energy-data-logger.git
+   git clone -b solar-billing https://github.com/AlaskanTuna/energy-data-logger.git
    cd energy-data-logger/
    ```
 
