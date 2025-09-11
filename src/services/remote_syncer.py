@@ -50,7 +50,7 @@ class RemoteDBSyncer:
             socket.create_connection(("8.8.8.8", 53), timeout=3)
             return True
         except OSError:
-            log.info("Internet disconnected. Skipping sync cycle.")
+            log.warning("Internet disconnected. Skipping sync cycle.")
             return False
 
     def _get_next_sync_batch(self):
@@ -174,7 +174,7 @@ class RemoteDBSyncer:
             remote_table_name = db_info.get("target_table")
 
             if not all(remote_db_config.values()) or not remote_table_name:
-                log.error(f"Remote database configuration for '{meter_model}' is incomplete. Skipping sync.")
+                log.warning(f"Remote database configuration for '{meter_model}' is incomplete. Skipping sync.")
                 self._status = "idle"
                 return
         except (ValueError, KeyError) as e:
@@ -202,12 +202,13 @@ class RemoteDBSyncer:
                     row_id = row_data.pop("id")
                     row_data.pop("sync_status", None)
 
-                    # Get the Customer ID if available
-                    customer_id = settings.get("CUSTOMER_ID")
-                    if customer_id and customer_id.strip():
-                        row_data['customer_id'] = customer_id.strip()
+                    # Prepare the customer_fk_id
+                    customer_fk_id = settings.get("CUSTOMER_FK_ID")
+                    if customer_fk_id:
+                        row_data['customer_fk_id'] = int(customer_fk_id)
                     else:
-                        row_data['customer_id'] = None 
+                        log.warning(f"No customer is selected in settings. Skipping row.")
+                        continue
 
                     # Prepare the columns and values for insertion
                     columns_to_insert = row_data.keys()
@@ -225,7 +226,7 @@ class RemoteDBSyncer:
                     insert_statement = (
                         f'INSERT INTO "{remote_table_name}" ({column_names_str}) '
                         f'VALUES ({value_placeholders_str}) '
-                        f'ON CONFLICT ("Timestamp", "customer_id") DO NOTHING'
+                        f'ON CONFLICT ("Timestamp", "customer_fk_id") DO NOTHING'
                     )
 
                     # Execute the insert statement

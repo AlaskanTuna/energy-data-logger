@@ -20,13 +20,19 @@ def initialize_directories():
         config.LOG_DIR,
         config.METERS_DIR
     ]
+    cache_file = config.CUSTOMER_CACHE_FILE
 
-    # Initialize directories
     try:
+        # Initialize directories
         for dir in dirs:
             if not os.path.exists(dir):
                 os.makedirs(dir, exist_ok=True)
                 log.info(f"Initialized directory at '{dir}' successfully.")
+
+        # Initialize customer cache file
+        if not os.path.exists(cache_file):
+            with open(cache_file, 'w') as f:
+                f.write('{}')
     except Exception as e:
         log.error(f"Directory Initialization Error: {e}", exc_info=True)
 

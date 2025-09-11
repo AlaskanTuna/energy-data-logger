@@ -6,6 +6,7 @@
 
 import os
 import json
+import requests
 import logging
 import datetime
 import atexit
@@ -236,6 +237,41 @@ def get_meter_models():
         log.error(f"API Error at /api/meters: {e}", exc_info=True)
         return jsonify({"error": "Could not retrieve meter models."}), 500
 
+@app.get("/api/customers")
+def get_customers_list():
+    """
+    Provides the customer list to the logger's frontend.
+    """
+    try:
+        api_url = f"{config.GCP_SERVER_URL}/api/v1/loggers/customers"
+        headers = {'X-API-Key': config.SBMS_SECRET_KEY}
+        response = requests.get(api_url, headers=headers, timeout=5)
+        response.raise_for_status()
+        customers = response.json()
+
+        try:
+            with open(config.CUSTOMER_CACHE_FILE, 'w') as f:
+                json.dump(customers, f)
+            log.info("Cached latest customer list from API successfully.")
+        except Exception as e:
+            log.error(f"Customer Cache Error: {e}")
+        return jsonify(customers)
+    except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+        log.error(f"Customer API Error: {e}")
+
+        try:
+            if os.path.exists(config.CUSTOMER_CACHE_FILE):
+                with open(config.CUSTOMER_CACHE_FILE, 'r') as f:
+                    cached_customers = json.load(f)
+                log.info("Fetched customer list from customer_cache successfully.")
+                return jsonify(cached_customers)
+            else:
+                log.warning("No local customer cache found.")
+                return jsonify([])
+        except Exception as e:
+            log.error(f"Customer Cache Error: {e}")
+            return jsonify({"error": "Failed to read cache"}), 500
+
 @app.get("/api/visualize/<filename>/<plot_type>")
 def generate_visualization(filename, plot_type):
     """ 
@@ -271,6 +307,10 @@ def set_schedule():
     
     @return: JSON object with status of the start operation
     """
+    customer_fk_id = settings.get("CUSTOMER_FK_ID")
+    if not customer_fk_id:
+        return jsonify({"error": "No customer is selected in Settings."}), 400
+
     from services.schedule_runner import start_logging_job, stop_logging_job
 
     data = request.get_json()

@@ -11,7 +11,8 @@ load_dotenv()
 
 MODBUS_PORT = "/dev/serial0"
 DEFAULT_SETTINGS = {
-    "CUSTOMER_ID": "",
+    "CUSTOMER_FK_ID": "",
+    "LEE_NO": "",
     "ACTIVE_METER_MODEL": "wago_879",
     "LOG_INTERVAL": 900,
     "MODBUS_SLAVE_ID": 1,
@@ -35,6 +36,7 @@ METERS_DIR = ROOT / "src" / "config" / "meters/"
 SETTINGS_FILE = DS_DIR / "settings.json"
 STATE_FILE = DS_DIR / "logger.state"
 DB_FILE = DS_DIR / "database.sqlite"
+CUSTOMER_CACHE_FILE = DS_DIR / "customer_cache.json"
 
 # READING & LOGGING SETTINGS
 
@@ -57,3 +59,11 @@ INFLUXDB_TIMEOUT = 30
 REMOTE_DB_ENABLED = True
 SYNC_INTERVAL = 30
 SYNC_BATCH_SIZE = 100
+
+# GCP SERVER SETTINGS
+
+GCP_SERVER_URL = os.getenv("GCP_SERVER_URL")
+
+# SBMS SETTINGS
+
+SBMS_SECRET_KEY = os.getenv("SBMS_SECRET_KEY")
